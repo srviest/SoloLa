@@ -69,12 +69,10 @@ def feature_extractor(audio, features, pool_methods=['mean', 'var', 'min', 'max'
            feature_vec = np.concatenate([feature_vec,feature], axis = 0)
         else: # for those type == float
            feature_vec.append(feature)
-    # return feature_vec     
-    feature_vec_all = np.concatenate((feature_vec_all,feature_vec), axis = 0)
+    
+    return feature_vec
 
-    return feature_vec_all
-
-def parse_input_files(args, ext='.wav'):
+def parse_input_files(input_files, ext='.wav'):
     """
     Collect all files by given extension and keywords.
 
@@ -145,7 +143,7 @@ def parser():
 def main(args):
     print 'Running feature extraction...'    
     # parse and list files to be processed
-    audio_files = parse_input_files(args, ext='.wav')
+    audio_files = parse_input_files(args.input_audios, ext='.wav')
         
     # create result directory
     if not os.path.exists(args.output_dir): os.makedirs(args.output_dir)
@@ -182,14 +180,13 @@ def main(args):
                 # clipping audio signal
                 audio_clip = audio[c[0]:c[1]]
                 # extract features
-                feature_vec_all = feature_extractor(audio=audio_clip, features=selected_features)
-              
-            # reshpe feature vector
-            if feature_vec_all.size != 0:
+                feature_vec = feature_extractor(audio=audio_clip, features=selected_features)
+                feature_vec_all = np.concatenate((feature_vec_all,feature_vec), axis = 0)          
+            # reshpe feature vector and save result
+            if feature_vec_all.size!=0:
                 feature_vec_all = feature_vec_all.reshape(len(candidate_sample),len(feature_vec_all)/len(candidate_sample))
-            # save result if the feature array is not empty
-            if bool(feature_vec_all):
                 np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature', feature_vec_all, fmt='%s')
+                
 
 
 if __name__ == '__main__':

@@ -362,11 +362,12 @@ def main(args):
     
     # inspect if there exists the cross validation indices
     try:
-        CVfold = np.load(args.output_dir+os.sep+class_data_num+'.iter'+str(args.i)+'.fold'+str(args.f)+'.npy').item()
+        CVfold = np.load(args.output_dir+os.sep+class_data_num+'.iter'+str(args.i)+'.fold'+str(args.f)+'.CVFold.npy').item()
+        print 'Load pre-partitioned cross validation folds...'
     except IOError:
         print 'Shuffling the samples and dividing them into ', args.f, ' folds...'
         CVfold = StratifiedKFold(label, args.f, shuffle=True)
-        np.save(args.output_dir+os.sep+class_data_num+'.iter'+str(args.i)+'.fold'+str(args.f)+'.npy', CVfold)
+        np.save(args.output_dir+os.sep+class_data_num+'.iter'+str(args.i)+'.fold'+str(args.f)+'.CVFold.npy', CVfold)
 
 
     # Set the parameters by cross-validation
@@ -380,7 +381,8 @@ def main(args):
 
     # set the scoring metric for parameters estimation
     metrics = ['f1']
-
+    # save result to file
+    sys.stdout = open(args.output_dir+os.sep+'Result.txt', 'w')
     # train, test and evaluation
     fold=1
     for train_index, test_index in CVfold:
@@ -415,6 +417,8 @@ def main(args):
             y_true, y_pred = y_test, clf.predict(X_test)
             print(classification_report(y_true, y_pred))
             # print '\n'
+            # save model
+            np.save(args.output_dir+os.sep+class_data_num+'.iter'+str(args.i)+'.fold'+str(fold)+'.model', clf)
 
 
 if __name__ == '__main__':

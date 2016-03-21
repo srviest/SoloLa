@@ -764,24 +764,23 @@ def main(args):
                 # clipping audio signal
                 audio_clip = audio[c[0]:c[1]]
                 # extract features
-                feature_vec_all = feature_extractor(audio=audio_clip, features=selected_features)
-              
-            # reshpe feature vector
-            if feature_vec_all.size != 0:
+                feature_vec = feature_extractor(audio=audio_clip, features=selected_features)
+                feature_vec_all = np.concatenate((feature_vec_all,feature_vec), axis = 0)            
+            # reshpe feature vector and save result
+            if feature_vec_all.size!=0:
                 feature_vec_all = feature_vec_all.reshape(len(candidate_sample),len(feature_vec_all)/len(candidate_sample))
-            # save result if the feature array is not empty
-            if bool(feature_vec_all):
                 np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature', feature_vec_all, fmt='%s')
 
-
-        # """
-        # S2.5 Classfication 
-        # """        
-        # # load pre-trained SVM
-        # clf = np.load(args.model+os.sep+'test_save_model.npy').item()
-        # # classfication
-        # y_pred = clf.predict(feature_vec_all)
-        # print y_pred
+        """
+        S2.5 Classfication 
+        """        
+        # load pre-trained SVM
+        clf = np.load(args.model+os.sep+'test_save_model.npy').item()
+        # load raw features 
+        clf = np.load(args.model+os.sep+'test_save_model.npy').item()
+        # classfication
+        y_pred = clf.predict(feature_vec_all)
+        print y_pred
 
 
 if __name__ == '__main__':
