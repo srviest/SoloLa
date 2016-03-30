@@ -59,7 +59,9 @@ from essentia import *
 from essentia.standard import *
 from Candidate_selection import continuously_ascending_descending_pattern, candidate_selection
 from Feature_extraction import feature_extractor
+from Classification import data_preprocessing
 from GuitarTranscription_parameters import *
+import fnmatch
 
 class Common(object):
     @staticmethod
@@ -92,7 +94,7 @@ class Common(object):
                         for r_esn_r in range(r_esn+1,len(expression_style_note)):
                             expression_style_note_offset = expression_style_note[r_esn_r,1]+expression_style_note[r_esn_r,2]
                             note_with_expression_style_offset = note_with_expression_style[r_n,1]+note_with_expression_style[r_n,2]
-                            # check if the offset of expression_style_note  is larger than or equal to the offset of note_with_expression_style
+                            # check if the offset of expression_style_note is larger than or equal to the offset of note_with_expression_style
                             if expression_style_note_offset>=note_with_expression_style_offset:
                                 # the expression_style_note will not be deleted if the onset exceed the offset of note_with_expression_style, vice versa
                                 if expression_style_note[r_esn_r,1]>note_with_expression_style_offset:
@@ -768,15 +770,16 @@ def main(args):
         model = fnmatch.filter(glob.glob(args.input_model+os.sep+'/*'), '*'+'.model.npy')
         clf = np.load(model[0]).item()
 
-        # load raw features 
-        clf = np.load(args.model+os.sep+'test_save_model.npy').item()
+        # load raw features
+        ascending_raw_feature = np.loadtxt(args.output_dir+os.sep+name+'.'+'ascending'+'.candidate'+'.raw.feature')
+        descending_raw_feature = np.loadtxt(args.output_dir+os.sep+name+'.'+'descending'+'.candidate'+'.raw.feature')
+        raw_data = np.vstack((ascending_raw_feature, descending_raw_feature))
 
         # data preprocessing
-
-
+        data = data_preprocessing(raw_data)
 
         # classfication
-        y_pred = clf.predict(feature_vec_all)
+        y_pred = clf.predict(data)
         print y_pred
 
 

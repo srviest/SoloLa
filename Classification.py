@@ -31,7 +31,10 @@ import subprocess as subp
 from svmutil import *
 from GuitarTranscription_parameters import data_preprocessing_method
 from io_tool import audio2wave
-
+from sklearn.cross_validation import StratifiedKFold
+from sklearn.grid_search import GridSearchCV
+from sklearn.metrics import classification_report
+from sklearn.svm import SVC
 
 def collect_same_technique_feature_files(feature_dir, technique_type = ['bend', 'pull', 'normal','hamm', 'slide']):
     """
@@ -150,13 +153,7 @@ def parser():
     return args
 
 def main(args):
-
-    from sklearn.cross_validation import StratifiedKFold
-    from sklearn.grid_search import GridSearchCV
-    from sklearn.metrics import classification_report
-    from sklearn.svm import SVC
-    # from __future__ import print_function
-
+    print 'Running classification...'    
     # create result directory
     if not os.path.exists(args.output_dir): os.makedirs(args.output_dir)
     print 'Output directory: ', '\n', '  ', args.output_dir
