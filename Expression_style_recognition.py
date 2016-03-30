@@ -618,6 +618,8 @@ def parser():
                    help='melody contours to be processed')
     p.add_argument('input_note', type=str, metavar='input_note',
                    help='note events to be processed')
+    p.add_argument('input_model', type=str, metavar='input_model',
+                   help='pre-trained classifier')
     p.add_argument('output_dir', type=str, metavar='output_dir',
                    help='output directory.')
     # version
@@ -640,10 +642,8 @@ def main(args):
     print '  Output directory: ', '\n', '    ', args.output_dir
 
     for f in audio_files:
-
         ext = os.path.basename(f).split('.')[-1]
-        name = os.path.basename(f).split('.')[0]
-        
+        name = os.path.basename(f).split('.')[0]      
         # load melody 
         melody_path = args.input_melody+os.sep+name+'.MIDI.smooth.melody'
         try:
@@ -656,15 +656,13 @@ def main(args):
         try:
             pruned_note = np.loadtxt(note_path)
         except IOError:
-            print 'The note event of ', name, ' doesn\'t exist!'
-        
+            print 'The note event of ', name, ' doesn\'t exist!'     
 
         """
         ------------------------------------------------------------------------------------------
         S1. Recognize expression styles by heuristics
         ------------------------------------------------------------------------------------------
         """
-
         """
         S1.1 Detect wide vibrato by recognizing the serrated pattern in note events
         """
@@ -683,13 +681,11 @@ def main(args):
         # save expression_style_note
         np.savetxt(args.output_dir+os.sep+name+'.after_LongSlide.expression_style_note',expression_style_note, fmt='%s')
 
-
         """
         ------------------------------------------------------------------------------------------
         S2. Recognize expression styles by Support Vector Machine
         ------------------------------------------------------------------------------------------
         """
-
         """
         S2.1 Find continuously ascending or descending pattern in melody contour.
         """
@@ -701,13 +697,11 @@ def main(args):
         descending_pattern, descending_pitch_contour = continuously_ascending_descending_pattern(
                                 MIDI_smooth_melody,direction='down',MinLastingDuration=0.05, 
                                 MaxPitchDifference=3.8, MinPitchDifference=0.8,hop=contour_hop,sr=contour_sr)
-
         # save result: CAD F0 sequence pattern
         np.savetxt(args.output_dir+os.sep+name+'.ascending.pattern',ascending_pattern, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.ascending.pitch_contour',ascending_pitch_contour, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.descending.pattern',descending_pattern, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.descending.pitch_contour',descending_pitch_contour, fmt='%s')
-
 
         """
         S2.2 Detect slow bend by searching consecutive adjacent three or four notes whichc are cover by CAD pattern.
@@ -717,10 +711,8 @@ def main(args):
         # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_bend, TP_slide, FN_bend, FN_slide = long_pattern_evaluate(long_ascending_pattern,join(bend_answer_dir,name_ext),FN_slide)       
         long_descending_note, note_short_descending, long_descending_pattern, short_descending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], descending_pattern)
         # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_release, TP_slide, FN_release, FN_slide = long_pattern_evaluate(long_descending_pattern,join(release_answer_dir,name_ext),FN_slide)     
-
         np.savetxt(args.output_dir+os.sep+name+'.long.ascending.note', long_ascending_note, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.long.descending.note', long_descending_note, fmt='%s')
-
 
         """
         S2.3 Candidate selection by finding intersection of note and CAD pattern, i.e., the candidate of {bend, slide, pull-off, hammer-on, normal})
@@ -729,15 +721,13 @@ def main(args):
         # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_bend, TP_slide, TP_hamm, FN_bend, FN_slide, FN_hamm = short_pattern_evaluate(ascending_candidate,FN_bend,FN_slide,join(hamm_answer_dir,name_ext))   
         descending_candidate, descending_candidate_note, non_candidate_descending_note = candidate_selection(expression_style_note[:,0:3], short_descending_pattern)
         # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_release, TP_slide, TP_pull, FN_release, FN_slide, FN_pull = short_pattern_evaluate(descending_candidate,FN_release,FN_slide,join(pull_answer_dir,name_ext))
-
         # save result: candidate
         np.savetxt(args.output_dir+os.sep+name+'.ascending.candidate',ascending_candidate, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.descending.candidate',descending_candidate, fmt='%s')
         
         """
-        S2.4 Extract audio features of candidate regions
+        S2.4 Extract raw audio features of candidate regions
         """
-
         # load audio
         audio = MonoLoader(filename = f)()
         # processing
@@ -775,9 +765,16 @@ def main(args):
         S2.5 Classfication 
         """        
         # load pre-trained SVM
-        clf = np.load(args.model+os.sep+'test_save_model.npy').item()
+        model = fnmatch.filter(glob.glob(args.input_model+os.sep+'/*'), '*'+'.model.npy')
+        clf = np.load(model[0]).item()
+
         # load raw features 
         clf = np.load(args.model+os.sep+'test_save_model.npy').item()
+
+        # data preprocessing
+
+
+
         # classfication
         y_pred = clf.predict(feature_vec_all)
         print y_pred

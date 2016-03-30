@@ -70,11 +70,12 @@ def main(args):
 
     # input_audio = '/Users/Frank/Documents/Code/Database/test/Guitar_Licks_51_10.wav'
     # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect'
-    input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single'
+    input_audio = '/Users/Frank/Desktop/Guitar_Score/Beatles - Let It Be Solo.wav'
+    # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single'
     # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/Clean_Room'
-    output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/Clean_Tone'
-    # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/All_Effects'
-
+    # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/Clean_Tone'
+    # output_dir = '/Users/Frank/Doc  uments/Code/Python/GPT_experiment/All_Effects'
+    output_dir = '/Users/Frank/Documents/Code/Python/Guitar_solo_MIDI2wav'
 
     print '--------------------------------------------------------------'
     print 'Conducting guitar playing technique (GPT) experiment...'
@@ -108,7 +109,6 @@ def main(args):
                       output_dir+os.sep+'S4.Feature', 
                       output_dir+os.sep+'S5.Classification',
                       'bend', 'hamm', 'slide', 'pull', 'normal', '-f', '5'])
-                      # '| tee', output_dir+os.sep+'S5.Classification'+os.sep+'Result.txt'])
 
 
 if __name__ == '__main__':

@@ -26,12 +26,10 @@ sys.path.append('/Users/Frank/Documents/Code/Python/libsvm-3.18/python')
 sys.path.append('/Users/Frank/Documents/Code/Python/libsvm-3.18/tools')
 from grid import *
 import numpy as np
-from scipy.io import wavfile
 import math
 import subprocess as subp
-from scipy.io import wavfile
 from svmutil import *
-from PTNoteTransitionOverlapEval import *
+from GuitarTranscription_parameters import data_preprocessing_method
 from io_tool import audio2wave
 
 
@@ -62,74 +60,16 @@ def collect_same_technique_feature_files(feature_dir, technique_type = ['bend', 
     technique_file_dict = collections.OrderedDict(sorted(technique_file_dict.items()))
     return technique_file_dict
 
-def nparray2saprse_array(feature_matrix):
-    """
-    Transform numpy array into LIBSVM-format sparse matrix (only record non-zero entries).
-
-    Input:   nparray                numpy array of feature instances.
-
-    Output:  sparse_matrix          A list of dictionaries.
-                                    Example: [{'1': v1, '2': v2 , '4': v4},
-                                              {'1': v1, '2': v2 , '3': v3},
-                                              {'1': v1, '3': v3 , '4': v4},
-                                              {'1': v1, '4': v4}]
-    """
-    sparse_matrix = []
-    for row in feature_matrix:
-        col=1
-        xi = dict()
-        for e in row:
-            if e!=0: xi[int(col)] = float(e)
-            col+=1 
-        sparse_matrix+=[xi]
-    return sparse_matrix
-    
-    """""""""""""""""""""""""""""""""""""""""""""
-    sparse_matrix = []
-    for row in feature_matrix:
-        col=1
-        xi = []
-        for e in row:
-            if e!=0: xi.append(str(col)+':'+str(e))
-            col+=1 
-        sparse_matrix+=[xi]
-    return sparse_matrix
-    """""""""""""""""""""""""""""""""""""""""""""
-def transform_2_libsvm_format(data_nparray, output_file):
-    """
-    Write nparray-format data into LIBSVM-formated files (only record non-zero entries).
-
-    Input:   data_nparray               numpy array of feature instances.
-                                        First column: the class label of the data.
-                                        Remained columns: feature instances.
-             output_file                the path of output file.
-
-    """
-    from os.path import dirname, exists
-    from os import makedirs
-    pdir = dirname(output_file)
-    if not exists(pdir): makedirs(pdir)
-
-    libsvm_data = open(output_file, 'wb')
-    for row in data_nparray:
-        col=0 
-        for e in row:
-            if col==0:
-                libsvm_data.write(str(e))
-                libsvm_data.write(' ')
-            if e!=0 and col!=0: 
-                libsvm_data.write(str(col))
-                libsvm_data.write(':')
-                libsvm_data.write(str(e))
-                libsvm_data.write(' ')
-            col+=1 
-        libsvm_data.write('\n')
-    libsvm_data.close()
-
 def data_preprocessing(raw_data):
-    from sklearn.preprocessing import scale
+    from sklearn.preprocessing import Imputer, scale
+
+    # replace nan feature with the median of column values
+    imp = Imputer(missing_values='NaN', strategy='median', axis=0)
+    raw_data = imp.fit_transform(raw_data)
+
     # z-score standardization
     data = scale(raw_data)
+
     return data
 
 def data_loader(technique_file_dict):
@@ -139,10 +79,6 @@ def data_loader(technique_file_dict):
     """
     from numpy import loadtxt, empty, asarray, hstack, vstack, savetxt
     import glob, os, sys
-    from sklearn.preprocessing import Imputer
-    # replace nan feature with the median of column values
-    imp = Imputer(missing_values='NaN', strategy='median', axis=0)
-
     index_of_class = 0
     label = []
     # calculate the dimension of feature space
@@ -158,8 +94,6 @@ def data_loader(technique_file_dict):
         num_of_instances = 0
         for f in technique_file_dict[t]:
             feature = loadtxt(f)
-            # replace nan feature with the median of column values
-            feature = imp.fit_transform(feature)
             num_of_instances+=feature.shape[0]
             training_instances = vstack((training_instances,feature))
         label+=[index_of_class]*num_of_instances
@@ -173,127 +107,6 @@ def data_loader(technique_file_dict):
     label = label.reshape(label.shape[0])
  
     return label, training_instances, class_data_num
-
-def k_fold_data_partitioner(label, output_dir, class_name_list, iteration=1, fold=4):
-    """
-    Partition label of training instanecs by k fold method to execute cross validation.
-
-    Input:  label                   the list of labels.
-                                    Example: [1,1,1,1,1,1,1,2,2,2,2,2,3,3,3]
-
-            class_name_list         list of string of class names.
-                                    Example: [bend, pull, slide]
-
-            output_dir              the path of output directory to store the result.
-            iteration               the times of which leave-one-out data partition to be executed.
-            fold                    the number of fold in which data to be partitioned.
-    """
-    import glob, os, sys
-    from numpy import save, load, ndarray
-    import random
-    if not os.path.exists(output_dir): os.makedirs(output_dir)
-
-    # check the type of label
-    if type(label)!=list:
-        label = ndarray.tolist(label)
-
-    num_of_class = int(label[-1])
-    list_of_class = range(1,num_of_class+1)
-    list_of_fold = range(1,fold+1)
-    list_of_iter = range(1,iteration+1)
-    
-    print 'Amount of data in each class:'
-    for n in list_of_class: print 'Class %s: '%n, label.count(n)
-    # loop in iteration
-    for i in list_of_iter:
-        # create empty dictionary for storing random index
-        CVfold = dict()
-        total_num_data = 0
-        # create empty string of file name
-        name = str()
-        # initiate empty dictionary to store the indices
-        for f in list_of_fold:
-            CVfold[str(f)] = dict()
-            CVfold[str(f)]['train'] = []
-            CVfold[str(f)]['test'] = []
-        for n in list_of_class:
-            num_data_n_class = label.count(n)
-            random_indices_list = range(total_num_data, total_num_data+num_data_n_class)
-            random.shuffle(random_indices_list)
-            num_data_n_class_per_fold = num_data_n_class/fold
-            total_num_data_n_class = 0
-            total_num_data+=num_data_n_class
-            # name the file
-            if n!=list_of_class[-1]:
-                name+=class_name_list[n-1]+'_'+str(num_data_n_class)+'_'
-            else:
-                name+=class_name_list[n-1]+'_'+str(num_data_n_class)
-            # loop in fold to separate random indices
-            for f in list_of_fold:
-                # create testing indices
-                if f!=list_of_fold[-1]:
-                    test_indices_list = random_indices_list[total_num_data_n_class:total_num_data_n_class+num_data_n_class_per_fold]
-                else:
-                    test_indices_list = random_indices_list[total_num_data_n_class::]
-                # create training indices
-                train_indices_list = list(set(random_indices_list) - set(test_indices_list))
-                CVfold[str(f)]['test']+=test_indices_list
-                CVfold[str(f)]['train']+=train_indices_list
-                total_num_data_n_class+=num_data_n_class_per_fold
-        # sort the indices order
-        for f in list_of_fold:
-            CVfold[str(f)]['test'].sort()
-            CVfold[str(f)]['train'].sort()
-        # save result
-        save(output_dir+os.sep+name+'.iter'+str(i)+'.fold'+str(fold)+'.npy', CVfold)
-
-def evaluation(g_label, p_label):
-    """
-    Evaluate recall, precision and f-score.
-
-    Input:  g_label                 the list of ground labels.
-                                    Example: [1,1,1,1,1,1,1,2,2,2,2,2,3,3,3]
-            p_label                 the list of predicted labels.
-    """
-    import glob, os, sys
-    from numpy import save, load, asarray, where, copy, delete
-    import random
-    # if not os.path.exists(output_dir): os.makedirs(output_dir)
-
-    if type(g_label)==list:
-        g_label=asarray(g_label)
-    if type(p_label)==list:
-        p_label=asarray(p_label)
-    
-    num_of_class = int(g_label[-1])
-    list_of_class = range(1,num_of_class+1)
-
-    result=dict()
-    sum_fscore=0
-    for c in list_of_class:
-        g_s = where(g_label==c)[0][0]
-        g_e = where(g_label==c)[0][-1]
-        pseuso_p_label = copy(p_label)
-        local_p = p_label[g_s:g_e+1]
-        p_i = where(p_label==c)[0]
-        TP = list(p_label[g_s:g_e+1]).count(c)
-        FP = list(delete(pseuso_p_label, range(g_s,g_e+1))).count(c)
-        FN = (g_e-g_s+1)-TP
-        Recall = TP/float(TP+FN)
-        Precision = TP/float(TP+FP)
-        Fscore = 2*(Recall*Precision)/float(Recall+Precision)
-        result[str(c)] = dict()
-        result[str(c)]['TP'] = TP
-        result[str(c)]['FP'] = FP
-        result[str(c)]['FN'] = FN
-        result[str(c)]['Recall'] = Recall
-        result[str(c)]['Precision'] = Precision
-        result[str(c)]['F-Score'] = Fscore
-        sum_fscore+=Fscore
-
-    mean_fscore = sum_fscore/float(len(list_of_class))
-
-    return result, mean_fscor
 
 
 def blockPrint():
@@ -387,7 +200,6 @@ def main(args):
     fold=1
     for train_index, test_index in CVfold:
         print 'Fold %s...' % fold
-        fold+=1
         X_train, y_train = X[train_index], y[train_index]
         X_test, y_test = X[test_index], y[test_index]
         for metric in metrics:
@@ -419,6 +231,7 @@ def main(args):
             # print '\n'
             # save model
             np.save(args.output_dir+os.sep+class_data_num+'.iter'+str(args.i)+'.fold'+str(fold)+'.model', clf)
+        fold+=1
 
 
 if __name__ == '__main__':

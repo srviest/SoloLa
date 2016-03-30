@@ -51,7 +51,7 @@ def hertz2midi(melody_contour):
     """ 
     from numpy import inf
     melody_contour_MIDI = melody_contour.copy()
-    melody_contour_MIDI =12*np.log(melody_contour_MIDI/440)/np.log(2)+69
+    melody_contour_MIDI =12*np.log(melody_contour_MIDI/float(440))/np.log(2)+69
     melody_contour_MIDI[melody_contour_MIDI==-inf]=0
     return melody_contour_MIDI
 
@@ -143,13 +143,7 @@ def main(args):
         ext = os.path.basename(f).split('.')[-1]
         name = os.path.basename(f).split('.')[0]
 
-        # parsmeters for MELODIA
-        guessUnvoiced = True
-        voiceVibrato = True
-        voicingTolerance = 0.2
-        binResolution = 10
-        minDuration = 100
-        harmonicWeight = 0.8
+        
         # S1.1 initiate MELODIA
         pcm = PredominantMelody(harmonicWeight = harmonicWeight, minDuration = minDuration, 
             binResolution = binResolution, guessUnvoiced=args.gu, frameSize=args.fs, 

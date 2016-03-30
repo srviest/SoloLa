@@ -19,7 +19,12 @@ The pipeline are as follows:
 contour_hop = 256
 contour_sr = 44100
 mean_filter_size = 5
-
+guessUnvoiced = True
+voiceVibrato = True
+voicingTolerance = 0.2
+binResolution = 10
+minDuration = 100
+harmonicWeight = 0.8
 
 # long slide detection
 max_transition_note_duration = 0.09
@@ -35,3 +40,5 @@ selected_features = ['hfc', 'pitch', 'pitch_instantaneous_confidence', \
             'spectral_rolloff', 'spectral_strongpeak', 'zerocrossingrate', 'inharmonicity', 'tristimulus', \
             'oddtoevenharmonicenergyratio']
 
+# data preprocessing
+data_preprocessing_method = []
