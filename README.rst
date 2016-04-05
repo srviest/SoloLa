@@ -15,13 +15,15 @@ music mixture into sheet music. The system comprises of the following algorithms
 
 Requirements
 ------------
-* `cython <http://www.cython.org>`
-* `nose <https://github.com/nose-devs/nose>`
-* `madmom <https://github.com/CPJKU/madmom>`
-* `scikit-learn <http://scikit-learn.org/stable/>`
-* `networkx <https://networkx.github.io/>`
-* `ESSENTIA <http://essentia.upf.edu/>`
 - `numpy <http://www.numpy.org>`_
+- `cython <http://www.cython.org>`_
+- `scipy <http://www.scipy.org>`_
+- `nose <https://github.com/nose-devs/nose>`_
+- `madmom <https://github.com/CPJKU/madmom>`_
+- `scikit-learn <http://scikit-learn.org/stable/>`_
+- `networkx <https://networkx.github.io/>`_
+- `ESSENTIA <http://essentia.upf.edu/>`_
+
 
 
 Author
