@@ -34,7 +34,10 @@ Returns:
                             B:      string bend (0 for none,
                                                  1 for bend by 1 semitone,
                                                  2 for bend by 2 semitone,
-                                                 3 for bend by 3 semitone)
+                                                 3 for bend by 3 semitone, 
+                                                 -1 for release by 1 semitone,
+                                                 -2 for release by 2 semitone,
+                                                 -3 for release by 3 semitone)
                             P:      pull-off (0 for none, 
                                               1 for employed)
                             H:      hammer-on (0 for none, 
@@ -132,7 +135,7 @@ class Common(object):
 
 class WideVibrato(Common):
 
-    def __init__(self, pruned_note):
+    def __init__(self):
         """
         Creates a new Wav object instance of the given file.
 
@@ -141,12 +144,13 @@ class WideVibrato(Common):
         """
         # self.merged_note = merged_note.copy()
         self.technique = 'vibrato'
-        self.pruned_note = pruned_note
+        self.raw_note = None
 
-    def detect(self):
-        merged_notes, self.super_wide_vibrato = self.merge_wide_vibrato(self.pruned_note,2)
+    def detect(self, raw_note):
+        self.raw_note = raw_note
+        merged_notes, self.super_wide_vibrato = WideVibrato.identify_serrated_pattern(self.raw_note,2)
         # vibrato with extent of 1 semitone
-        merged_notes, self.wide_vibrato = self.merge_wide_vibrato(merged_notes,1)
+        merged_notes, self.wide_vibrato = WideVibrato.identify_serrated_pattern(merged_notes,1)
 
 
         # event = np.zeros((merged_notes.shape[0],5))
@@ -164,7 +168,7 @@ class WideVibrato(Common):
         return expression_style_note
 
     @staticmethod
-    def merge_wide_vibrato(note_pseudo,extent):
+    def identify_serrated_pattern(note_pseudo,extent):
         """
         Merge notes of wide vibrato by merging series of notes in serrated patter 
         Usage:
@@ -178,8 +182,10 @@ class WideVibrato(Common):
         wide_vibrato = np.empty([0,3])
         merged_notes = np.empty([0,3])
         for n in range(note.shape[0]):
-            # the pitch difference of current note and next note is a semitone:
+            # if the pitch of current note is not zero
             if note[n,0]!=0 and n+1<=note.shape[0]-1:
+                # the absolute pitch difference of current note and next note is a semitone:
+                # the gap of current and next note is smaller than 0.01 seconds
                 if note[n+1,0]-note[n,0]==extent and note[n+1,1]-(note[n,1]+note[n,2])<0.01:
                     pitch = note[n,0]
                     pitch_next = note[n+1,0]
@@ -227,8 +233,8 @@ class LongSlide(Common):
         self.sr = sr
         self.max_transition_note_duration = max_transition_note_duration
         self.min_transition_note_duration = min_transition_note_duration
-        self.long_slide_sec = np.empty([0,2])
-        self.quantised_melody = self.quantize(self.melody)
+        self.long_slide_sec = None
+        self.quantised_melody = LongSlide.quantize(self.melody)
         
     @staticmethod
     def quantize(data, partitions=range(0, 90, 1), codebook=range(0, 91, 1)):
@@ -296,7 +302,8 @@ class LongSlide(Common):
         """
         # find downward-long-stairs
         # convert frame-level pitch contour into notes
-        note = self.frame2note(self.quantised_melody,self.hop,self.sr)
+        self.long_slide_sec = np.empty([0,2])
+        note = LongSlide.frame2note(self.quantised_melody, self.hop, self.sr)
         for n in range(note.shape[0]-1):
             if note[n,0]!=0:
                 pitch = note[n,0]
@@ -316,7 +323,7 @@ class LongSlide(Common):
                     self.long_slide_sec = np.append(self.long_slide_sec,[[onset_time,offset_time]],axis=0)
                 note[onset_note:offset_note+1,0] = 0
 
-        # convert time segment of slide out into note event
+        # convert time segment of slide-out into note event
         self.long_slide = self.long_slide_sec_2_long_slide(self.long_slide_sec, expression_style_note[:,0:3])
         # update expression_style_note array
         expression_style_note = Common.update(expression_style_note=expression_style_note, 
@@ -437,6 +444,26 @@ def long_CAD_pattern_detection(note, CAD_pattern):
     note_of_short_CAD = np.delete(pseudo_note,note_of_long_CAD_index,axis=0)
     return note_of_long_CAD, note_of_short_CAD, long_CAD, short_CAD
 
+
+def merge_bend_and_slide(expression_style_note, result):
+
+    note_to_be_deleted = np.empty([0])
+    for num_candi, candi_result in enumerate(result):
+        # if the candidate is classsified as bend
+        if candi_result[-1] == 0:
+            for num_note, note in enumerate(expression_style_note):
+                if candi_result[1] > note[1] and candi_result[1] < note[1]+note[2]:
+                    # delete the note which is about to be merged
+                    note_to_be_deleted = np.append(note_to_be_deleted,[num_note], axis=0)
+                    # replace the duration of first note with the difference of the 2nd note offset and 1st note onset
+                    expression_style_note[num_note-1,2]=note[1]+note[2]-expression_style_note[num_note-1,1]
+                    # 
+                    expression_style_note[num_note-1,4:]=np.maximum(expression_style_note[num_note-1,4:], note[4:])
+                    # 
+                    expression_style_note[num_note-1,3] = int(note[3]-expression_style_note[num_note-1,3])
+    print note_to_be_deleted
+    expression_style_note = np.delete(expression_style_note, note_to_be_deleted,axis=0)
+    return expression_style_note
 
 def long_pattern_evaluate(pattern,bend_answer_path,slide_answer_path):
     if type(bend_answer_path).__name__=='ndarray':
@@ -653,10 +680,10 @@ def main(args):
         except IOError:
             print 'The melody contour of ', name, ' doesn\'t exist!'
 
-        # load note
-        note_path = args.input_note+os.sep+name+'.pruned.note'
+        # load raw note
+        note_path = args.input_note+os.sep+name+'.raw.note'
         try:
-            pruned_note = np.loadtxt(note_path)
+            raw_note = np.loadtxt(note_path)
         except IOError:
             print 'The note event of ', name, ' doesn\'t exist!'     
 
@@ -668,9 +695,11 @@ def main(args):
         """
         S1.1 Detect wide vibrato by recognizing the serrated pattern in note events
         """
-        WV = WideVibrato(pruned_note)
-        expression_style_note = WV.detect()
+        WV = WideVibrato()
+        expression_style_note = WV.detect(raw_note)
         # save expression_style_note
+        np.savetxt(args.output_dir+os.sep+name+'.super_wide_vibrato',WV.super_wide_vibrato, fmt='%s')
+        np.savetxt(args.output_dir+os.sep+name+'.wide_vibrato',WV.wide_vibrato, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.after_WideVibrato.expression_style_note',expression_style_note, fmt='%s')
 
         """
@@ -681,6 +710,8 @@ def main(args):
                        min_transition_note_duration=min_transition_note_duration)
         expression_style_note = LS.detect(expression_style_note)        
         # save expression_style_note
+        np.savetxt(args.output_dir+os.sep+name+'.quantised.melody',LS.quantised_melody, fmt='%s')
+        np.savetxt(args.output_dir+os.sep+name+'.long_slide',LS.long_slide, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.after_LongSlide.expression_style_note',expression_style_note, fmt='%s')
 
         """
@@ -713,8 +744,14 @@ def main(args):
         # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_bend, TP_slide, FN_bend, FN_slide = long_pattern_evaluate(long_ascending_pattern,join(bend_answer_dir,name_ext),FN_slide)       
         long_descending_note, note_short_descending, long_descending_pattern, short_descending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], descending_pattern)
         # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_release, TP_slide, FN_release, FN_slide = long_pattern_evaluate(long_descending_pattern,join(release_answer_dir,name_ext),FN_slide)     
+        np.savetxt(args.output_dir+os.sep+name+'.short.ascending.pattern', short_ascending_pattern, fmt='%s')
+        np.savetxt(args.output_dir+os.sep+name+'.short.descending.pattern', short_descending_pattern, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.long.ascending.note', long_ascending_note, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.long.descending.note', long_descending_note, fmt='%s')
+
+        expression_style_note = Common.update(expression_style_note, long_ascending_note, technique = 'bend', sub_technique = 2.5)
+        expression_style_note = Common.update(expression_style_note, long_descending_note, technique = 'bend', sub_technique = 2.5)
+        np.savetxt(args.output_dir+os.sep+name+'.after_SlowBend.expression_style_note',expression_style_note, fmt='%s')
 
         """
         S2.3 Candidate selection by finding intersection of note and CAD pattern, i.e., the candidate of {bend, slide, pull-off, hammer-on, normal})
@@ -763,6 +800,7 @@ def main(args):
                 feature_vec_all = feature_vec_all.reshape(len(candidate_sample),len(feature_vec_all)/len(candidate_sample))
                 np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature', feature_vec_all, fmt='%s')
 
+
         """
         S2.5 Classfication 
         """        
@@ -770,17 +808,34 @@ def main(args):
         model = fnmatch.filter(glob.glob(args.input_model+os.sep+'/*'), '*'+'.model.npy')
         clf = np.load(model[0]).item()
 
-        # load raw features
-        ascending_raw_feature = np.loadtxt(args.output_dir+os.sep+name+'.'+'ascending'+'.candidate'+'.raw.feature')
-        descending_raw_feature = np.loadtxt(args.output_dir+os.sep+name+'.'+'descending'+'.candidate'+'.raw.feature')
-        raw_data = np.vstack((ascending_raw_feature, descending_raw_feature))
+        for ct in candidate_type:
 
-        # data preprocessing
-        data = data_preprocessing(raw_data)
+            # load raw features
+            candidate = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate')
+            raw_feature = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature')
+            # raw_data = np.vstack((ascending_raw_feature, descending_raw_feature))
 
-        # classfication
-        y_pred = clf.predict(data)
-        print y_pred
+            # data preprocessing
+            data = data_preprocessing(raw_feature)
+
+            # classfication
+            y_pred = clf.predict(data)
+            result = np.hstack((candidate, np.asarray(y_pred).reshape(len(y_pred), 1)))
+            np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.result', result, fmt='%s')
+            print y_pred
+
+        """
+        S2.6 Merge bend and slide note
+        """
+
+        for ct in candidate_type:
+            result = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.result')
+            expression_style_note = merge_bend_and_slide(expression_style_note, result)
+            np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.merge_bend_slide'+'.expression_style_note', expression_style_note, fmt='%s')
+
+
+
+
 
 
 if __name__ == '__main__':

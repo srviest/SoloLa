@@ -161,7 +161,7 @@ def main(args):
         candidate_type = ['ascending','descending']
         # loop in ascending and descending candidate list
         for ct in candidate_type:
-            print '         EXtracting features from ', ct, ' candadites...'
+            print '         Extracting features from ', ct, ' candadites...'
             # candidate file path
             candidate_path = args.input_candidates+os.sep+name+'.'+ct+'.candidate'
             # inspect if candidate file exist and load it

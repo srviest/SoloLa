@@ -4,15 +4,8 @@
 Author: Yuan-Ping Chen
 Data: 2016/03/13
 ----------------------------------------------------------------------
-Script for transcribing audio into sheet music.
-The pipeline are as follows:
-----------------------------------------------------------------------
-    S0. Monaural source separation
-    S1. Melody extraction
-    S2. Note tracking
-    S3. Expression style recognition
-    S4. Fingering arrangement
-----------------------------------------------------------------------
+Script for transforming audio into sheet music.
+
 """
 
 def parse_input_files(input_files, ext='.wav'):
@@ -51,11 +44,12 @@ def parser():
     Main script for Guitar Playing Technique classification experiment.
     The pipeline is as follow.
     ------------------------------------------------------------------------
-        S0. Monaural source separation
-        S1. Melody extraction
-        S2. Note tracking
-        S3. Expression style recognition
-        S4. Fingering arrangement
+        S0. BPM estimation
+        S1. Monaural source separation
+        S2. Melody extraction
+        S3. Note tracking
+        S4. Expression style recognition
+        S5. Fingering arrangement
     ------------------------------------------------------------------------
     Usage: 
         $ Python GuitarTranscrption_script.py ./Input_audio.wav ./Result
@@ -66,6 +60,7 @@ def parser():
                    help='files to be processed')    
     p.add_argument('output_dir', type=str, metavar='output_dir',
                    help='output directory.')
+    p.add_argument('-bpme', action='store_true', default=False, help='BPM estimation')
     p.add_argument('-mse', action='store_true', default=False, help='monaural source separation')
     p.add_argument('-me', action='store_true', default=False, help='melody extraction')
     p.add_argument('-nt', action='store_true', default=False, help='note tracking')
@@ -73,7 +68,7 @@ def parser():
     p.add_argument('-fa', action='store_true', default=False, help='fingering arrangement')
     # version
     p.add_argument('--version', action='version',
-                   version='%(prog)spec 1.03 (2016-03-13)')
+                   version='%(prog)spec 1.03 (2016-04-04)')
     # parse arguments
     args = p.parse_args()
     return args
@@ -106,33 +101,38 @@ def main(args):
         print 'Transforming the song "%s" into sheet music...' % name
         print '--------------------------------------------------------------'
 
-        # S0. Monaural source separation
+        
+        # S0. BPM estimation
+        if args.bpme: call(['python', 'BPM_estimation.py',
+                           f,
+                           args.output_dir+os.sep+name+os.sep+'S0.BPM'])
+
+        # S1. Monaural source separation
         if args.mse: call(['python', 'Monaural_source_separation.py',
                            f,
-                           args.output_dir+os.sep+name+os.sep+'S0.IsolatedGuitar'])
+                           args.output_dir+os.sep+name+os.sep+'S1.IsolatedGuitar'])
 
-        # S1. Melody extraction
+        # S2. Melody extraction
         if args.me: call(['python', 'Melody_extraction.py',
-                          args.output_dir+os.sep+name+os.sep+'S0.IsolatedGuitar',
-                          args.output_dir+os.sep+name+'S1.Melody'])
+                          args.output_dir+os.sep+name+os.sep+'S1.IsolatedGuitar',
+                          args.output_dir+os.sep+name+'S2.Melody'])
 
-        # S2. Note tracking
+        # S3. Note tracking
         if args.nt: call(['python', 'Note_tracking.py',
-                          args.output_dir+os.sep+name+'S1.Melody',
-                          args.output_dir+os.sep+name+'S2.Note'])
+                          args.output_dir+os.sep+name+'S2.Melody',
+                          args.output_dir+os.sep+name+'S3.Note'])
 
-        # S3. Expression style recognition
+        # S4. Expression style recognition
         if args.esr: call(['python', 'Expression_style_recognition.py',
-                           args.output_dir+os.sep+name+os.sep+'S0.IsolatedGuitar',
-                           args.output_dir+os.sep+name+'S1.Melody',
-                           args.output_dir+os.sep+name+'S2.Note',
-                           args.output_dir+os.sep+name+'S3.ExpressionStyle'])
+                           args.output_dir+os.sep+name+os.sep+'S1.IsolatedGuitar',
+                           args.output_dir+os.sep+name+'S2.Melody',
+                           args.output_dir+os.sep+name+'S3.Note',
+                           args.output_dir+os.sep+name+'S4.ExpressionStyle'])
 
-        # S4. Fingering arramgement
+        # S5. Fingering arramgement
         if args.fa: call(['python', 'Fingering_arramgement.py', 
-                          input_audio, 
-                          args.output_dir+os.sep+'S3.Candidate', 
-                          args.output_dir+os.sep+'S4.Feature'])
+                          args.output_dir+os.sep+'S4.ExpressionStyle', 
+                          args.output_dir+os.sep+'S5.Fingering'])
     
 
 if __name__ == '__main__':
