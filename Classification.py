@@ -21,16 +21,15 @@ Returns:
 """
 
 import glob, os, sys
-sys.path.append('/Users/Frank/Documents/Code/Python')
-sys.path.append('/Users/Frank/Documents/Code/Python/libsvm-3.18/python')
-sys.path.append('/Users/Frank/Documents/Code/Python/libsvm-3.18/tools')
-from grid import *
+# sys.path.append('/Users/Frank/Documents/Code/Python')
+# sys.path.append('/Users/Frank/Documents/Code/Python/libsvm-3.18/python')
+# sys.path.append('/Users/Frank/Documents/Code/Python/libsvm-3.18/tools')
+# from grid import *
 import numpy as np
 import math
 import subprocess as subp
-from svmutil import *
+# from svmutil import *
 from GuitarTranscription_parameters import data_preprocessing_method
-from io_tool import audio2wave
 from sklearn.cross_validation import StratifiedKFold
 from sklearn.grid_search import GridSearchCV
 from sklearn.metrics import classification_report

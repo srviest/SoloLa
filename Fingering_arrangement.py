@@ -478,17 +478,18 @@ def main(args):
         ext = os.path.basename(f).split('.')[-1]
         name = os.path.basename(f).split('.')[0]
 
-
-        note_nparray = np.loadtxt('/Users/Frank/Documents/Code/Python/Guitar_solo_MIDI2wav/S2.Note/Beatles - Let It Be Solo.raw.note')
-        args.output_dir = '/Users/Frank/Documents/Code/Python/Guitar_solo_MIDI2wav/S2.Note/Beatles - Let It Be Solo.fingering'
+        # load expression_style_note
+        expression_style_note = np.loadtxt(args.input_note+os.sep+name+'.expression_style_note')
+        # extract the pitch, onset and duration
+        note_nparray = expression_style_note[:,0:3]
+        # convert numpy array to list
         note = np.ndarray.tolist(note_nparray)    
-
         # generate the score model
         score = Score(note)
         astar = ArrangeTabAstar(score, num_frets=args.fn)
         astar.gen_tab(args.output_dir)
 
-
+        args.output_dir = '/Users/Frank/Documents/Code/Python/Guitar_solo_MIDI2wav/S2.Note/Beatles - Let It Be Solo.fingering'
 
 
 
