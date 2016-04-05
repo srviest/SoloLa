@@ -15,22 +15,12 @@ music mixture into sheet music. The system comprises of the following algorithms
 
 Requirements
 ------------
-* cython <http://www.cython.org>
-* nose
-* madmom
-* scikit-learn
-* networkx
-* readline 
-* sqlite 
-* gdbm 
-* freetype 
-* libpng
-* libyaml 
-* fftw 
-* ffmpeg 
-* libsamplerate 
-* libtag
-* essentia
+* `cython <http://www.cython.org>`
+* `nose <https://github.com/nose-devs/nose>`
+* `madmom <https://github.com/CPJKU/madmom>`
+* `scikit-learn <http://scikit-learn.org/stable/>`
+* `networkx <https://networkx.github.io/>`
+* `ESSENTIA <http://essentia.upf.edu/>`
 
 
 Author
