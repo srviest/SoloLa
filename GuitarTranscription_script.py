@@ -103,7 +103,7 @@ def main(args):
 
         
         # S0. BPM estimation
-        if args.bpme: call(['python', 'BPM_estimation.py',
+        if args.bpme: call(['python', 'Tempo_detector.py',
                            f,
                            args.output_dir+os.sep+name+os.sep+'S0.BPM'])
 
