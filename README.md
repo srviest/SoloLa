@@ -15,7 +15,7 @@ music mixture into sheet music. The system comprises of the following algorithms
 
 Requirements
 ------------
-* cython
+* cython <http://www.cython.org>
 * nose
 * madmom
 * scikit-learn
