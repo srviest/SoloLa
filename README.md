@@ -21,6 +21,7 @@ Requirements
 * `scikit-learn <http://scikit-learn.org/stable/>`
 * `networkx <https://networkx.github.io/>`
 * `ESSENTIA <http://essentia.upf.edu/>`
+- `numpy <http://www.numpy.org>`_
 
 
 Author
