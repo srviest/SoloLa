@@ -62,21 +62,36 @@ def parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter, description="""
 
-    The TempoDetector program detects the dominant tempi according to the
-    algorithm described in:
-    "Accurate Tempo Estimation based on Recurrent Neural Networks and
-     Resonating Comb Filters"
-    Sebastian Böck, Florian Krebs and Gerhard Widmer.
+        The GMMPatternTracker program detects rhythmic patterns in an audio file
+    and reports the (down-)beats according to the method described in:
+
+    "Rhythmic Pattern Modelling for Beat and Downbeat Tracking in Musical
+     Audio"
+    Florian Krebs, Sebastian Böck and Gerhard Widmer.
+    Proceedings of the 14th International Society for Music Information
+    Retrieval Conference (ISMIR), 2013.
+
+    Instead of the originally proposed state space and transition model for the
+    DBN, the following is used:
+
+    "An Efficient State Space Model for Joint Tempo and Meter Tracking"
+    Florian Krebs, Sebastian Böck and Gerhard Widmer.
     Proceedings of the 16th International Society for Music Information
     Retrieval Conference (ISMIR), 2015.
+
     This program can be run in 'single' file mode to process a single audio
-    file and write the detected tempi to STDOUT or the given output file.
-    $ TempoDetector single INFILE [-o OUTFILE]
+    file and write the detected beats to STDOUT or the given output file.
+
+    $ GMMPatternTracker single INFILE [-o OUTFILE]
+
     If multiple audio files should be processed, the program can also be run
-    in 'batch' mode to save the detected tempi to files with the given suffix.
-    $ TempoDetector batch [-o OUTPUT_DIR] [-s OUTPUT_SUFFIX] LIST OF FILES
+    in 'batch' mode to save the detected beats to files with the given suffix.
+
+    $ GMMPatternTracker batch [-o OUTPUT_DIR] [-s OUTPUT_SUFFIX] LIST OF FILES
+
     If no output directory is given, the program writes the files with the
-    detected tempi to same location as the audio files.
+    detected beats to same location as the audio files.
+
     The 'pickle' mode can be used to store the used parameters to be able to
     exactly reproduce experiments.
 
@@ -86,8 +101,8 @@ def parser():
                    help='files to be processed')
     p.add_argument('output_dir', type=str, metavar='output_dir',
                    help='output directory.')
-    p.add_argument('-tdp',   '--TempoDetectorPath', type=str, dest='tdp',
-                   help="the path of TempoDetector executable.", default='./TempoDetector')
+    p.add_argument('-gmmptp',   '--GMMPatternTrackerPath', type=str, dest='gmmptp',
+                   help="the path of GMMPatternTracker executable.", default='./GMMPatternTracker')
     
     # version
     p.add_argument('--version', action='version',
@@ -100,7 +115,7 @@ def parser():
     
 
 def main(args):
-    print 'Running tempo detector...'
+    print 'Running meter tracking...'
     
     # parse and list files to be processed
     files = parse_input_files(args.input_files, ext='.wav')
@@ -117,15 +132,15 @@ def main(args):
 
         
         # NoteRecognizer_path = '/Users/Frank/Documents/Code/C++/Note_recognizer/MOLODIA_HMM/NoteRecognizer'
-        command = [args.tdp, 'single', f]
+        command = [args.gmmptp, 'single', f]
         pipe = subp.Popen(command, stdout=subp.PIPE, startupinfo=None)
-        bpm_string = pipe.stdout.read()
-        bpm = []
-        for line in bpm_string.splitlines():
-          bpm.append(np.fromstring(line, dtype="float32", sep=' '))
-        bpm = np.asarray(bpm)
+        beat_meter_string = pipe.stdout.read()
+        beat_meter = []
+        for line in beat_meter_string.splitlines():
+          beat_meter.append(np.fromstring(line, dtype="float32", sep=' '))
+        beat_meter = np.asarray(beat_meter)
         # save result: bpm
-        np.savetxt(args.output_dir+os.sep+name+'.bpm', bpm, fmt='%s')
+        np.savetxt(args.output_dir+os.sep+name+'.meter', beat_meter, fmt='%s')
         
 
 if __name__ == '__main__':
