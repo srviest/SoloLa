@@ -3,9 +3,9 @@
 """
 Author: Yuan-Ping Chen
 Data: 2016/03/15
-----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 Fingering arrangement: automatically arrange the guitar fingering.
-----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 Args:
     input_files:    files to be processed. 
                     Only the .expression_style_note files would be considered.
@@ -13,7 +13,7 @@ Args:
 
 Optional args:
     Please refer to --help.
-----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 Returns:
     Raw melody contour:         Text file of estimated melody contour 
                                 in Hz with extenion of .raw.melody.

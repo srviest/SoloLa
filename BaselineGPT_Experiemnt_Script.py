@@ -55,11 +55,16 @@ def parser():
         S5 Classifier training and evaluation
     """)
     # general options
-    p.add_argument('-me', action='store_true', default=False, help='melody extraction')
-    p.add_argument('-nt', action='store_true', default=False, help='note tracking')
-    p.add_argument('-cs', action='store_true', default=False, help='candidate selection')
-    p.add_argument('-fe', action='store_true', default=False, help='feature extraction')
-    p.add_argument('-cl', action='store_true', default=False, help='classification')
+    p.add_argument('-me', action='store_true', default=False, 
+      help='melody extraction')
+    p.add_argument('-nt', action='store_true', default=False, 
+      help='note tracking')
+    p.add_argument('-cs', action='store_true', default=False, 
+      help='candidate selection')
+    p.add_argument('-fe', action='store_true', default=False, 
+      help='feature extraction')
+    p.add_argument('-cl', action='store_true', default=False, 
+      help='classification')
     args = p.parse_args()
     return args
 

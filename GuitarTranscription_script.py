@@ -2,10 +2,7 @@
 # encoding: utf-8
 """
 Author: Yuan-Ping Chen
-Data: 2016/03/13
-----------------------------------------------------------------------
-Script for transforming audio into sheet music.
-
+Date: 2016/03/13
 """
 
 def parse_input_files(input_files, ext='.wav'):
@@ -41,7 +38,7 @@ def parser():
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter, 
         description="""
-    Main script for Guitar Playing Technique classification experiment.
+    Main script for transforming muiscal audio recording into sheet music.
     The pipeline is as follow.
     ------------------------------------------------------------------------
         S0. Meter tracking
@@ -52,7 +49,7 @@ def parser():
         S5. Fingering arrangement
     ------------------------------------------------------------------------
     Usage: 
-        $ Python GuitarTranscrption_script.py ./Input_audio.wav ./Result
+        $ python GuitarTranscrption_script.py ./Input_audio.wav ./Result
 
     """)
     # general options
@@ -60,12 +57,18 @@ def parser():
                    help='files to be processed')    
     p.add_argument('output_dir', type=str, metavar='output_dir',
                    help='output directory.')
-    p.add_argument('-dbt', action='store_true', default=False, help='Downbeat tracking')
-    p.add_argument('-mse', action='store_true', default=False, help='Monaural source separation')
-    p.add_argument('-me', action='store_true', default=False, help='Melody extraction')
-    p.add_argument('-nt', action='store_true', default=False, help='Note tracking')
-    p.add_argument('-esr', action='store_true', default=False, help='Expression style recognition')
-    p.add_argument('-fa', action='store_true', default=False, help='Fingering arrangement')
+    p.add_argument('-dbt', action='store_true', default=False, 
+        help='Downbeat tracking')
+    p.add_argument('-mse', action='store_true', default=False, 
+        help='Monaural source separation')
+    p.add_argument('-me', action='store_true', default=False, 
+        help='Melody extraction')
+    p.add_argument('-nt', action='store_true', default=False, 
+        help='Note tracking')
+    p.add_argument('-esr', action='store_true', default=False, 
+        help='Expression style recognition')
+    p.add_argument('-fa', action='store_true', default=False, 
+        help='Fingering arrangement')
     # version
     p.add_argument('--version', action='version',
                    version='%(prog)spec 1.03 (2016-04-04)')

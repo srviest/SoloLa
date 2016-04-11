@@ -3,16 +3,16 @@
 """
 Author: Yuan-Ping Chen
 Data: 2016/02/27
-----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 Feature Extactor: extract audio features of candadates segments.
-----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 Args:
     Text files to be processed.
     Directory for storing the results.
 
 Optional args:
     Please refer to --help.
-----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 Returns:
 
 """
@@ -111,15 +111,8 @@ def parser():
     # define parser
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter, description="""
-    If invoked without any parameters, the software S1 Extract melody contour,
-     track notes and timestmaps of intersection of ad continuous pitch sequence
-     inthe given files, the pipeline is as follows,
-
-        S1.1 Extract melody contour
-        S1.2 Note tracking
-        S1.3 Find continuously ascending/descending (CAD) F0 sequence patterns
-        S1.4 Find intersection of note and pattern 
-             (Candidate selection of {bend,slide,pull-off,hammer-on,normal})
+    Extract audio featuers of music signal by the given candiate time segment.
+    
     """)
     # general options
     p.add_argument('input_audios', type=str, metavar='input_audios',
