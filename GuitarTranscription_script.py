@@ -44,7 +44,7 @@ def parser():
     Main script for Guitar Playing Technique classification experiment.
     The pipeline is as follow.
     ------------------------------------------------------------------------
-        S0. BPM estimation
+        S0. Meter tracking
         S1. Monaural source separation
         S2. Melody extraction
         S3. Note tracking
@@ -60,7 +60,7 @@ def parser():
                    help='files to be processed')    
     p.add_argument('output_dir', type=str, metavar='output_dir',
                    help='output directory.')
-    p.add_argument('-bpme', action='store_true', default=False, help='BPM estimation')
+    p.add_argument('-mt', action='store_true', default=False, help='Meter tracking')
     p.add_argument('-mse', action='store_true', default=False, help='monaural source separation')
     p.add_argument('-me', action='store_true', default=False, help='melody extraction')
     p.add_argument('-nt', action='store_true', default=False, help='note tracking')
@@ -102,10 +102,10 @@ def main(args):
         print '--------------------------------------------------------------'
 
         
-        # S0. BPM estimation
-        if args.bpme: call(['python', 'Tempo_detector.py',
+        # S0. Meter tracking
+        if args.mt: call(['python', 'Meter_tracking.py',
                            f,
-                           args.output_dir+os.sep+name+os.sep+'S0.BPM'])
+                           args.output_dir+os.sep+name+os.sep+'S0.Meter'])
 
         # S1. Monaural source separation
         if args.mse: call(['python', 'Monaural_source_separation.py',

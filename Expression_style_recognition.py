@@ -445,25 +445,43 @@ def long_CAD_pattern_detection(note, CAD_pattern):
     return note_of_long_CAD, note_of_short_CAD, long_CAD, short_CAD
 
 
-def merge_bend_and_slide(expression_style_note, result):
-
+def merge_bend_and_slide(expression_style_note, result_ref):
+    result = result_ref.copy()
     note_to_be_deleted = np.empty([0])
     for num_candi, candi_result in enumerate(result):
         # if the candidate is classsified as bend
-        if candi_result[-1] == 0:
+        if candi_result[-1] == 0 and candi_result[0] != 0:
             for num_note, note in enumerate(expression_style_note):
-                if candi_result[1] > note[1] and candi_result[1] < note[1]+note[2]:
+                # if the candidate exact cover consecutive two notes:
+                if candi_result[0] > note[1] and candi_result[0] < note[1]+note[2] and \
+                   candi_result[1] > expression_style_note[num_note+1,1] and \
+                   candi_result[1] < expression_style_note[num_note+1,1]+expression_style_note[num_note+1,2]:
+                    current_num_candi = num_candi
+                    current_num_note = num_note+1
+                    while current_num_note+1 <= expression_style_note.shape[0] and \
+                          current_num_candi+1 <= result.shape[0] and \
+                          result[current_num_candi+1,2] == 0 and \
+                          result[current_num_candi+1,0] > expression_style_note[current_num_note,1] and \
+                          result[current_num_candi+1,0] < expression_style_note[current_num_note,1]+expression_style_note[current_num_note,2] and \
+                          result[current_num_candi+1,1] > expression_style_note[current_num_note+1,1] and \
+                          result[current_num_candi+1,1] < expression_style_note[current_num_note+1,1]+expression_style_note[current_num_note,2]:
+                        current_num_candi+=1
+                        current_num_note+=1
                     # delete the note which is about to be merged
-                    note_to_be_deleted = np.append(note_to_be_deleted,[num_note], axis=0)
+                    note_to_be_deleted = np.append(note_to_be_deleted,range(num_note+1,current_num_note+1), axis=0)
+                    # mark the merged candidate as 0
+                    if current_num_candi-num_candi > 0:
+                        result[num_candi+1:current_num_candi+1, 0:2] = 0
                     # replace the duration of first note with the difference of the 2nd note offset and 1st note onset
-                    expression_style_note[num_note-1,2]=note[1]+note[2]-expression_style_note[num_note-1,1]
-                    # 
-                    expression_style_note[num_note-1,4:]=np.maximum(expression_style_note[num_note-1,4:], note[4:])
-                    # 
-                    expression_style_note[num_note-1,3] = int(note[3]-expression_style_note[num_note-1,3])
+                    expression_style_note[num_note,2]=expression_style_note[current_num_note,1]+expression_style_note[current_num_note,2]-expression_style_note[num_note,1]
+                    # keep the predicted expression styles of merged notes
+                    expression_style_note[num_note,4:]=np.nanmax(expression_style_note[num_note+1:current_num_note+1,4:])
+                    # mark the bend in expression style note
+                    expression_style_note[num_note,3] = int(note[3]-expression_style_note[num_note,3])
     print note_to_be_deleted
     expression_style_note = np.delete(expression_style_note, note_to_be_deleted,axis=0)
     return expression_style_note
+
 
 def long_pattern_evaluate(pattern,bend_answer_path,slide_answer_path):
     if type(bend_answer_path).__name__=='ndarray':
@@ -826,15 +844,14 @@ def main(args):
 
         """
         S2.6 Merge bend and slide note
-        """
+        """            
 
-        for ct in candidate_type:
-            result = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.result')
-            expression_style_note = merge_bend_and_slide(expression_style_note, result)
-            np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.merge_bend_slide'+'.expression_style_note', expression_style_note, fmt='%s')
+        result_all = np.vstack((np.loadtxt(output_dir+os.sep+name+'.'+candidate_type[0]+'.candidate'+'.result'), \
+                                   np.loadtxt(output_dir+os.sep+name+'.'+candidate_type[1]+'.candidate'+'.result')))
 
-
-
+        result_all = result_all[np.argsort(result_all[:,0], axis = 0)]
+        expression_style_note = merge_bend_and_slide(expression_style_note, result_all)
+        np.savetxt(args.output_dir+os.sep+name+'.merge_bend_slide'+'.expression_style_note', expression_style_note, fmt='%s')
 
 
 

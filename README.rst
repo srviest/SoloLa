@@ -5,7 +5,7 @@ SoloLa!
 SoloLa! is an automatic system for transcribing the electric guitar solo part in
 music mixture into sheet music. The system comprises of the following algorithms:
 
-0. Tempo detection
+0. Meter tracking
 1. Monaural source separation
 2. Melody extraction
 3. Note tracking 
@@ -68,16 +68,21 @@ References
     in Proc. of the 16th International Society for Music Information Retrieval Conference (ISMIR), 2015.
  
 .. [8] J. Driedger and M. Müller.
-    *TSM Toolbox: MATLAB Implementations of Time-Scale Modification Algorithms*, 
+    *TSM Toolbox: MATLAB Implementations of Time-Scale Modification Algorithms, 
     in Proc. of the International Conference on Digital Audio Effects (DAFx), 2014.
  
 .. [9] B. McFee, E. Humphrey, and J.P. Bello,
     *A software framework for musical data augmentation*, 
     in Proc. of the 16th International Society for Music Information Retrieval Conference (ISMIR), 2015.
 
-.. [10] Sebastian Böck, Florian Krebs and Gerhard Widmer, 
-	*Accurate Tempo Estimation based on Recurrent Neural Networks and Resonating Comb Filters, 
+.. [10] Florian Krebs, Sebastian Böck and Gerhard Widmer, 
+	*An Efficient State Space Model for Joint Tempo and Meter Tracking, 
 	in Proc. of the 16th International Society for Music Information Retrieval Conference (ISMIR), 2015.
+
+.. [11] Florian Krebs, Sebastian Böck and Gerhard Widmer, 
+    *Rhythmic Pattern Modeling for Beat and Downbeat Tracking in Musical Audio,
+    in Proc. of the 14th International Society for Music Information Retrieval Conference (ISMIR), 2013.
+
 
 
 
