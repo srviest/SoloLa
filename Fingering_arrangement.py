@@ -243,7 +243,7 @@ class ArrangeTabAstar(object):
         self.num_frets = num_frets
         self.graph = None
         self.path = None
-    def gen_tab(self, output_path=None):
+    def gen_tab(self):
         self.graph = self._gen_graph()
 
         # run the A* algorithm
@@ -265,15 +265,13 @@ class ArrangeTabAstar(object):
                     plucks.append((note.id, pluck))
             strums.append(plucks)
 
+        fingering = np.empty([0,2])
+        for s in strums:            
+            for ss in s: 
+                fingering = np.append(fingering,[[ss[2].string, ss[2].fret]], axis=0)
 
-        print 'type(path): ', type(self.path)
-        print self.path
-
-        print 'type(strums): ', type(strums)
-        # print 'strums: ', strums
-
-        for s in strums:
-            print s
+        return fingering
+        np.savetxt(output_path, fingering, fmt='%s')
         
 
     def _gen_graph(self):
@@ -485,12 +483,8 @@ def main(args):
         # generate the score model
         score = Score(note)
         astar = ArrangeTabAstar(score, num_frets=args.fn)
-        astar.gen_tab(args.output_dir)
-
-        args.output_dir = '/Users/Frank/Documents/Code/Python/Guitar_solo_MIDI2wav/S2.Note/Beatles - Let It Be Solo.fingering'
-        
-
-
+        fingering = astar.gen_tab()
+        np.savetxt(args.output_dir+os.sep+name+'.fingering', fingering, fmt='%s')
 
         
 if __name__ == '__main__':
