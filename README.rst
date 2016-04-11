@@ -2,9 +2,11 @@
 SoloLa!
 ================================================================================
 
-SoloLa! is an automatic system for transcribing the electric guitar solo part in
-music mixture into sheet music. The system comprises of the following algorithms:
+SoloLa! is an automatic system for transforiming lead guitar audio signal in mu-
+sic recording into sheet music, which features the guitar expression style reco-
+gnition.
 
+The system comprises of the following algorithms:
 0. Meter tracking
 1. Monaural source separation
 2. Melody extraction
