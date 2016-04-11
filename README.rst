@@ -68,7 +68,7 @@ References
     in Proc. of the 16th International Society for Music Information Retrieval Conference (ISMIR), 2015.
  
 .. [8] J. Driedger and M. Müller.
-    *TSM Toolbox: MATLAB Implementations of Time-Scale Modification Algorithms, 
+    *TSM Toolbox: MATLAB Implementations of Time-Scale Modification Algorithms*, 
     in Proc. of the International Conference on Digital Audio Effects (DAFx), 2014.
  
 .. [9] B. McFee, E. Humphrey, and J.P. Bello,
@@ -76,11 +76,11 @@ References
     in Proc. of the 16th International Society for Music Information Retrieval Conference (ISMIR), 2015.
 
 .. [10] Florian Krebs, Sebastian Böck and Gerhard Widmer, 
-	*An Efficient State Space Model for Joint Tempo and Meter Tracking, 
+	*An Efficient State Space Model for Joint Tempo and Meter Tracking*, 
 	in Proc. of the 16th International Society for Music Information Retrieval Conference (ISMIR), 2015.
 
 .. [11] Florian Krebs, Sebastian Böck and Gerhard Widmer, 
-    *Rhythmic Pattern Modeling for Beat and Downbeat Tracking in Musical Audio,
+    *Rhythmic Pattern Modeling for Beat and Downbeat Tracking in Musical Audio*,
     in Proc. of the 14th International Society for Music Information Retrieval Conference (ISMIR), 2013.
 
 
