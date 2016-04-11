@@ -4,18 +4,18 @@
 Author: Yuan-Ping Chen
 Data: 2016/04/05
 ----------------------------------------------------------------------
-Tempp detector: detect the tempo of given audio.
+Downbeat tracker: track downbeats of muiscal audio recording.
 ----------------------------------------------------------------------
 Args:
     input_files:            Text files of pitch series to be processed.
     output_dir:             Directory for storing the results.
-    tempo_detector_path:    The path of TempoDetector executable.
+    DownbeatTracker:        The path of DownbeatTracker executable.
 
 Optional args:
     Please refer to --help.
 ----------------------------------------------------------------------
 Returns:
-    BPM:          Text file of estimated bpm in order.
+    Beats:          Text file of estimated beat time instanta.
 
 """
 import glob, os, sys
@@ -101,12 +101,12 @@ def parser():
                    help='files to be processed')
     p.add_argument('output_dir', type=str, metavar='output_dir',
                    help='output directory.')
-    p.add_argument('-gmmptp',   '--GMMPatternTrackerPath', type=str, dest='gmmptp',
-                   help="the path of GMMPatternTracker executable.", default='./GMMPatternTracker')
+    p.add_argument('-dbtp',   '--DownbeatTrackerPath', type=str, dest='dbtp',
+                   help="the path of DownbeatTracker executable.", default='./GMMPatternTracker')
     
     # version
     p.add_argument('--version', action='version',
-                   version='%(prog)spec 1.03 (2016-04-05)')
+                   version='%(prog)spec 1.03 (2016-04-11)')
     # parse arguments
     args = p.parse_args()
 
@@ -115,7 +115,7 @@ def parser():
     
 
 def main(args):
-    print 'Running meter tracking...'
+    print 'Running downbeat tracking...'
     
     # parse and list files to be processed
     files = parse_input_files(args.input_files, ext='.wav')
@@ -132,15 +132,15 @@ def main(args):
 
         
         # NoteRecognizer_path = '/Users/Frank/Documents/Code/C++/Note_recognizer/MOLODIA_HMM/NoteRecognizer'
-        command = [args.gmmptp, 'single', f]
+        command = [args.dbtp, 'single', f]
         pipe = subp.Popen(command, stdout=subp.PIPE, startupinfo=None)
-        beat_meter_string = pipe.stdout.read()
-        beat_meter = []
-        for line in beat_meter_string.splitlines():
-          beat_meter.append(np.fromstring(line, dtype="float32", sep=' '))
-        beat_meter = np.asarray(beat_meter)
+        beats_string = pipe.stdout.read()
+        beats = []
+        for line in beats_string.splitlines():
+          beats.append(np.fromstring(line, dtype="float32", sep=' '))
+        beats = np.asarray(beats)
         # save result: bpm
-        np.savetxt(args.output_dir+os.sep+name+'.meter', beat_meter, fmt='%s')
+        np.savetxt(args.output_dir+os.sep+name+'.beat', beats, fmt='%s')
         
 
 if __name__ == '__main__':

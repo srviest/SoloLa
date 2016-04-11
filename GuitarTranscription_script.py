@@ -60,12 +60,12 @@ def parser():
                    help='files to be processed')    
     p.add_argument('output_dir', type=str, metavar='output_dir',
                    help='output directory.')
-    p.add_argument('-mt', action='store_true', default=False, help='Meter tracking')
-    p.add_argument('-mse', action='store_true', default=False, help='monaural source separation')
-    p.add_argument('-me', action='store_true', default=False, help='melody extraction')
-    p.add_argument('-nt', action='store_true', default=False, help='note tracking')
-    p.add_argument('-esr', action='store_true', default=False, help='expression style recognition')
-    p.add_argument('-fa', action='store_true', default=False, help='fingering arrangement')
+    p.add_argument('-dbt', action='store_true', default=False, help='Downbeat tracking')
+    p.add_argument('-mse', action='store_true', default=False, help='Monaural source separation')
+    p.add_argument('-me', action='store_true', default=False, help='Melody extraction')
+    p.add_argument('-nt', action='store_true', default=False, help='Note tracking')
+    p.add_argument('-esr', action='store_true', default=False, help='Expression style recognition')
+    p.add_argument('-fa', action='store_true', default=False, help='Fingering arrangement')
     # version
     p.add_argument('--version', action='version',
                    version='%(prog)spec 1.03 (2016-04-04)')
@@ -102,10 +102,10 @@ def main(args):
         print '--------------------------------------------------------------'
 
         
-        # S0. Meter tracking
-        if args.mt: call(['python', 'Meter_tracking.py',
+        # S0. Downbeat tracking
+        if args.dbt: call(['python', 'Downbeat_tracking.py',
                            f,
-                           args.output_dir+os.sep+name+os.sep+'S0.Meter'])
+                           args.output_dir+os.sep+name+os.sep+'S0.Beat'])
 
         # S1. Monaural source separation
         if args.mse: call(['python', 'Monaural_source_separation.py',
