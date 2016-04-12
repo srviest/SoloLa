@@ -2,9 +2,8 @@
 SoloLa!
 ================================================================================
 
-SoloLa! is an automatic system for transforiming lead guitar audio signal in mu-
-sic recording into sheet music, which features the guitar expression style reco-
-gnition.
+SoloLa! is an automatic system for transforiming lead guitar audio signal in music 
+recording into sheet music, which features the guitar expression style recognition.
 
 The system comprises of the following algorithms:
 	0. Downbeat tracking
