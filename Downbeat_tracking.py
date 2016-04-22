@@ -139,8 +139,10 @@ def main(args):
         for line in beats_string.splitlines():
           beats.append(np.fromstring(line, dtype="float32", sep=' '))
         beats = np.asarray(beats)
+        downbeats = beats[beats[:,1]==1]
         # save result: bpm
         np.savetxt(args.output_dir+os.sep+name+'.beat', beats, fmt='%s')
+        np.savetxt(args.output_dir+os.sep+name+'.downbeat', downbeats, fmt='%s')
         
 
 if __name__ == '__main__':

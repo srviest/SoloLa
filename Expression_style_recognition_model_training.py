@@ -3,28 +3,9 @@
 """
 Author: Yuan-Ping Chen
 Data: 2015/10/13
-----------------------------------------------------------------------
-Guitar playing technique baseline experiment (S1-S5).
-The pipeline are as follows:
-----------------------------------------------------------------------
-    S1 Melody extraction
-        S1.1 Extract melody contour by MELODIA.
-        S1.2 Convert scale from Herz to MIDI number.
-        S1.3 Smooth contour by moving-average filter.
-
-    S2 Note tracking
-
-    S3 Candidate selection
-        S3.1 Find continuously ascending/descending (CAD) F0 sequence
-             patterns.
-        S3.2 Find intersection of note and pattern (Candidate selection
-             of {bend,slide,pull-off,hammer-on,normal}).
-
-    S4 Feature extraction
-
-    S5 Classifier training and evaluation
-
-----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+Script for guitar expression style recognition model training.
+--------------------------------------------------------------------------------
 """
 
 
@@ -34,25 +15,20 @@ def parser():
     # define parser
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter, description="""
-    Main script of Guitar Playing Technique classification experiment.
-    THe pipeline is as follow.
+      Main script for guitar expression style recognition model training.
+      The pipeline is as follow:
+      ----------------------------------------------------------------------
+          S1 Melody extraction
+          S2 Note tracking
+          S3 Candidate selection
+              S3.1 Find continuously ascending/descending (CAD) F0 sequence
+                   patterns.
+              S3.2 Find intersection of note and pattern (Candidate selection
+                   of {bend,slide,pull-off,hammer-on,normal}).
 
-        S1 Melody extraction
-            S1.1 Extract melody contour by MELODIA.
-            S1.2 Convert scale from Herz to MIDI number.
-            S1.3 Smooth contour by moving-average filter.
-
-        S2 Note tracking
-
-        S3 Candidate selection
-            S3.1 Find continuously ascending/descending (CAD) F0 sequence
-                 patterns.
-            S3.2 Find intersection of note and pattern (Candidate selection
-                 of {bend,slide,pull-off,hammer-on,normal}).
-
-        S4 Feature extraction
-
-        S5 Classifier training and evaluation
+          S4 Feature extraction
+          S5 Classifier training
+      ----------------------------------------------------------------------
     """)
     # general options
     p.add_argument('-me', action='store_true', default=False, 
@@ -65,6 +41,10 @@ def parser():
       help='feature extraction')
     p.add_argument('-cl', action='store_true', default=False, 
       help='classification')
+    # version
+    p.add_argument('--version', action='version',
+                   version='%(prog)spec 1.03 (2016-04-21)')
+
     args = p.parse_args()
     return args
 
@@ -83,7 +63,7 @@ def main(args):
     output_dir = '/Users/Frank/Documents/Code/Python/Guitar_solo_MIDI2wav'
 
     print '--------------------------------------------------------------'
-    print 'Conducting guitar playing technique (GPT) experiment...'
+    print 'Training the guitar expressin style recognition model...'
     print '--------------------------------------------------------------'
 
     # S1.Melody extraction
