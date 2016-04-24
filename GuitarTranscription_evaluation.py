@@ -11,6 +11,7 @@ Script for evaluating performaces of guitar transcription
 from mir_eval.transcription import precision_recall_f1
 import numpy as np
 import os, sys
+
 def fit_mir_eval_transcription(annotation, note):
     """
     Transform 2-D numpy array of note event into mir_eval format.
@@ -42,13 +43,17 @@ def fit_mir_eval_transcription(annotation, note):
 
 
 def note_evaluation(annotation, note, pruned_note, output_dir, filename, onset_tolerance=0.05, offset_ratio=0.2):    
+    # convert format to fit mir_eval
     ref_intervals, ref_pitches, est_intervals, est_pitches = fit_mir_eval_transcription(annotation, note)
     ref_intervals, ref_pitches, pruned_est_intervals, pruned_est_pitches = fit_mir_eval_transcription(annotation, pruned_note)
-    precision, recall, f_measure = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, offset_ratio=0.2)
-    pruned_precision, pruned_recall, pruned_f_measure = precision_recall_f1(ref_intervals, ref_pitches, pruned_est_intervals, pruned_est_pitches, offset_ratio=0.2)
 
-    precision_ig_off, recall_ig_off, f_measure_ig_off = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, offset_ratio=None)
-    pruned_precision_ig_off, pruned_recall_ig_off, pruned_f_measure_ig_off = precision_recall_f1(ref_intervals, ref_pitches, pruned_est_intervals, pruned_est_pitches, offset_ratio=None)
+    # evaluation
+    p, r, f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, offset_ratio=0.2)
+    pruned_p, pruned_r, pruned_f = precision_recall_f1(ref_intervals, ref_pitches, pruned_est_intervals, pruned_est_pitches, offset_ratio=0.2)
+
+    # ignore offset
+    p_ig_off, r_ig_off, f_ig_off = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, offset_ratio=None)
+    pruned_p_ig_off, pruned_r_ig_off, pruned_f_ig_off = precision_recall_f1(ref_intervals, ref_pitches, pruned_est_intervals, pruned_est_pitches, offset_ratio=None)
 
     sys.stdout = open(output_dir+os.sep+filename+'.note.eval', 'w')
     print '============================================================'
@@ -58,13 +63,13 @@ def note_evaluation(annotation, note, pruned_note, output_dir, filename, onset_t
     print 'Correct Pitch, Onset (%ss), Offset (%d%% of note length)' % (onset_tolerance, offset_ratio*100)
     print '------------------------------------------------------------'
     print '                   Precision          Recall       F-measure'
-    print ('%12s%16.4f%16.4f%16.4f' % ('Raw note', precision, recall, f_measure))
-    print ('%12s%16.4f%16.4f%16.4f' % ('Pruned note', pruned_precision, pruned_recall, pruned_f_measure))
+    print ('%12s%16.4f%16.4f%16.4f' % ('Raw note', p, r, f))
+    print ('%12s%16.4f%16.4f%16.4f' % ('Pruned note', pruned_p, pruned_r, pruned_f))
     print '============================================================'
     print 'Correct Pitch, Onset (%ss)' % (onset_tolerance)
     print '------------------------------------------------------------'
     print '                   Precision          Recall       F-measure'
-    print ('%12s%16.4f%16.4f%16.4f' % ('Raw note', precision_ig_off, recall_ig_off, f_measure_ig_off))
-    print ('%12s%16.4f%16.4f%16.4f' % ('Pruned note', pruned_precision_ig_off, pruned_recall_ig_off, pruned_f_measure_ig_off))
+    print ('%12s%16.4f%16.4f%16.4f' % ('Raw note', p_ig_off, r_ig_off, f_ig_off))
+    print ('%12s%16.4f%16.4f%16.4f' % ('Pruned note', pruned_p_ig_off, pruned_r_ig_off, pruned_f_ig_off))
 
 

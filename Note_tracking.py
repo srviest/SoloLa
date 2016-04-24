@@ -25,8 +25,6 @@ import glob, os, sys
 import subprocess as subp
 import numpy as np
 import math
-from GuitarTranscription_evaluation import note_evaluation
-
 
 def note_pruning(note_pseudo, threshold=0.1):
     """
@@ -103,7 +101,7 @@ def parser():
         help='Conduct evaluation. The followed argument is parent directory of annotation.')
     p.add_argument('-onset_tol', '--onset_tolerance_window', type=float, dest='onset_tol', default=0.05,
         help='Window lenght of onset tolerance. (default: %(default)s)')
-    p.add_argument('-offset_tol', '--offset_tolerance_window', type=float, dest='offset_tol', default=20,
+    p.add_argument('-offset_rat', '--offset_tolerance_ratio', type=float, dest='offset_rat', default=20,
         help='Window lenght of onset tolerance. (default: %(default)s)')
     # version
     p.add_argument('--version', action='version',
@@ -150,9 +148,11 @@ def main(args):
         np.savetxt(args.output_dir+os.sep+name+'.pruned.note',pruned_note, fmt='%s')
 
         if args.evaluation:
+            from GuitarTranscription_evaluation import note_evaluation
             print '  Evaluating...'            
             annotation = np.loadtxt(args.evaluation+os.sep+name+'.note.answer')
-            note_evaluation(annotation, note, pruned_note, args.output_dir, name)
+            note_evaluation(annotation, note, pruned_note, args.output_dir, 
+                name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat)
             
         
 
