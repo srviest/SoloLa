@@ -24,7 +24,7 @@ import math
 import operator
 from essentia import *
 from essentia.standard import *
-from GuitarTranscription_parameters import selected_features
+from GuitarTranscription_parameters import selected_features, contour_sr
 
 def delta(input_sig, n=1, axis=0):
     from numpy import diff,concatenate
@@ -167,13 +167,13 @@ def main(args):
             # reshape candidate if it is in one dimension
             if candidate.shape==(2,): candidate = candidate.reshape(1,2)
             # convert seconds into samples
-            candidate_sample = candidate*44100
+            candidate_sample = candidate*contour_sr
             # create feature matrix
             feature_vec_all = np.array([])
             # loop in candidates
             for c in candidate_sample:
                 # clipping audio signal
-                audio_clip = audio[c[0]:c[1]]
+                audio_clip = audio[int(c[0]):int(c[1])]
                 # extract features
                 feature_vec = feature_extractor(audio=audio_clip, features=selected_features)
                 feature_vec_all = np.concatenate((feature_vec_all,feature_vec), axis = 0)          
