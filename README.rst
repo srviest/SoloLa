@@ -17,6 +17,7 @@ The system comprises of the following algorithms:
 Requirements
 ------------
 - `numpy <http://www.numpy.org>`_
+- `mir_eval <https://github.com/craffel/mir_eval>`_
 - `cython <http://www.cython.org>`_
 - `scipy <http://www.scipy.org>`_
 - `nose <https://github.com/nose-devs/nose>`_
