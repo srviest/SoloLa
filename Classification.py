@@ -152,7 +152,9 @@ def parser():
     return args
 
 def main(args):
-    print 'Running classification...'    
+    print '========================='
+    print 'Running classification...' 
+    print '========================='   
     # create result directory
     if not os.path.exists(args.output_dir): os.makedirs(args.output_dir)
     print 'Output directory: ', '\n', '  ', args.output_dir

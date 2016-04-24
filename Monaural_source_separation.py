@@ -418,8 +418,9 @@ def main(args):
     :param args: parsed arguments
 
     """
+    print '====================================='
     print 'Running monaural source separation...'
-    
+    print '====================================='
     # parse and list files to be processed
     files = parse_input_files(args)
     

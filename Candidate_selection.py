@@ -187,8 +187,9 @@ def parser():
     
 
 def main(args):
+    print '=============================='
     print 'Running candidate selection...'
-    
+    print '=============================='
     # parse and list files to be processed
     melody_files = parse_input_files(args.input_melody, ext='.MIDI.smooth.melody')
     

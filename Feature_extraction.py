@@ -134,7 +134,9 @@ def parser():
     return args
     
 def main(args):
-    print 'Running feature extraction...'    
+    print '============================='
+    print 'Running feature extraction...'
+    print '============================='    
     # parse and list files to be processed
     audio_files = parse_input_files(args.input_audios, ext='.wav')
         

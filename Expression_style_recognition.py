@@ -3,10 +3,10 @@
 """
 Author: Yuan-Ping Chen
 Data: 2016/03/10
-----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 Expression style recognition: automatically recognize the electric 
                               guitar expression style.
-----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 Args:
     input_files:    Audio files to be processed. 
                     Only the wav files would be considered.
@@ -17,7 +17,7 @@ Args:
 
 Optional args:
     Please refer to --help.
-----------------------------------------------------------------------
+-------------------------------------------------------------------------------
 Returns:
     expression_style_note:  Text file of array, storing the onset, offset 
                             and pitch of each note as well as its expression.
@@ -26,7 +26,7 @@ Returns:
 
                             Example:
                               Pit   On    Dur   B     P     H     S     V    
-                            [ 66    1.24  0.5   2     0     0            ]
+                            [ 66    1.24  0.5   2     0     0           0]
 
                             Pi:     pitch (MIDI number)
                             On:     onset (sec.)
@@ -39,15 +39,21 @@ Returns:
                                                  -2 for release by 2 semitone,
                                                  -3 for release by 3 semitone)
                             P:      pull-off (0 for none, 
-                                              1 for employed)
+                                              1 for pull-off start,
+                                              2 for pull-off stop)
                             H:      hammer-on (0 for none, 
-                                               1 for employed)
+                                               1 for hammer-on start,
+                                               2 for hammer-on stop)
                             S:      slide (0 for none, 
-                                           1 for long slide in the begining, 
-                                           2 for long slide in the end)
+                                           1 for legato slide start, 
+                                           2 for legato slide stop, 
+                                           3 for slide in from below, 
+                                           4 for slide in from above, 
+                                           5 for slide out downward, 
+                                           6 for slide out upward)
                             V:      vibrato (0 for none,
-                                             1 for vibrato with entext of 1 semitone,
-                                             2 for vibrato with entext of 2 semitone)
+                                             1 for vibrato: vivrato with entext of 1 semitone,
+                                             2 for wild vibrato: vibrato with entext of 2 semitone)
                                              
 """
 
@@ -640,9 +646,6 @@ def parser():
     """
     Parses the command line arguments.
 
-    :param lgd:       use local group delay weighting by default
-    :param threshold: default value for threshold
-
     """
     import argparse
     # define parser
@@ -680,7 +683,9 @@ def parser():
 
 
 def main(args):
+    print '======================================='
     print 'Running expression style recognition...'
+    print '======================================='
     # parse and list files to be processed
     audio_files = parse_input_files(args.input_audios, ext='.wav')
     
@@ -823,8 +828,10 @@ def main(args):
         S2.5 Classfication 
         """        
         # load pre-trained SVM
-        model = fnmatch.filter(glob.glob(args.input_model+os.sep+'/*'), '*'+'.model.npy')
-        clf = np.load(model[0]).item()
+        try:
+            clf = np.load(args.input_model).item()
+        except IOError:
+            print 'The expression style recognition model ', args.input_model, ' doesn\'t exist!'
 
         for ct in candidate_type:
 

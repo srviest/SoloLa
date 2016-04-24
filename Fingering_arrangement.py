@@ -244,6 +244,11 @@ class ArrangeTabAstar(object):
         self.graph = None
         self.path = None
     def gen_tab(self):
+        """
+        Generate array of [string, fret]
+
+
+        """
         self.graph = self._gen_graph()
 
         # run the A* algorithm
@@ -461,8 +466,9 @@ def parser():
     
 
 def main(args):
+    print '================================'
     print 'Running fingering arrangement...'
-    
+    print '================================'
     # parse and list files to be processed
     files = parse_input_files(args.input_files, ext='.expression_style_note')
     

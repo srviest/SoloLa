@@ -13,6 +13,7 @@ path=$(pwd)
 cd ${path}
 pip install cython
 pip install nose
+pip install mir_eval
 pip install madmom
 pip install -U scikit-learn
 pip install networkx

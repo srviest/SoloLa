@@ -115,8 +115,9 @@ def parser():
     
 
 def main(args):
+    print '============================'
     print 'Running downbeat tracking...'
-    
+    print '============================'
     # parse and list files to be processed
     files = parse_input_files(args.input_files, ext='.wav')
     

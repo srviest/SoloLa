@@ -53,10 +53,10 @@ def parser():
 
     """)
     # general options
-    p.add_argument('input_files', type=str, metavar='input_files', nargs='+',
-                   help='files to be processed')    
-    p.add_argument('output_dir', type=str, metavar='output_dir',
-                   help='output directory.')
+    # p.add_argument('input_files', type=str, metavar='input_files', nargs='+',
+    #                help='files to be processed')    
+    # p.add_argument('output_dir', type=str, metavar='output_dir',
+    #                help='output directory.')
     p.add_argument('-dbt', action='store_true', default=False, 
         help='Downbeat tracking')
     p.add_argument('-mse', action='store_true', default=False, 
@@ -83,9 +83,10 @@ def main(args):
 
     # input_audio = '/Users/Frank/Documents/Code/Database/test/Guitar_Licks_51_10.wav'
     # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect'
-    input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect'
+    args.input_files = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect'
     # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/Clean_Room'
-    output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/All_Effects'
+    args.output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/All_Effects'
+    
     
     # parse and list files to be processed
     files = parse_input_files(args.input_files)
@@ -123,7 +124,8 @@ def main(args):
         # S3. Note tracking
         if args.nt: call(['python', 'Note_tracking.py',
                           args.output_dir+os.sep+name+'S2.Melody',
-                          args.output_dir+os.sep+name+'S3.Note'])
+                          args.output_dir+os.sep+name+'S3.Note', 
+                          '-eval', '/Users/Frank/Documents/Code/Database/ground_truth/rock_lead_guitar/New_Note_original/'])
 
         # S4. Expression style recognition
         if args.esr: call(['python', 'Expression_style_recognition.py',

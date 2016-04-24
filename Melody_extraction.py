@@ -30,6 +30,7 @@ import math
 from essentia.standard import *
 from scipy.io import wavfile
 from GuitarTranscription_parameters import *
+from GuitarTranscription_utility import hertz2midi
 
 def mean_filter(data, kernel_size=9):
     """
@@ -41,20 +42,6 @@ def mean_filter(data, kernel_size=9):
     pseudo_data = data.copy()
     smooth = np.convolve(pseudo_data, np.ones(kernel_size)/kernel_size, mode='same')
     return smooth
-
-
-def hertz2midi(melody_contour):
-    """
-    convert pitch sequence from hertz to midi scale.
-    :param melody_contour: array of pitch sequence.
-
-    """ 
-    from numpy import inf
-    melody_contour_MIDI = melody_contour.copy()
-    melody_contour_MIDI =12*np.log(melody_contour_MIDI/float(440))/np.log(2)+69
-    melody_contour_MIDI[melody_contour_MIDI==-inf]=0
-    return melody_contour_MIDI
-
 
 def parse_input_files(input_files, ext='.wav'):
     """
@@ -128,8 +115,9 @@ def parser():
     
 
 def main(args):
+    print '============================'
     print 'Running melody extraction...'
-    
+    print '============================'
     # parse and list files to be processed
     files = parse_input_files(args.input_files)
     

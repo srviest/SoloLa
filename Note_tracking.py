@@ -25,6 +25,8 @@ import glob, os, sys
 import subprocess as subp
 import numpy as np
 import math
+from GuitarTranscription_evaluation import note_evaluation
+
 
 def note_pruning(note_pseudo, threshold=0.1):
     """
@@ -39,6 +41,7 @@ def note_pruning(note_pseudo, threshold=0.1):
         if note[n,2]>threshold:
             pruned_notes = np.append(pruned_notes,[note[n,:]],axis=0)
     return pruned_notes
+
 
 def parse_input_files(input_files, ext):
     """
@@ -96,6 +99,12 @@ def parser():
     p.add_argument('-nrp',   '--NoteRecognizerPath', type=str, dest='nrp',
                    help="the path of c++ based Note tracker.", default='./NoteRecognizer')
     p.add_argument('-p',   '--prunning_note', dest='p',  help="the minimum duration of note event.",  default=0.1)
+    p.add_argument('-eval', '--evaluation', type=str, default=None, dest='evaluation',
+        help='Conduct evaluation. The followed argument is parent directory of annotation.')
+    p.add_argument('-onset_tol', '--onset_tolerance_window', type=float, dest='onset_tol', default=0.05,
+        help='Window lenght of onset tolerance. (default: %(default)s)')
+    p.add_argument('-offset_tol', '--offset_tolerance_window', type=float, dest='offset_tol', default=20,
+        help='Window lenght of onset tolerance. (default: %(default)s)')
     # version
     p.add_argument('--version', action='version',
                    version='%(prog)spec 1.03 (2016-03-07)')
@@ -107,8 +116,9 @@ def parser():
     
 
 def main(args):
+    print '========================'
     print 'Running note tracking...'
-    
+    print '========================'
     # parse and list files to be processed
     files = parse_input_files(args.input_files, ext='.raw.melody')
     
@@ -130,14 +140,21 @@ def main(args):
         note = []
         for line in note_string.splitlines():
           note.append(np.fromstring(line, dtype="float32", sep=' '))
+        # convert list into ndarray
         note = np.asarray(note)
         # save result: note event
         np.savetxt(args.output_dir+os.sep+name+'.raw.note',note, fmt='%s')
         # S2.2 note pruning
-        note = note_pruning(note, threshold=args.p)
+        pruned_note = note_pruning(note, threshold=args.p)
         # save result: prunied note event
-        np.savetxt(args.output_dir+os.sep+name+'.pruned.note',note, fmt='%s')
+        np.savetxt(args.output_dir+os.sep+name+'.pruned.note',pruned_note, fmt='%s')
 
+        if args.evaluation:
+            print '  Evaluating...'            
+            annotation = np.loadtxt(args.evaluation+os.sep+name+'.note.answer')
+            note_evaluation(annotation, note, pruned_note, args.output_dir, name)
+            
+        
 
 if __name__ == '__main__':
     args = parser()
