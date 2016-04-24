@@ -70,6 +70,7 @@ from Candidate_selection import continuously_ascending_descending_pattern, candi
 from Feature_extraction import feature_extractor
 from Classification import data_preprocessing
 from GuitarTranscription_parameters import *
+from GuitarTranscription_utility import note_pruning
 import fnmatch
 
 class Common(object):
@@ -484,7 +485,7 @@ def merge_bend_and_slide(expression_style_note, result_ref):
                     expression_style_note[num_note,4:]=np.nanmax(expression_style_note[num_note+1:current_num_note+1,4:])
                     # mark the bend in expression style note
                     expression_style_note[num_note,3] = int(note[3]-expression_style_note[num_note,3])
-    print note_to_be_deleted
+    # print note_to_be_deleted
     expression_style_note = np.delete(expression_style_note, note_to_be_deleted,axis=0)
     return expression_style_note
 
@@ -664,14 +665,30 @@ def parser():
     # general options
     p.add_argument('input_audios', type=str, metavar='input_audios',
                    help='audio files to be processed')
+
     p.add_argument('input_melody', type=str, metavar='input_melody',
                    help='melody contours to be processed')
+
     p.add_argument('input_note', type=str, metavar='input_note',
                    help='note events to be processed')
+
     p.add_argument('input_model', type=str, metavar='input_model',
                    help='pre-trained classifier')
+
     p.add_argument('output_dir', type=str, metavar='output_dir',
                    help='output directory.')
+
+    p.add_argument('-p',   '--prunning_note', dest='p',  
+                   help="the minimum duration of note event.",  default=0.1)
+
+    p.add_argument('-eval_note', '--evaluation_note', type=str, default=None, dest='eval_note', 
+                    help='Conduct note evaluation. The followed argument is parent directory of annotation.')
+
+    p.add_argument('-onset_tol', '--onset_tolerance_window', type=float, dest='onset_tol', default=0.05, 
+                    help='Window lenght of onset tolerance. (default: %(default)s)')
+
+    p.add_argument('-offset_rat', '--offset_tolerance_ratio', type=float, dest='offset_rat', default=20, 
+                    help='Window lenght of onset tolerance. (default: %(default)s)')
     # version
     p.add_argument('--version', action='version',
                    version='%(prog)spec 1.03 (2016-03-20)')
@@ -711,9 +728,9 @@ def main(args):
             print 'The note event of ', name, ' doesn\'t exist!'     
 
         """
-        ------------------------------------------------------------------------------------------
+        -----------------------------------------------------------------------
         S1. Recognize expression styles by heuristics
-        ------------------------------------------------------------------------------------------
+        -----------------------------------------------------------------------
         """
         """
         S1.1 Detect wide vibrato by recognizing the serrated pattern in note events
@@ -738,9 +755,9 @@ def main(args):
         np.savetxt(args.output_dir+os.sep+name+'.after_LongSlide.expression_style_note',expression_style_note, fmt='%s')
 
         """
-        ------------------------------------------------------------------------------------------
+        -----------------------------------------------------------------------
         S2. Recognize expression styles by Support Vector Machine
-        ------------------------------------------------------------------------------------------
+        -----------------------------------------------------------------------
         """
         """
         S2.1 Find continuously ascending or descending pattern in melody contour.
@@ -760,7 +777,7 @@ def main(args):
         np.savetxt(args.output_dir+os.sep+name+'.descending.pitch_contour',descending_pitch_contour, fmt='%s')
 
         """
-        S2.2 Detect slow bend by searching consecutive adjacent three or four notes whichc are cover by CAD pattern.
+        S2.2 Detect slow bend by searching consecutive adjacent three or four notes which covered by CAD pattern.
 
         """
         long_ascending_note, note_short_ascending, long_ascending_pattern, short_ascending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], ascending_pattern)
@@ -777,7 +794,7 @@ def main(args):
         np.savetxt(args.output_dir+os.sep+name+'.after_SlowBend.expression_style_note',expression_style_note, fmt='%s')
 
         """
-        S2.3 Candidate selection by finding intersection of note and CAD pattern, i.e., the candidate of {bend, slide, pull-off, hammer-on, normal})
+        S2.3 Candidate selection by finding intersection of note and CAD pattern, i.e., the candidate of {bend, pull-off, normal, hammer-on, slide})
         """
         ascending_candidate, ascending_candidate_note, non_candidate_ascending_note = candidate_selection(expression_style_note[:,0:3], short_ascending_pattern)
         # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_bend, TP_slide, TP_hamm, FN_bend, FN_slide, FN_hamm = short_pattern_evaluate(ascending_candidate,FN_bend,FN_slide,join(hamm_answer_dir,name_ext))   
@@ -788,7 +805,7 @@ def main(args):
         np.savetxt(args.output_dir+os.sep+name+'.descending.candidate',descending_candidate, fmt='%s')
         
         """
-        S2.4 Extract raw audio features of candidate regions
+        S2.4 Extract audio features of candidate regions
         """
         # load audio
         audio = MonoLoader(filename = f)()
@@ -814,7 +831,7 @@ def main(args):
             # loop in candidates
             for c in candidate_sample:
                 # clipping audio signal
-                audio_clip = audio[c[0]:c[1]]
+                audio_clip = audio[int(c[0]):int(c[1])]
                 # extract features
                 feature_vec = feature_extractor(audio=audio_clip, features=selected_features)
                 feature_vec_all = np.concatenate((feature_vec_all,feature_vec), axis = 0)            
@@ -834,7 +851,6 @@ def main(args):
             print 'The expression style recognition model ', args.input_model, ' doesn\'t exist!'
 
         for ct in candidate_type:
-
             # load raw features
             candidate = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate')
             raw_feature = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature')
@@ -847,20 +863,29 @@ def main(args):
             y_pred = clf.predict(data)
             result = np.hstack((candidate, np.asarray(y_pred).reshape(len(y_pred), 1)))
             np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.result', result, fmt='%s')
-            print y_pred
+            # print y_pred
 
         """
         S2.6 Merge bend and slide note
         """            
-
-        result_all = np.vstack((np.loadtxt(output_dir+os.sep+name+'.'+candidate_type[0]+'.candidate'+'.result'), \
-                                   np.loadtxt(output_dir+os.sep+name+'.'+candidate_type[1]+'.candidate'+'.result')))
-
+        # combine ascending and descending cadidates
+        result_all = np.vstack((np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[0]+'.candidate'+'.result'), np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[1]+'.candidate'+'.result')))
+        # sort by time
         result_all = result_all[np.argsort(result_all[:,0], axis = 0)]
+        # merge bend and slide note
         expression_style_note = merge_bend_and_slide(expression_style_note, result_all)
+        # save merged expression style note
         np.savetxt(args.output_dir+os.sep+name+'.merge_bend_slide'+'.expression_style_note', expression_style_note, fmt='%s')
 
-
+        if args.eval_note:
+            from GuitarTranscription_evaluation import note_evaluation
+            print '  Evaluating...'            
+            annotation = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
+            note = expression_style_note[:,0:3]
+            pruned_note = note_pruning(note, threshold=args.p)
+            note_evaluation(annotation, note, pruned_note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat)
+            
+        
 
 if __name__ == '__main__':
     args = parser()
