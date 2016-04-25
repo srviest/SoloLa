@@ -62,15 +62,16 @@ def collect_same_technique_feature_files(feature_dir, technique_type = ['bend', 
     technique_file_dict = collections.OrderedDict(sorted(technique_file_dict.items()))
     return technique_file_dict
 
-def data_preprocessing(raw_data):
+def data_preprocessing(raw_data, data_preprocessing_method = ['z-score']):
     from sklearn.preprocessing import Imputer, scale
 
     # replace nan feature with the median of column values
     imp = Imputer(missing_values='NaN', strategy='median', axis=0)
     raw_data = imp.fit_transform(raw_data)
 
-    # z-score standardization
-    data = scale(raw_data)
+    if 'z-score' in data_preprocessing_method: 
+        # z-score standardization
+        data = scale(raw_data)
 
     return data
 
@@ -80,16 +81,16 @@ def data_loader(technique_file_dict):
     and data instances x with the format of numpy array.
     """
     from numpy import loadtxt, empty, asarray, hstack, vstack, savetxt
-    import glob, os, sys
+    import glob, os, sys, collections
     index_of_class = 0
     label = []
     # calculate the dimension of feature space
     f_dimension = loadtxt(technique_file_dict[technique_file_dict.keys()[0]][0]).shape[1]
-    print 'The dimendion of features is: ', f_dimension
     # create empty feature array for collecting feature intances
     training_instances = empty((0,f_dimension),dtype=float)
 
-    class_data_num = str()
+    class_data_num_str = str()
+    class_data_num_dict = dict()
 
     # concatenate all features and make label
     for t in technique_file_dict.keys():
@@ -100,15 +101,17 @@ def data_loader(technique_file_dict):
             training_instances = vstack((training_instances,feature))
         label+=[index_of_class]*num_of_instances
         index_of_class += 1
+        class_data_num_dict[t] = num_of_instances
         if t!=technique_file_dict.keys()[-1]:
-            class_data_num += t+'_'+str(num_of_instances)+'_'
+            class_data_num_str += t+'_'+str(num_of_instances)+'_'
         else:
-            class_data_num += t+'_'+str(num_of_instances)
+            class_data_num_str += t+'_'+str(num_of_instances)
+    class_data_num_dict = collections.OrderedDict(sorted(class_data_num_dict.items()))
     # convert label list to numpy array
     label = asarray(label)
     label = label.reshape(label.shape[0])
  
-    return label, training_instances, class_data_num
+    return label, training_instances, class_data_num_str, class_data_num_dict, f_dimension
 
 
 def blockPrint():
@@ -145,7 +148,7 @@ def parser():
     p.add_argument('-v','--validation', nargs=2, dest='v', help="cross validation. V1: number of iteration, V2: number of folds", default=None)
     # version
     p.add_argument('--version', action='version',
-                   version='%(prog)spec 1.03 (2016-03-13)')
+                   version='%(prog)spec 1.03 (2016-04-25)')
     # parse arguments
     args = p.parse_args()
     
@@ -161,24 +164,22 @@ def main(args):
     print '\n'
     # inspect the input data classes
     technique_file_dict = collect_same_technique_feature_files(args.input_features, technique_type = args.classes)
-    print 'Targets: '
-    print technique_file_dict.keys()
-
+    
     # data loader
-    label, raw_data, class_data_num = data_loader(technique_file_dict)
-  
+    label, raw_data, class_data_num_str, class_data_num_dict, f_dimension = data_loader(technique_file_dict)
+
     # pre-processing data
     data = data_preprocessing(raw_data)
     X, y = data, label
     
     # inspect if there exists the cross validation indices
     try:
-        CVfold = np.load(args.output_dir+os.sep+class_data_num+'.iter'+str(args.i)+'.fold'+str(args.f)+'.CVFold.npy').item()
+        CVfold = np.load(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(args.f)+'.CVFold.npy').item()
         print 'Load pre-partitioned cross validation folds...'
     except IOError:
         print 'Shuffling the samples and dividing them into ', args.f, ' folds...'
         CVfold = StratifiedKFold(label, args.f, shuffle=True)
-        np.save(args.output_dir+os.sep+class_data_num+'.iter'+str(args.i)+'.fold'+str(args.f)+'.CVFold.npy', CVfold)
+        np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(args.f)+'.CVFold.npy', CVfold)
 
 
     # Set the parameters by cross-validation
@@ -193,32 +194,45 @@ def main(args):
     # set the scoring metric for parameters estimation
     metrics = ['f1']
     # save result to file
-    sys.stdout = open(args.output_dir+os.sep+'Result.txt', 'w')
+    sys.stdout = open(args.output_dir+os.sep+'model.report', 'w')
+    print '============================================================' 
+    print 'Parameters and setting'
+    print '============================================================' 
+    print 'Targets: '
+    for c_index, c in enumerate(class_data_num_dict):
+        print '    %s: %s (%s)' % (c_index, c, class_data_num_dict[c])
+    print 'Dimensions of feature vector: %s' % (f_dimension)
+    print 'Data preprocessing method:'
+    for dpm in data_preprocessing_method:
+        print '    %s' % (dpm)
+
     # train, test and evaluation
     fold=1
     for train_index, test_index in CVfold:
-        print 'Fold %s...' % fold
+        print '============================================================' 
+        print 'Classification on fold %s...' % fold
+        print '============================================================' 
         X_train, y_train = X[train_index], y[train_index]
         X_test, y_test = X[test_index], y[test_index]
-        for metric in metrics:
-            print("# Tuning hyper-parameters for %s" % metric)
+        for m in metrics:
+            print("# Tuning hyper-parameters for %s" % m)
             # print '\n'
 
             clf = GridSearchCV(SVC(), tuned_parameters, cv=4,
-                               scoring='%s_weighted' % metric)
+                               scoring='%s_weighted' % m)
             clf.fit(X_train, y_train)
 
             print("Best parameters set found on development set:")
             # print '\n'
             print(clf.best_params_)
-            # print '\n'
+            print '------------------------------------------------------------' 
             print("Grid scores on development set:")
             # print '\n'
             for params, mean_score, scores in clf.grid_scores_:
                 print("%0.3f (+/-%0.03f) for %r"
                       % (mean_score, scores.std() * 2, params))
             # print '\n'
-
+            print '------------------------------------------------------------' 
             print("Detailed classification report:")
             # print '\n'
             print("The model is trained on the full development set.")
@@ -228,9 +242,8 @@ def main(args):
             print(classification_report(y_true, y_pred))
             # print '\n'
             # save model
-            np.save(args.output_dir+os.sep+class_data_num+'.iter'+str(args.i)+'.fold'+str(fold)+'.model', clf)
+            np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.model', clf)
         fold+=1
-
 
 if __name__ == '__main__':
     args = parser()
