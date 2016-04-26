@@ -97,18 +97,24 @@ def parser():
     p.add_argument('-nrp',   '--NoteRecognizerPath', type=str, dest='nrp',
                    help="the path of c++ based Note tracker.", default='./NoteRecognizer')
     p.add_argument('-p',   '--prunning_note', dest='p',  help="the minimum duration of note event.",  default=0.1)
-    p.add_argument('-eval', '--evaluation', type=str, default=None, dest='evaluation',
+    p.add_argument('-v', dest='verbose', action='store_true',
+                   help='be verbose')
+    eval_note = p.add_argument_group('Note evulation arguments')
+    eval_note.add_argument('-eval', '--evaluation', type=str, default=None, dest='evaluation',
         help='Conduct evaluation. The followed argument is parent directory of annotation.')
-    p.add_argument('-onset_tol', '--onset_tolerance_window', type=float, dest='onset_tol', default=0.05,
+    eval_note.add_argument('-onset_tol', '--onset_tolerance_window', type=float, dest='onset_tol', default=0.05,
         help='Window lenght of onset tolerance. (default: %(default)s)')
-    p.add_argument('-offset_rat', '--offset_tolerance_ratio', type=float, dest='offset_rat', default=20,
+    eval_note.add_argument('-offset_rat', '--offset_tolerance_ratio', type=float, dest='offset_rat', default=20,
         help='Window lenght of onset tolerance. (default: %(default)s)')
+
     # version
     p.add_argument('--version', action='version',
                    version='%(prog)spec 1.03 (2016-03-07)')
     # parse arguments
     args = p.parse_args()
-
+    # print arguments
+    if args.verbose:
+        print args
     # return args
     return args
     

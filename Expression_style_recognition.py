@@ -24,37 +24,51 @@ Returns:
                             The file is attached with .expression_style_note
                              extenion.
 
-                            Example:
-                              Pit   On    Dur   B     P     H     S     V    
-                            [ 66    1.24  0.5   2     0     0           0]
+    Example:
+        Pit     On   Dur  PreB     B     R     P     H     S    SI    SO     V    
+    [    66   1.24   0.5     2     0     0     0     0     1     2     1     1]
 
-                            Pi:     pitch (MIDI number)
-                            On:     onset (sec.)
-                            Dur:    duration (sec.)
-                            B:      string bend (0 for none,
-                                                 1 for bend by 1 semitone,
-                                                 2 for bend by 2 semitone,
-                                                 3 for bend by 3 semitone, 
-                                                 -1 for release by 1 semitone,
-                                                 -2 for release by 2 semitone,
-                                                 -3 for release by 3 semitone)
-                            P:      pull-off (0 for none, 
-                                              1 for pull-off start,
-                                              2 for pull-off stop)
-                            H:      hammer-on (0 for none, 
-                                               1 for hammer-on start,
-                                               2 for hammer-on stop)
-                            S:      slide (0 for none, 
-                                           1 for legato slide start, 
-                                           2 for legato slide stop, 
-                                           3 for slide in from below, 
-                                           4 for slide in from above, 
-                                           5 for slide out downward, 
-                                           6 for slide out upward)
-                            V:      vibrato (0 for none,
-                                             1 for vibrato: vivrato with entext of 1 semitone,
-                                             2 for wild vibrato: vibrato with entext of 2 semitone)
-                                             
+    Pi:     pitch (MIDI number)
+    On:     onset (sec.)
+    Dur:    duration (sec.)
+
+    PreB:   pre-bend
+
+
+    B:      string bend (0 for none,
+                         1 for bend by 1 semitone,
+                         2 for bend by 2 semitone,
+                         3 for bend by 3 semitone, 
+                         
+    R:      release  (0: none, 
+                      1: release by 1 semitone,
+                      2: release by 2 semitone,
+                      3: release by 3 semitone)
+
+    P:      pull-off (0: none, 
+                      1: pull-off start,
+                      2: pull-off stop)
+
+    H:      hammer-on (0: none,
+                       1: hammer-on start,
+                       2: hammer-on stop)
+
+    S:      legato slide (0: none,
+                          1: legato slide start, 
+                          2: legato slide stop, 
+                
+    SI:     slide in (0: none,
+                      1: slide in from below,
+                      2: slide in from above)
+
+    SO:     slide out (0: none,
+                       1: slide out downward,
+                       2: slide out upward)
+
+    V:      vibrato (0 for none,
+                     1 for vibrato: vivrato with entext smaller or equal to 1 semitone,
+                     2 for wild vibrato: vibrato with entext larger than 1 semitone)
+                     
 """
 
 import glob, os
@@ -140,7 +154,7 @@ class Common(object):
                     long_slide = [long_slide_pitch, long_slide_onset, long_slide_offset]
                     self.long_slide = np.append(self.long_slide, [long_slide], axis=0)  
 
-class WideVibrato(Common):
+class WildVibrato(Common):
 
     def __init__(self):
         """
@@ -155,21 +169,21 @@ class WideVibrato(Common):
 
     def detect(self, raw_note):
         self.raw_note = raw_note
-        merged_notes, self.super_wide_vibrato = WideVibrato.identify_serrated_pattern(self.raw_note,2)
+        merged_notes, self.super_wild_vibrato = WildVibrato.identify_serrated_pattern(self.raw_note,2)
         # vibrato with extent of 1 semitone
-        merged_notes, self.wide_vibrato = WideVibrato.identify_serrated_pattern(merged_notes,1)
+        merged_notes, self.wild_vibrato = WildVibrato.identify_serrated_pattern(merged_notes,1)
 
 
         # event = np.zeros((merged_notes.shape[0],5))
         expression_style_note = np.hstack((merged_notes,np.zeros((merged_notes.shape[0],5))))
 
         expression_style_note = Common.update(expression_style_note=expression_style_note, 
-                                              note_with_expression_style=self.super_wide_vibrato, 
+                                              note_with_expression_style=self.super_wild_vibrato, 
                                               technique=self.technique, 
                                               sub_technique=2)
 
         expression_style_note = Common.update(expression_style_note=expression_style_note, 
-                                              note_with_expression_style=self.wide_vibrato, 
+                                              note_with_expression_style=self.wild_vibrato, 
                                               technique=self.technique, 
                                               sub_technique=1)
         return expression_style_note
@@ -177,16 +191,16 @@ class WideVibrato(Common):
     @staticmethod
     def identify_serrated_pattern(note_pseudo,extent):
         """
-        Merge notes of wide vibrato by merging series of notes in serrated patter 
+        Merge notes of wild vibrato by merging series of notes in serrated patter 
         Usage:
         :param note:     array of notes [pitch(MIDI#) onset(sec) duration(sec)].
         :param extent:   the heigh in semitone of the serrated pattern.
         :returns:        merged notes.
-                         wide vibrato notes.         
+                         wild vibrato notes.         
 
         """
         note = note_pseudo.copy()
-        wide_vibrato = np.empty([0,3])
+        wild_vibrato = np.empty([0,3])
         merged_notes = np.empty([0,3])
         for n in range(note.shape[0]):
             # if the pitch of current note is not zero
@@ -214,7 +228,7 @@ class WideVibrato(Common):
                         onset_time = note[onset_note,1]
                         duration = note[offset_note,1]+note[offset_note,2]-onset_time
                         merged_notes = np.append(merged_notes,[[pitch, onset_time, duration]],axis=0)
-                        wide_vibrato = np.append(wide_vibrato,[[pitch, onset_time, duration]],axis=0)
+                        wild_vibrato = np.append(wild_vibrato,[[pitch, onset_time, duration]],axis=0)
                     else:
                         merged_notes = np.append(merged_notes,note[onset_note:offset_note+1,:],axis=0)
                     note[onset_note:offset_note+1,0] = 0
@@ -223,7 +237,7 @@ class WideVibrato(Common):
             elif note[n,0]!=0 and n+1>note.shape[0]-1:
                 merged_notes = np.append(merged_notes,[note[-1,:]],axis=0)
         # append last note 
-        return merged_notes, wide_vibrato
+        return merged_notes, wild_vibrato
 
 class LongSlide(Common):
 
@@ -680,21 +694,31 @@ def parser():
 
     p.add_argument('-p',   '--prunning_note', dest='p',  
                    help="the minimum duration of note event.",  default=0.1)
-
-    p.add_argument('-eval_note', '--evaluation_note', type=str, default=None, dest='eval_note', 
+    # expression style evaluation
+    eval_expr = p.add_argument_group('Expression style recognition evaluation arguments')
+    eval_expr.add_argument('-eval_expr', '--evaluation_note', type=str, default=None, dest='eval_note', 
+                    help='Conduct note evaluation. The followed argument is parent directory of annotation.')
+    # note evaluation
+    eval_note = p.add_argument_group('Note evulation arguments')
+    eval_note.add_argument('-eval_note', '--evaluation_note', type=str, default=None, dest='eval_note', 
                     help='Conduct note evaluation. The followed argument is parent directory of annotation.')
 
-    p.add_argument('-onset_tol', '--onset_tolerance_window', type=float, dest='onset_tol', default=0.05, 
+    eval_note.add_argument('-onset_tol', '--onset_tolerance_window', type=float, dest='onset_tol', default=0.05, 
                     help='Window lenght of onset tolerance. (default: %(default)s)')
 
-    p.add_argument('-offset_rat', '--offset_tolerance_ratio', type=float, dest='offset_rat', default=20, 
+    eval_note.add_argument('-offset_rat', '--offset_tolerance_ratio', type=float, dest='offset_rat', default=20, 
                     help='Window lenght of onset tolerance. (default: %(default)s)')
+
+    p.add_argument('-v', dest='verbose', action='store_true',
+                    help='be verbose')
     # version
     p.add_argument('--version', action='version',
                    version='%(prog)spec 1.03 (2016-03-20)')
     # parse arguments
     args = p.parse_args()
-
+    # print arguments
+    if args.verbose:
+        print args
     # return args
     return args
 
@@ -731,19 +755,20 @@ def main(args):
         -----------------------------------------------------------------------
         S1. Recognize expression styles by heuristics
         -----------------------------------------------------------------------
+        
+        S1.1 Detect wild vibrato by recognizing the serrated pattern in note events.
+                    ------------
         """
-        """
-        S1.1 Detect wide vibrato by recognizing the serrated pattern in note events
-        """
-        WV = WideVibrato()
+        WV = WildVibrato()
         expression_style_note = WV.detect(raw_note)
         # save expression_style_note
-        np.savetxt(args.output_dir+os.sep+name+'.super_wide_vibrato',WV.super_wide_vibrato, fmt='%s')
-        np.savetxt(args.output_dir+os.sep+name+'.wide_vibrato',WV.wide_vibrato, fmt='%s')
+        np.savetxt(args.output_dir+os.sep+name+'.super_wild_vibrato',WV.super_wild_vibrato, fmt='%s')
+        np.savetxt(args.output_dir+os.sep+name+'.wild_vibrato',WV.wild_vibrato, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.after_WideVibrato.expression_style_note',expression_style_note, fmt='%s')
 
         """
-        S1.1 Detect slide in/out by recognizing the ladder pattern in quantised melody contour
+        S1.2 Detect slide in/out by recognizing the ladder pattern in quantised melody contour.
+                    ------------
         """
         LS = LongSlide(MIDI_smooth_melody, hop=contour_hop, sr=contour_sr, 
                        max_transition_note_duration=max_transition_note_duration, 
@@ -754,13 +779,16 @@ def main(args):
         np.savetxt(args.output_dir+os.sep+name+'.long_slide',LS.long_slide, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.after_LongSlide.expression_style_note',expression_style_note, fmt='%s')
 
+        if args.eval_expr:
+            print '  Evaluating...'            
+            annotation = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
+            note = expression_style_note[:,0:3]
+            pruned_note = note_pruning(note, threshold=args.p)
+            note_evaluation(annotation, note, pruned_note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat)
+
+
         """
-        -----------------------------------------------------------------------
-        S2. Recognize expression styles by Support Vector Machine
-        -----------------------------------------------------------------------
-        """
-        """
-        S2.1 Find continuously ascending or descending pattern in melody contour.
+        S1.3 Find continuously ascending or descending pattern in melody contour.
         """
         # find continuously ascending (CAD) F0 sequence patterns
         ascending_pattern, ascending_pitch_contour = continuously_ascending_descending_pattern(
@@ -776,9 +804,9 @@ def main(args):
         np.savetxt(args.output_dir+os.sep+name+'.descending.pattern',descending_pattern, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.descending.pitch_contour',descending_pitch_contour, fmt='%s')
 
-        """
-        S2.2 Detect slow bend by searching consecutive adjacent three or four notes which covered by CAD pattern.
-
+        """                
+        S1.4 Detect slow bend by searching consecutive adjacent three or four notes which covered by CAD pattern.
+                    --------- 
         """
         long_ascending_note, note_short_ascending, long_ascending_pattern, short_ascending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], ascending_pattern)
         # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_bend, TP_slide, FN_bend, FN_slide = long_pattern_evaluate(long_ascending_pattern,join(bend_answer_dir,name_ext),FN_slide)       
@@ -794,7 +822,12 @@ def main(args):
         np.savetxt(args.output_dir+os.sep+name+'.after_SlowBend.expression_style_note',expression_style_note, fmt='%s')
 
         """
-        S2.3 Candidate selection by finding intersection of note and CAD pattern, i.e., the candidate of {bend, pull-off, normal, hammer-on, slide})
+        -----------------------------------------------------------------------
+        S2. Recognize expression styles by Support Vector Machine
+        -----------------------------------------------------------------------
+        
+        S2.1 Candidate selection by finding intersection of note and CAD pattern.
+             i.e., the candidate of {bend, hammer-on, normal, pull-off, slide}.
         """
         ascending_candidate, ascending_candidate_note, non_candidate_ascending_note = candidate_selection(expression_style_note[:,0:3], short_ascending_pattern)
         # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_bend, TP_slide, TP_hamm, FN_bend, FN_slide, FN_hamm = short_pattern_evaluate(ascending_candidate,FN_bend,FN_slide,join(hamm_answer_dir,name_ext))   
@@ -805,7 +838,7 @@ def main(args):
         np.savetxt(args.output_dir+os.sep+name+'.descending.candidate',descending_candidate, fmt='%s')
         
         """
-        S2.4 Extract audio features of candidate regions
+        S2.2 Extract audio features of selected candidate regions.
         """
         # load audio
         audio = MonoLoader(filename = f)()
@@ -842,7 +875,7 @@ def main(args):
 
 
         """
-        S2.5 Classfication 
+        S2.3 Classfication using pre-train classifier.
         """        
         # load pre-trained SVM
         try:
@@ -866,8 +899,8 @@ def main(args):
             # print y_pred
 
         """
-        S2.6 Merge bend and slide note
-        """            
+        S2.4 Merge bend and slide note
+        """
         # combine ascending and descending cadidates
         result_all = np.vstack((np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[0]+'.candidate'+'.result'), np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[1]+'.candidate'+'.result')))
         # sort by time
@@ -885,6 +918,19 @@ def main(args):
             pruned_note = note_pruning(note, threshold=args.p)
             note_evaluation(annotation, note, pruned_note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat)
             
+        
+        """
+        S2.5 Detect hammer-on and pull-off by analysing the timbre of note transition.
+        """
+
+        """
+        S2.6 Detect grace bend.
+        """
+
+        """
+        S2.7 Detect soft vibeato on each note.
+        """
+
         
 
 if __name__ == '__main__':
