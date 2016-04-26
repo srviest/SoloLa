@@ -62,9 +62,9 @@ def main(args):
     # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/All_Effects'
     # output_dir = '/Users/Frank/Documents/Code/Python/Guitar_solo_MIDI2wav'
 
-    print '----------------------------------------------------'
+    print '===================================================='
     print 'Training guitar expressin style recognition model...'
-    print '----------------------------------------------------'
+    print '===================================================='
 
     # S1.Melody extraction
     if args.me: call(['python', 'Melody_extraction.py', 
