@@ -403,14 +403,86 @@ class LongSlide(Common):
         TP = estimation[np.nonzero(estimation_mask==0)[0]]
         FP = estimation[np.nonzero(estimation_mask==1)[0]]
         FN = answer[np.nonzero(answer_mask==1)[0]]
-        P = numTP/(numTP+numFP)
-        R = numTP/(numTP+numFN)
-        F = 2*P*R/(P+R)
+        P = numTP/float(numTP+numFP)
+        R = numTP/float(numTP+numFN)
+        F = 2*P*R/float(P+R)
+        
         return P, R, F, TP, FP, FN, numTP, numFP, numFN
 
 
+class SlowBend(Common):
+    """
+    Detect slow bend by the following rules:
+        i) 
+        ii) 
 
-def long_CAD_pattern_detection(note, CAD_pattern):
+    :param note:        np.ndarray, shape=(n_event, 3)
+                        note event[pitch(MIDI), onset, duration]
+    :param CAD_pattern: np.ndarray, shape=(n_event, 2)
+                        continuous ascending/descending pattern [start, end]
+    :return:
+    """
+    def __init__(self, ascending_pattern, descending_pattern):
+        self.ascending_pattern = ascending_pattern
+        self.descending_pattern = descending_pattern
+
+    def detect(self, expression_style_note): 
+                
+        # long_ascending_note, note_short_ascending, long_ascending_pattern, short_ascending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], self.ascending_pattern)
+        long_ascending_note, short_ascending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], self.ascending_pattern)
+        expression_style_note = Common.update(expression_style_note, long_ascending_note, technique = 'bend', sub_technique = 3)
+
+        # long_descending_note, note_short_descending, long_descending_pattern, short_descending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], self.descending_pattern)
+        long_descending_note, short_descending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], self.descending_pattern)
+        expression_style_note = Common.update(expression_style_note, long_descending_note, technique = 'bend', sub_technique = 3)       
+
+        return expression_style_note,long_ascending_note, long_descending_note, short_ascending_pattern, short_descending_pattern
+
+    def long_CAD_pattern_detection(note, CAD_pattern):
+
+            note_of_long_CAD = np.empty([0,3])
+            long_CAD_index = []
+            note_of_long_CAD_index = []
+            pseudo_CAD = CAD_pattern.copy()
+            pseudo_note = note.copy()
+            # Loop in each pattern
+            for p in range(pseudo_CAD.shape[0]):
+                onset_pattern = pseudo_CAD[p,0]
+                offset_pattern = pseudo_CAD[p,1]
+                # Loop in each note
+                for n in range(pseudo_note.shape[0]):
+                    onset_note = pseudo_note[n,1]
+                    offset_note = pseudo_note[n,1]+pseudo_note[n,2]
+                    # Find notes where pattern located
+                    if onset_pattern >= onset_note and onset_pattern <= offset_note:
+                        if n+3>=pseudo_note.shape[0]:
+                            break
+                        for m in range(n+2,n+4):
+                            onset_note = pseudo_note[m,1]
+                            offset_note = pseudo_note[m,1]+pseudo_note[m,2]
+                            if offset_pattern >= onset_note and offset_pattern <= offset_note:
+                                if m-n>=2 and m-n<=3 and abs(pseudo_note[n,0]-pseudo_note[m,0])<=3:
+                                    pitch = pseudo_note[n,0]
+                                    onset = pseudo_note[n,1]
+                                    duration = pseudo_note[n,2]+pseudo_note[n+1,2]+pseudo_note[n+2,2]
+                                    note_of_long_CAD = np.append(note_of_long_CAD,[[pitch, onset, duration]],axis = 0)
+                                    long_CAD_index.append(p)
+                                    note_of_long_CAD_index.append(n)
+                                    note_of_long_CAD_index.append(n+1)
+                                    note_of_long_CAD_index.append(n+2)
+            long_CAD = pseudo_CAD[long_CAD_index,:]
+            short_CAD = np.delete(pseudo_CAD,long_CAD_index,axis=0)
+            note_of_short_CAD = np.delete(pseudo_note,note_of_long_CAD_index,axis=0)
+            # return note_of_long_CAD, note_of_short_CAD, long_CAD, short_CAD
+            return note_of_long_CAD, short_CAD
+
+    # def evaluate():
+
+
+
+
+
+def slow_bend_detection(note, CAD_pattern):
     # need to modify to detection four notes covered with pattern.
     """
     Candidate selection for bend and slide by rules.
@@ -780,11 +852,20 @@ def main(args):
         np.savetxt(args.output_dir+os.sep+name+'.after_LongSlide.expression_style_note',expression_style_note, fmt='%s')
 
         if args.eval_expr:
-            print '  Evaluating...'            
+            print '  Evaluating slide in / slide out detection...' 
             annotation = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
-            note = expression_style_note[:,0:3]
-            pruned_note = note_pruning(note, threshold=args.p)
-            note_evaluation(annotation, note, pruned_note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat)
+             = LS.evaluate()
+            # note = expression_style_note[:,0:3]
+            P, R, F, TP_slide, FP_slide, FN_slide, numTP, numFP, numFN = ls.evaluate(long_slide_answer)
+            print 'Result for slide in / slide out detection:'
+            print '    Precision:  ', P, ' (', numTP, '/', (numTP+numFP) ,')'
+            print '    Recall:     ', R, ' (', numTP, '/', (numTP+numFN) ,')'
+            print '    F-score:    ', F
+            np.savetxt(join(long_slide_estimation_dir,name+'_TP.txt'),TP_slide)
+            np.savetxt(join(long_slide_estimation_dir,name+'_FP.txt'),FP_slide)
+            np.savetxt(join(long_slide_estimation_dir,name+'_FN.txt'),FN_slide)
+            total_TP_slide = total_TP_slide+numTP
+            total_FP_slide = total_FP_slide+numFP
 
 
         """
@@ -808,18 +889,17 @@ def main(args):
         S1.4 Detect slow bend by searching consecutive adjacent three or four notes which covered by CAD pattern.
                     --------- 
         """
-        long_ascending_note, note_short_ascending, long_ascending_pattern, short_ascending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], ascending_pattern)
-        # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_bend, TP_slide, FN_bend, FN_slide = long_pattern_evaluate(long_ascending_pattern,join(bend_answer_dir,name_ext),FN_slide)       
-        long_descending_note, note_short_descending, long_descending_pattern, short_descending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], descending_pattern)
-        # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_release, TP_slide, FN_release, FN_slide = long_pattern_evaluate(long_descending_pattern,join(release_answer_dir,name_ext),FN_slide)     
-        np.savetxt(args.output_dir+os.sep+name+'.short.ascending.pattern', short_ascending_pattern, fmt='%s')
-        np.savetxt(args.output_dir+os.sep+name+'.short.descending.pattern', short_descending_pattern, fmt='%s')
-        np.savetxt(args.output_dir+os.sep+name+'.long.ascending.note', long_ascending_note, fmt='%s')
-        np.savetxt(args.output_dir+os.sep+name+'.long.descending.note', long_descending_note, fmt='%s')
 
-        expression_style_note = Common.update(expression_style_note, long_ascending_note, technique = 'bend', sub_technique = 2.5)
-        expression_style_note = Common.update(expression_style_note, long_descending_note, technique = 'bend', sub_technique = 2.5)
+        SB = SlowBend(ascending_pattern, descending_pattern)
+        (expression_style_note, long_ascending_note, long_descending_note, 
+        short_ascending_pattern, short_descending_pattern) = SB.detect(expression_style_note) 
         np.savetxt(args.output_dir+os.sep+name+'.after_SlowBend.expression_style_note',expression_style_note, fmt='%s')
+        if eval_expr:
+            print '  Evaluating slow bend detection...' 
+            annotation = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
+             = SB.evaluate()
+        # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_bend, TP_slide, FN_bend, FN_slide = long_pattern_evaluate(long_ascending_pattern,join(bend_answer_dir,name_ext),FN_slide)       
+        # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_release, TP_slide, FN_release, FN_slide = long_pattern_evaluate(long_descending_pattern,join(release_answer_dir,name_ext),FN_slide)     
 
         """
         -----------------------------------------------------------------------
@@ -928,7 +1008,7 @@ def main(args):
         """
 
         """
-        S2.7 Detect soft vibeato on each note.
+        S2.7 Detect soft vibrato on each note.
         """
 
         
