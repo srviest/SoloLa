@@ -381,6 +381,10 @@ class LongSlide(Common):
         return long_slide
 
     def evaluate(self,answer_path):
+        
+        report = open(, 'a')
+
+
         if type(answer_path).__name__=='ndarray':
             answer = answer_path.copy()
         else:
@@ -406,8 +410,11 @@ class LongSlide(Common):
         P = numTP/float(numTP+numFP)
         R = numTP/float(numTP+numFN)
         F = 2*P*R/float(P+R)
+
+        report.write()
         
         return P, R, F, TP, FP, FN, numTP, numFP, numFN
+
 
 
 class SlowBend(Common):
