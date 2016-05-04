@@ -73,8 +73,6 @@ Returns:
 
 import glob, os
 import numpy as np
-from scipy.io import wavfile
-import math
 import subprocess as subp
 import operator
 import pickle
@@ -85,6 +83,7 @@ from Feature_extraction import feature_extractor
 from Classification import data_preprocessing
 from GuitarTranscription_parameters import *
 from GuitarTranscription_utility import note_pruning
+from GuitarTranscription_evaluation import evaluation_note
 import fnmatch
 
 class Common(object):
@@ -167,14 +166,12 @@ class WildVibrato(Common):
         self.technique = 'vibrato'
         self.raw_note = None
 
-    def detect(self, raw_note):
+    def detect(self, raw_note, expression_style_note):
         self.raw_note = raw_note
         merged_notes, self.super_wild_vibrato = WildVibrato.identify_serrated_pattern(self.raw_note,2)
         # vibrato with extent of 1 semitone
         merged_notes, self.wild_vibrato = WildVibrato.identify_serrated_pattern(merged_notes,1)
 
-
-        # event = np.zeros((merged_notes.shape[0],5))
         expression_style_note = np.hstack((merged_notes,np.zeros((merged_notes.shape[0],5))))
 
         expression_style_note = Common.update(expression_style_note=expression_style_note, 
@@ -775,7 +772,7 @@ def parser():
                    help="the minimum duration of note event.",  default=0.1)
     # expression style evaluation
     eval_expr = p.add_argument_group('Expression style recognition evaluation arguments')
-    eval_expr.add_argument('-eval_expr', '--evaluation_note', type=str, default=None, dest='eval_note', 
+    eval_expr.add_argument('-eval_expr', '--evaluation_note', type=str, default=None, dest='eval_expr', 
                     help='Conduct note evaluation. The followed argument is parent directory of annotation.')
     # note evaluation
     eval_note = p.add_argument_group('Note evulation arguments')
@@ -828,7 +825,8 @@ def main(args):
         try:
             raw_note = np.loadtxt(note_path)
         except IOError:
-            print 'The note event of ', name, ' doesn\'t exist!'     
+            print 'The note event of ', name, ' doesn\'t exist!'  
+
 
         """
         -----------------------------------------------------------------------
@@ -838,12 +836,22 @@ def main(args):
         S1.1 Detect wild vibrato by recognizing the serrated pattern in note events.
                     ------------
         """
+        if args.eval_expr:
+            annotation_note = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
+            evaluation_note(annotation_note, raw_note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat)
         WV = WildVibrato()
         expression_style_note = WV.detect(raw_note)
         # save expression_style_note
         np.savetxt(args.output_dir+os.sep+name+'.super_wild_vibrato',WV.super_wild_vibrato, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.wild_vibrato',WV.wild_vibrato, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.after_WideVibrato.expression_style_note',expression_style_note, fmt='%s')
+
+        if args.eval_expr:
+            print '  Evaluating wild vibrato detection...' 
+            annotation_esn = np.loadtxt(args.eval_expr+os.sep+name+'.esn.answer')
+            evaluation_expr(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
+                string='Result after wild vibrato detection')
+
 
         """
         S1.2 Detect slide in/out by recognizing the ladder pattern in quantised melody contour.
@@ -859,21 +867,10 @@ def main(args):
         np.savetxt(args.output_dir+os.sep+name+'.after_LongSlide.expression_style_note',expression_style_note, fmt='%s')
 
         if args.eval_expr:
-            print '  Evaluating slide in / slide out detection...' 
-            annotation = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
-             = LS.evaluate()
-            # note = expression_style_note[:,0:3]
-            P, R, F, TP_slide, FP_slide, FN_slide, numTP, numFP, numFN = ls.evaluate(long_slide_answer)
-            print 'Result for slide in / slide out detection:'
-            print '    Precision:  ', P, ' (', numTP, '/', (numTP+numFP) ,')'
-            print '    Recall:     ', R, ' (', numTP, '/', (numTP+numFN) ,')'
-            print '    F-score:    ', F
-            np.savetxt(join(long_slide_estimation_dir,name+'_TP.txt'),TP_slide)
-            np.savetxt(join(long_slide_estimation_dir,name+'_FP.txt'),FP_slide)
-            np.savetxt(join(long_slide_estimation_dir,name+'_FN.txt'),FN_slide)
-            total_TP_slide = total_TP_slide+numTP
-            total_FP_slide = total_FP_slide+numFP
-
+            print '  Evaluating slide in/out detection...' 
+            annotation_esn = np.loadtxt(args.eval_expr+os.sep+name+'.esn.answer')
+            evaluation_expr(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
+                string='Result after slide in/out detection')
 
         """
         S1.3 Find continuously ascending or descending pattern in melody contour.
@@ -901,12 +898,12 @@ def main(args):
         (expression_style_note, long_ascending_note, long_descending_note, 
         short_ascending_pattern, short_descending_pattern) = SB.detect(expression_style_note) 
         np.savetxt(args.output_dir+os.sep+name+'.after_SlowBend.expression_style_note',expression_style_note, fmt='%s')
-        if eval_expr:
+
+        if args.eval_expr:
             print '  Evaluating slow bend detection...' 
-            annotation = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
-             = SB.evaluate()
-        # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_bend, TP_slide, FN_bend, FN_slide = long_pattern_evaluate(long_ascending_pattern,join(bend_answer_dir,name_ext),FN_slide)       
-        # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_release, TP_slide, FN_release, FN_slide = long_pattern_evaluate(long_descending_pattern,join(release_answer_dir,name_ext),FN_slide)     
+            annotation_esn = np.loadtxt(args.eval_expr+os.sep+name+'.esn.answer')
+            evaluation_expr(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
+                string='Result after slow bend detection')
 
         """
         -----------------------------------------------------------------------
@@ -997,13 +994,19 @@ def main(args):
         # save merged expression style note
         np.savetxt(args.output_dir+os.sep+name+'.merge_bend_slide'+'.expression_style_note', expression_style_note, fmt='%s')
 
+        if args.eval_expr:
+            print '  Evaluating bended notes merging...' 
+            annotation_esn = np.loadtxt(args.eval_expr+os.sep+name+'.esn.answer')
+            evaluation_expr(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
+                string='Result after bended notes merged')
+
         if args.eval_note:
-            from GuitarTranscription_evaluation import note_evaluation
-            print '  Evaluating...'            
+            print '  Evaluating note accuracy...'            
             annotation = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
             note = expression_style_note[:,0:3]
-            pruned_note = note_pruning(note, threshold=args.p)
-            note_evaluation(annotation, note, pruned_note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat)
+            # pruned_note = note_pruning(note, threshold=args.p)
+            evaluation_note(annotation, note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, 
+                string='Result after bended notes merged')
             
         
         """
