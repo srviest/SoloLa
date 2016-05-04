@@ -83,7 +83,7 @@ from Feature_extraction import feature_extractor
 from Classification import data_preprocessing
 from GuitarTranscription_parameters import *
 from GuitarTranscription_utility import note_pruning
-from GuitarTranscription_evaluation import evaluation_note
+from GuitarTranscription_evaluation import evaluation_note, evaluation_expr
 import fnmatch
 
 class Common(object):
@@ -98,11 +98,16 @@ class Common(object):
         :param sub_technique:               float number of sub technique.
         :returns:                           numpy array of updated expression_style_note.
         """
-        if technique=='bend': t = 3
-        elif technique=='pull': t = 4
-        elif technique=='hamm': t = 5
-        elif technique=='slide': t = 6
-        elif technique=='vibrato': t = 7
+        if technique=='pre-bend': t = 3
+        elif technique=='bend': t = 4
+        elif technique=='release': t = 5
+        elif technique=='pull': t = 6
+        elif technique=='hamm': t = 7
+        elif technique=='slide': t = 8
+        elif technique=='slide-in': t = 9
+        elif technique=='slide-out': t = 10
+        elif technique=='vibrato': t = 11
+
         note_to_be_deleted = np.empty([0])
         for r_n in range(len(note_with_expression_style)):
             for r_esn in range(len(expression_style_note)):
@@ -166,13 +171,13 @@ class WildVibrato(Common):
         self.technique = 'vibrato'
         self.raw_note = None
 
-    def detect(self, raw_note, expression_style_note):
+    def detect(self, raw_note):
         self.raw_note = raw_note
         merged_notes, self.super_wild_vibrato = WildVibrato.identify_serrated_pattern(self.raw_note,2)
         # vibrato with extent of 1 semitone
         merged_notes, self.wild_vibrato = WildVibrato.identify_serrated_pattern(merged_notes,1)
 
-        expression_style_note = np.hstack((merged_notes,np.zeros((merged_notes.shape[0],5))))
+        expression_style_note = np.hstack((merged_notes,np.zeros((merged_notes.shape[0],8))))
 
         expression_style_note = Common.update(expression_style_note=expression_style_note, 
                                               note_with_expression_style=self.super_wild_vibrato, 
@@ -182,7 +187,7 @@ class WildVibrato(Common):
         expression_style_note = Common.update(expression_style_note=expression_style_note, 
                                               note_with_expression_style=self.wild_vibrato, 
                                               technique=self.technique, 
-                                              sub_technique=1)
+                                              sub_technique=2)
         return expression_style_note
 
     @staticmethod
@@ -246,7 +251,7 @@ class LongSlide(Common):
 
         """
         self.melody = melody
-        self.technique = 'slide'
+        self.technique = 'slide-in'
         self.hop = hop
         self.sr = sr
         self.max_transition_note_duration = max_transition_note_duration
@@ -347,7 +352,7 @@ class LongSlide(Common):
         expression_style_note = Common.update(expression_style_note=expression_style_note, 
                                               note_with_expression_style=self.long_slide, 
                                               technique=self.technique, 
-                                              sub_technique=2)
+                                              sub_technique=1)
         return expression_style_note
 
     @staticmethod
@@ -377,10 +382,7 @@ class LongSlide(Common):
                     long_slide = np.append(long_slide, [long_slide_note], axis=0)
         return long_slide
 
-    def evaluate(self,answer_path):
-        
-        report = open(, 'a')
-
+    def evaluate(self,answer_path): 
 
         if type(answer_path).__name__=='ndarray':
             answer = answer_path.copy()
@@ -427,6 +429,7 @@ class SlowBend(Common):
     :return:
     """
     def __init__(self, ascending_pattern, descending_pattern):
+        self.technique = 'bend'
         self.ascending_pattern = ascending_pattern
         self.descending_pattern = descending_pattern
 
@@ -434,113 +437,68 @@ class SlowBend(Common):
                 
         # long_ascending_note, note_short_ascending, long_ascending_pattern, short_ascending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], self.ascending_pattern)
         long_ascending_note, short_ascending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], self.ascending_pattern)
-        expression_style_note = Common.update(expression_style_note, long_ascending_note, technique = 'bend', sub_technique = 3)
+        expression_style_note = Common.update(expression_style_note, long_ascending_note, technique = self.technique, sub_technique = 3)
 
         # long_descending_note, note_short_descending, long_descending_pattern, short_descending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], self.descending_pattern)
         long_descending_note, short_descending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], self.descending_pattern)
-        expression_style_note = Common.update(expression_style_note, long_descending_note, technique = 'bend', sub_technique = 3)       
+        expression_style_note = Common.update(expression_style_note, long_descending_note, technique = self.technique, sub_technique = 3)       
 
-        return expression_style_note,long_ascending_note, long_descending_note, short_ascending_pattern, short_descending_pattern
+        return expression_style_note, long_ascending_note, long_descending_note, short_ascending_pattern, short_descending_pattern
 
     def long_CAD_pattern_detection(note, CAD_pattern):
+        """
+        Candidate selection for bend and slide by rules.
+        All the candidates must meet: 
+            i) continuously ascending or descending pattern covers three note.
+            ii) The pitch difference of the three covered notes is a semitone
 
-            note_of_long_CAD = np.empty([0,3])
-            long_CAD_index = []
-            note_of_long_CAD_index = []
-            pseudo_CAD = CAD_pattern.copy()
-            pseudo_note = note.copy()
-            # Loop in each pattern
-            for p in range(pseudo_CAD.shape[0]):
-                onset_pattern = pseudo_CAD[p,0]
-                offset_pattern = pseudo_CAD[p,1]
-                # Loop in each note
-                for n in range(pseudo_note.shape[0]):
-                    onset_note = pseudo_note[n,1]
-                    offset_note = pseudo_note[n,1]+pseudo_note[n,2]
-                    # Find notes where pattern located
-                    if onset_pattern >= onset_note and onset_pattern <= offset_note:
-                        if n+3>=pseudo_note.shape[0]:
-                            break
-                        for m in range(n+2,n+4):
-                            onset_note = pseudo_note[m,1]
-                            offset_note = pseudo_note[m,1]+pseudo_note[m,2]
-                            if offset_pattern >= onset_note and offset_pattern <= offset_note:
-                                if m-n>=2 and m-n<=3 and abs(pseudo_note[n,0]-pseudo_note[m,0])<=3:
-                                    pitch = pseudo_note[n,0]
-                                    onset = pseudo_note[n,1]
-                                    duration = pseudo_note[n,2]+pseudo_note[n+1,2]+pseudo_note[n+2,2]
-                                    note_of_long_CAD = np.append(note_of_long_CAD,[[pitch, onset, duration]],axis = 0)
-                                    long_CAD_index.append(p)
-                                    note_of_long_CAD_index.append(n)
-                                    note_of_long_CAD_index.append(n+1)
-                                    note_of_long_CAD_index.append(n+2)
-            long_CAD = pseudo_CAD[long_CAD_index,:]
-            short_CAD = np.delete(pseudo_CAD,long_CAD_index,axis=0)
-            note_of_short_CAD = np.delete(pseudo_note,note_of_long_CAD_index,axis=0)
-            # return note_of_long_CAD, note_of_short_CAD, long_CAD, short_CAD
-            return note_of_long_CAD, short_CAD
+        :param      note:               2-D ndarray[pitch(MIDI). onset(s). duration(s)] 
+                                        notes after mergin vibrato.
 
-    # def evaluate():
+        :param      CAD_pattern:        1-D ndarray[onset(s). offset(s).]                
+                                        continuously ascending or descending pattern.
 
+        :returns    CAD_pattern:        1-D ndarray[onset(s). offset(s).]                
+                                        continuously ascending or descending pattern.
 
-
-
-
-def slow_bend_detection(note, CAD_pattern):
-    # need to modify to detection four notes covered with pattern.
-    """
-    Candidate selection for bend and slide by rules.
-    All the candidates must meet: 
-        i) continuously ascending or descending pattern covers three note.
-        ii) The pitch difference of the three covered notes is a semitone
-
-    :param      note:               2-D ndarray[pitch(MIDI). onset(s). duration(s)] 
-                                    notes after mergin vibrato.
-
-    :param      CAD_pattern:        1-D ndarray[onset(s). offset(s).]                
-                                    continuously ascending or descending pattern.
-
-    :returns    CAD_pattern:        1-D ndarray[onset(s). offset(s).]                
-                                    continuously ascending or descending pattern.
-
-    :returns    note_of_long_CAD:   1-D ndarray[onset(s). offset(s).]                
-                                    continuously ascending or descending pattern.
-    """
-    note_of_long_CAD = np.empty([0,3])
-    long_CAD_index = []
-    note_of_long_CAD_index = []
-    pseudo_CAD = CAD_pattern.copy()
-    pseudo_note = note.copy()
-    # Loop in each pattern
-    for p in range(pseudo_CAD.shape[0]):
-        onset_pattern = pseudo_CAD[p,0]
-        offset_pattern = pseudo_CAD[p,1]
-        # Loop in each note
-        for n in range(pseudo_note.shape[0]):
-            onset_note = pseudo_note[n,1]
-            offset_note = pseudo_note[n,1]+pseudo_note[n,2]
-            # Find notes where pattern located
-            if onset_pattern >= onset_note and onset_pattern <= offset_note:
-                if n+3>=pseudo_note.shape[0]:
-                    break
-                for m in range(n+2,n+4):
-                    onset_note = pseudo_note[m,1]
-                    offset_note = pseudo_note[m,1]+pseudo_note[m,2]
-                    if offset_pattern >= onset_note and offset_pattern <= offset_note:
-                        if m-n>=2 and m-n<=3 and abs(pseudo_note[n,0]-pseudo_note[m,0])<=3:
-                            pitch = pseudo_note[n,0]
-                            onset = pseudo_note[n,1]
-                            duration = pseudo_note[n,2]+pseudo_note[n+1,2]+pseudo_note[n+2,2]
-                            note_of_long_CAD = np.append(note_of_long_CAD,[[pitch, onset, duration]],axis = 0)
-                            long_CAD_index.append(p)
-                            note_of_long_CAD_index.append(n)
-                            note_of_long_CAD_index.append(n+1)
-                            note_of_long_CAD_index.append(n+2)
-    long_CAD = pseudo_CAD[long_CAD_index,:]
-    short_CAD = np.delete(pseudo_CAD,long_CAD_index,axis=0)
-    note_of_short_CAD = np.delete(pseudo_note,note_of_long_CAD_index,axis=0)
-    return note_of_long_CAD, note_of_short_CAD, long_CAD, short_CAD
-
+        :returns    note_of_long_CAD:   1-D ndarray[onset(s). offset(s).]                
+                                        continuously ascending or descending pattern.
+        """
+        note_of_long_CAD = np.empty([0,3])
+        long_CAD_index = []
+        note_of_long_CAD_index = []
+        pseudo_CAD = CAD_pattern.copy()
+        pseudo_note = note.copy()
+        # Loop in each pattern
+        for p in range(pseudo_CAD.shape[0]):
+            onset_pattern = pseudo_CAD[p,0]
+            offset_pattern = pseudo_CAD[p,1]
+            # Loop in each note
+            for n in range(pseudo_note.shape[0]):
+                onset_note = pseudo_note[n,1]
+                offset_note = pseudo_note[n,1]+pseudo_note[n,2]
+                # Find notes where pattern located
+                if onset_pattern >= onset_note and onset_pattern <= offset_note:
+                    if n+3>=pseudo_note.shape[0]:
+                        break
+                    for m in range(n+2,n+4):
+                        onset_note = pseudo_note[m,1]
+                        offset_note = pseudo_note[m,1]+pseudo_note[m,2]
+                        if offset_pattern >= onset_note and offset_pattern <= offset_note:
+                            if m-n>=2 and m-n<=3 and abs(pseudo_note[n,0]-pseudo_note[m,0])<=3:
+                                pitch = pseudo_note[n,0]
+                                onset = pseudo_note[n,1]
+                                duration = pseudo_note[n,2]+pseudo_note[n+1,2]+pseudo_note[n+2,2]
+                                note_of_long_CAD = np.append(note_of_long_CAD,[[pitch, onset, duration]],axis = 0)
+                                long_CAD_index.append(p)
+                                note_of_long_CAD_index.append(n)
+                                note_of_long_CAD_index.append(n+1)
+                                note_of_long_CAD_index.append(n+2)
+        long_CAD = pseudo_CAD[long_CAD_index,:]
+        short_CAD = np.delete(pseudo_CAD,long_CAD_index,axis=0)
+        note_of_short_CAD = np.delete(pseudo_note,note_of_long_CAD_index,axis=0)
+        # return note_of_long_CAD, note_of_short_CAD, long_CAD, short_CAD
+        return note_of_long_CAD, short_CAD
 
 def merge_bend_and_slide(expression_style_note, result_ref):
     result = result_ref.copy()
@@ -569,12 +527,23 @@ def merge_bend_and_slide(expression_style_note, result_ref):
                     # mark the merged candidate as 0
                     if current_num_candi-num_candi > 0:
                         result[num_candi+1:current_num_candi+1, 0:2] = 0
+                    # replace the pitch of first note with the lowest pitch between num_note to current_num_note
+                    expression_style_note[num_note,0]= np.min(expression_style_note[num_note:current_num_note+1,0])
                     # replace the duration of first note with the difference of the 2nd note offset and 1st note onset
                     expression_style_note[num_note,2]=expression_style_note[current_num_note,1]+expression_style_note[current_num_note,2]-expression_style_note[num_note,1]
                     # keep the predicted expression styles of merged notes
-                    expression_style_note[num_note,4:]=np.nanmax(expression_style_note[num_note+1:current_num_note+1,4:])
+                    expression_style_note[num_note,6:]=np.nanmax(expression_style_note[num_note+1:current_num_note+1,4:])
                     # mark the bend in expression style note
-                    expression_style_note[num_note,3] = int(note[3]-expression_style_note[num_note,3])
+                    pitch_diff = np.diff(expression_style_note[num_note:current_num_note+1,0])
+                    for n in range(num_note,current_num_note):
+                        pitch_diff = expression_style_note[n+1,0]-expression_style_note[n,0]
+                        if pitch_diff > 0:
+                            expression_style_note[num_note,4] = pitch_diff
+                        elif pitch_diff < 0:
+                            expression_style_note[num_note,5] = abs(pitch_diff)
+                    if expression_style_note[num_note, 4]==0 and expression_style_note[num_note, 5]!=0:
+                        expression_style_note[num_note, 3]=expression_style_note[num_note, 5]
+                    # expression_style_note[num_note,4] = int(note[3]-expression_style_note[num_note,3])
     # print note_to_be_deleted
     expression_style_note = np.delete(expression_style_note, note_to_be_deleted,axis=0)
     return expression_style_note
@@ -772,7 +741,7 @@ def parser():
                    help="the minimum duration of note event.",  default=0.1)
     # expression style evaluation
     eval_expr = p.add_argument_group('Expression style recognition evaluation arguments')
-    eval_expr.add_argument('-eval_expr', '--evaluation_note', type=str, default=None, dest='eval_expr', 
+    eval_expr.add_argument('-eval_expr', '--evaluation_expression_style', type=str, default=None, dest='eval_expr', 
                     help='Conduct note evaluation. The followed argument is parent directory of annotation.')
     # note evaluation
     eval_note = p.add_argument_group('Note evulation arguments')
@@ -782,14 +751,14 @@ def parser():
     eval_note.add_argument('-onset_tol', '--onset_tolerance_window', type=float, dest='onset_tol', default=0.05, 
                     help='Window lenght of onset tolerance. (default: %(default)s)')
 
-    eval_note.add_argument('-offset_rat', '--offset_tolerance_ratio', type=float, dest='offset_rat', default=20, 
+    eval_note.add_argument('-offset_rat', '--offset_tolerance_ratio', type=float, dest='offset_rat', default=0.2, 
                     help='Window lenght of onset tolerance. (default: %(default)s)')
 
     p.add_argument('-v', dest='verbose', action='store_true',
                     help='be verbose')
     # version
     p.add_argument('--version', action='version',
-                   version='%(prog)spec 1.03 (2016-03-20)')
+                   version='%(prog)spec 1.03 (2016-05-04)')
     # parse arguments
     args = p.parse_args()
     # print arguments
@@ -979,7 +948,7 @@ def main(args):
             # classfication
             y_pred = clf.predict(data)
             result = np.hstack((candidate, np.asarray(y_pred).reshape(len(y_pred), 1)))
-            np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.result', result, fmt='%s')
+            np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.classification_result', result, fmt='%s')
             # print y_pred
 
         """

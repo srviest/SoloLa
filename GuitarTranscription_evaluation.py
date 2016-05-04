@@ -41,10 +41,9 @@ def fit_mir_eval_transcription(annotation, note):
     est_pitches = note[:,0]
     return ref_intervals, ref_pitches, est_intervals, est_pitches
 
-def calculate_expr_f_measure(tech, annotation_esn, prediction_esn, onset_tolerance=0.05, offset_ratio=0.2, correct_pitch=None):
-    annotation_esn_mask = annotation_esn.copy
-    prediction_esn_mask = prediction_esn.copy
-
+def calculate_expr_f_measure(annotation_esn, prediction_esn, tech, onset_tolerance=0.05, offset_ratio=0.2, correct_pitch=None):
+    annotation_esn_mask = annotation_esn.copy()
+    prediction_esn_mask = prediction_esn.copy()
     if tech == 'Pre-bend':
         tech_index = 3
     elif tech == 'Bend':
@@ -82,7 +81,7 @@ def calculate_expr_f_measure(tech, annotation_esn, prediction_esn, onset_toleran
                             if note_ann[0] == note_pre[0]:
                                 note_ann[tech_index] = -1
                                 note_pre[tech_index] = -1
-                        elif:
+                        else:
                             note_ann[tech_index] = -1
                             note_pre[tech_index] = -1
 
@@ -91,10 +90,18 @@ def calculate_expr_f_measure(tech, annotation_esn, prediction_esn, onset_toleran
     FP = np.extract(prediction_esn_mask[:,tech_index]>0, prediction_esn_mask[:,tech_index]).size
     FN = np.extract(annotation_esn_mask[:,tech_index]>0, annotation_esn_mask[:,tech_index]).size
 
-    P = TP/float(TP+FP)
-    R = TP/float(TP+FN)
-    F = 2*P*R/float(P+R)
-
+    if TP !=0 or FP!=0:
+        P = TP/float(TP+FP) 
+    elif TP ==0 and FP==0:
+        P=0
+    if TP !=0 or FN!=0:
+        R = TP/float(TP+FN)
+    elif TP ==0 and FN==0:
+        R = 0
+    if P !=0 or R!=0:
+        F = 2*P*R/float(P+R)
+    else:
+        F=0
     return P, R, F, TP, FP, FN
 
 
@@ -136,8 +143,6 @@ def evaluation_expr(annotation_esn, prediction_esn, output_dir, filename, onset_
 
     # convert format to fit mir_eval
     ref_intervals, ref_pitches, est_intervals, est_pitches = fit_mir_eval_transcription(annotation_esn[:,0:3], prediction_esn[:,0:3])
-    # calculate expression style f-measure
-    P, R, F, TP, FP, FN = calculate_expr_f_measure(tech, annotation_esn, prediction_esn, onset_tolerance=onset_tolerance, offset_ratio=offset_ratio, correct_pitch=None)
     # write result to file
     sys.stdout = open(output_dir+os.sep+filename+'.esn.eval', 'a')
     if string:
@@ -149,30 +154,17 @@ def evaluation_expr(annotation_esn, prediction_esn, output_dir, filename, onset_
 
     print '                            Note                            '
     print '------------------------------------------------------------'
-    
     print '                   Precision          Recall       F-measure'
-    note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=0.05, offset_ratio=0.2)
-    print ('%12s%16.4f%16.4f%16.4f' % ('CorPOn(%ss)Off(%s)', note_p, note_r, note_f) % (onset_tolerance, offset_ratio))
-    note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=0.075, offset_ratio=0.2)
-    print ('%12s%16.4f%16.4f%16.4f' % ('CorPOn(%ss)Off(%s)', note_p, note_r, note_f) % (onset_tolerance, offset_ratio))
-    note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=0.1, offset_ratio=0.2)
-    print ('%12s%16.4f%16.4f%16.4f' % ('CorPOn(%ss)Off(%s)', note_p, note_r, note_f) % (onset_tolerance, offset_ratio))
-    note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=0.05, offset_ratio=0.35)
-    print ('%12s%16.4f%16.4f%16.4f' % ('CorPOn(%ss)Off(%s)', note_p, note_r, note_f) % (onset_tolerance, offset_ratio))
-    note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=0.075, offset_ratio=0.35)
-    print ('%12s%16.4f%16.4f%16.4f' % ('CorPOn(%ss)Off(%s)', note_p, note_r, note_f) % (onset_tolerance, offset_ratio))
-    note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=0.1, offset_ratio=0.35)
-    print ('%12s%16.4f%16.4f%16.4f' % ('CorPOn(%ss)Off(%s)', note_p, note_r, note_f) % (onset_tolerance, offset_ratio))
-    note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=0.05, offset_ratio=None)
-    print ('%12s%16.4f%16.4f%16.4f' % ('CorPOn(%ss)Off(%s)', note_p, note_r, note_f) % (onset_tolerance, offset_ratio))
-    note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=0.075, offset_ratio=None)
-    print ('%12s%16.4f%16.4f%16.4f' % ('CorPOn(%ss)Off(%s)', note_p, note_r, note_f) % (onset_tolerance, offset_ratio))
-    note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=0.1, offset_ratio=None)
-    print ('%12s%16.4f%16.4f%16.4f' % ('CorPOn(%ss)Off(%s)', note_p, note_r, note_f) % (onset_tolerance, offset_ratio))
-    print '\n'
+    onset_tolerance=[0.05, 0.75, 0.1]
+    offset_ratio=[0.20, 0.35, None]
+    for on in onset_tolerance:
+        for off in offset_ratio:
+            note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=on, offset_ratio=off)
+            print ('%12s%16.4f%16.4f%16.4f' % ('CorPOn(%ss)Off(%s)', note_p, note_r, note_f) % (onset_tolerance, offset_ratio))
+            print '\n'
 
     onset_tolerance=[0.05, 0.1]
-    offset_ratio=[0.20, 35]
+    offset_ratio=[0.20, 0.35]
     correct_pitch = [True, False]
     print '                      Expression style                      '
     print '------------------------------------------------------------'
@@ -182,21 +174,21 @@ def evaluation_expr(annotation_esn, prediction_esn, output_dir, filename, onset_
                 print ('               (CorP(%s)On(%s)Off(%s))     ' % (cp, on, off))
                 print '------------------------------------------------------------'
                 print '                   Precision          Recall       F-measure'
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(tech='Pre-bend', annotation_esn, prediction_esn, onset_tolerance=on, onset_tolerance=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Pre-bend', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.16s%16.16s%16.16s' % ('Pre-bend', str(P)+' ('+str(TP)+'/'+str(TP+FP)+')', str(R)+' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(tech='Bend', annotation_esn, prediction_esn, onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Bend', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.16s%16.16s%16.16s' % ('Bend', str(P)+' ('+str(TP)+'/'+str(TP+FP)+')', str(R)+' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(tech='Release', annotation_esn, prediction_esn, onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Release', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.16s%16.16s%16.16s' % ('Release', str(P)+' ('+str(TP)+'/'+str(TP+FP)+')', str(R)+' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(tech='Pull-off', annotation_esn, prediction_esn, onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Pull-off', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.16s%16.16s%16.16s' % ('Pull-off', str(P)+' ('+str(TP)+'/'+str(TP+FP)+')', str(R)+' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(tech='Hmmaer-on', annotation_esn, prediction_esn, onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Hmmaer-on', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.16s%16.16s%16.16s' % ('Hmmaer-on', str(P)+' ('+str(TP)+'/'+str(TP+FP)+')', str(R)+' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(tech='Slide in', annotation_esn, prediction_esn, onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Slide in', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.16s%16.16s%16.16s' % ('Slide in', str(P)+' ('+str(TP)+'/'+str(TP+FP)+')', str(R)+' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(tech='Slide out', annotation_esn, prediction_esn, onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Slide out', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.16s%16.16s%16.16s' % ('Slide out', str(P)+' ('+str(TP)+'/'+str(TP+FP)+')', str(R)+' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(tech='Vibrato', annotation_esn, prediction_esn, onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Vibrato', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.16s%16.16s%16.16s' % ('Vibrato', str(P)+' ('+str(TP)+'/'+str(TP+FP)+')', str(R)+' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
                 print '                                                            '
 
