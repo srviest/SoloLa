@@ -432,18 +432,20 @@ class SlowBend(Common):
         self.technique = 'bend'
         self.ascending_pattern = ascending_pattern
         self.descending_pattern = descending_pattern
+        self.slow_bend = None
 
     def detect(self, expression_style_note): 
                 
         # long_ascending_note, note_short_ascending, long_ascending_pattern, short_ascending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], self.ascending_pattern)
-        long_ascending_note, short_ascending_pattern = SlowBend.long_CAD_pattern_detection(expression_style_note[:,0:3], self.ascending_pattern)
-        expression_style_note = Common.update(expression_style_note, long_ascending_note, technique = self.technique, sub_technique = 3)
-
+        slow_bend_note, short_ascending_pattern = SlowBend.long_CAD_pattern_detection(expression_style_note[:,0:3], self.ascending_pattern)
         # long_descending_note, note_short_descending, long_descending_pattern, short_descending_pattern = long_CAD_pattern_detection(expression_style_note[:,0:3], self.descending_pattern)
-        long_descending_note, short_descending_pattern = SlowBend.long_CAD_pattern_detection(expression_style_note[:,0:3], self.descending_pattern)
-        expression_style_note = Common.update(expression_style_note, long_descending_note, technique = self.technique, sub_technique = 3)       
+        slow_release_note, short_descending_pattern = SlowBend.long_CAD_pattern_detection(expression_style_note[:,0:3], self.descending_pattern)
 
-        return expression_style_note, long_ascending_note, long_descending_note, short_ascending_pattern, short_descending_pattern
+        # update
+        expression_style_note = Common.update(expression_style_note, slow_bend_note, technique = self.technique, sub_technique = 3)
+        expression_style_note = Common.update(expression_style_note, slow_release_note, technique = 'release', sub_technique = 3)       
+
+        return expression_style_note, slow_bend_note, slow_release_note, short_ascending_pattern, short_descending_pattern
     @staticmethod
     def long_CAD_pattern_detection(note, CAD_pattern):
         """
@@ -500,19 +502,19 @@ class SlowBend(Common):
         # return note_of_long_CAD, note_of_short_CAD, long_CAD, short_CAD
         return note_of_long_CAD, short_CAD
 
-def merge_bend_and_slide(expression_style_note, result_ref):
+def merge_bend_and_release(expression_style_note, result_ref):
     result = result_ref.copy()
     note_to_be_deleted = np.empty([0])
-    for num_candi, candi_result in enumerate(result):
+    for index_candi, candi_result in enumerate(result):
         # if the candidate is classsified as bend
         if candi_result[-1] == 0 and candi_result[0] != 0:
-            for num_note, note in enumerate(expression_style_note-1):
+            for index_note, note in enumerate(expression_style_note[:-1]):
                 # if the candidate exact cover consecutive two notes:
                 if candi_result[0] > note[1] and candi_result[0] < note[1]+note[2] and \
-                   candi_result[1] > expression_style_note[num_note+1,1] and \
-                   candi_result[1] < expression_style_note[num_note+1,1]+expression_style_note[num_note+1,2]:
-                    current_num_candi = num_candi
-                    current_num_note = num_note+1
+                   candi_result[1] > expression_style_note[index_note+1,1] and \
+                   candi_result[1] < expression_style_note[index_note+1,1]+expression_style_note[index_note+1,2]:
+                    current_num_candi = index_candi
+                    current_num_note = index_note+1
                     while current_num_note+1 <= expression_style_note.shape[0] and \
                           current_num_candi+1 <= result.shape[0] and \
                           result[current_num_candi+1,2] == 0 and \
@@ -523,27 +525,27 @@ def merge_bend_and_slide(expression_style_note, result_ref):
                         current_num_candi+=1
                         current_num_note+=1
                     # delete the note which is about to be merged
-                    note_to_be_deleted = np.append(note_to_be_deleted,range(num_note+1,current_num_note+1), axis=0)
+                    note_to_be_deleted = np.append(note_to_be_deleted,range(index_note+1,current_num_note+1), axis=0)
                     # mark the merged candidate as 0
-                    if current_num_candi-num_candi > 0:
-                        result[num_candi+1:current_num_candi+1, 0:2] = 0
-                    # replace the pitch of first note with the lowest pitch between num_note to current_num_note
-                    expression_style_note[num_note,0]= np.min(expression_style_note[num_note:current_num_note+1,0])
+                    if current_num_candi-index_candi > 0:
+                        result[index_candi+1:current_num_candi+1, 0:2] = 0
+                    # replace the pitch of first note with the lowest pitch between index_note to current_num_note
+                    expression_style_note[index_note,0]= np.min(expression_style_note[index_note:current_num_note+1,0])
                     # replace the duration of first note with the difference of the 2nd note offset and 1st note onset
-                    expression_style_note[num_note,2]=expression_style_note[current_num_note,1]+expression_style_note[current_num_note,2]-expression_style_note[num_note,1]
+                    expression_style_note[index_note,2]=expression_style_note[current_num_note,1]+expression_style_note[current_num_note,2]-expression_style_note[index_note,1]
                     # keep the predicted expression styles of merged notes
-                    expression_style_note[num_note,6:]=np.nanmax(expression_style_note[num_note+1:current_num_note+1,4:])
+                    expression_style_note[index_note,6:]=np.nanmax(expression_style_note[index_note+1:current_num_note+1,4:])
                     # mark the bend in expression style note
-                    pitch_diff = np.diff(expression_style_note[num_note:current_num_note+1,0])
-                    for n in range(num_note,current_num_note):
+                    pitch_diff = np.diff(expression_style_note[index_note:current_num_note+1,0])
+                    for n in range(index_note,current_num_note):
                         pitch_diff = expression_style_note[n+1,0]-expression_style_note[n,0]
                         if pitch_diff > 0:
-                            expression_style_note[num_note,4] = pitch_diff
+                            expression_style_note[index_note,4] = pitch_diff
                         elif pitch_diff < 0:
-                            expression_style_note[num_note,5] = abs(pitch_diff)
-                    if expression_style_note[num_note, 4]==0 and expression_style_note[num_note, 5]!=0:
-                        expression_style_note[num_note, 3]=expression_style_note[num_note, 5]
-                    # expression_style_note[num_note,4] = int(note[3]-expression_style_note[num_note,3])
+                            expression_style_note[index_note,5] = abs(pitch_diff)
+                    if expression_style_note[index_note, 4]==0 and expression_style_note[index_note, 5]!=0:
+                        expression_style_note[index_note, 3]=expression_style_note[index_note, 5]
+                    # expression_style_note[index_note,4] = int(note[3]-expression_style_note[index_note,3])
     # print note_to_be_deleted
     expression_style_note = np.delete(expression_style_note, note_to_be_deleted,axis=0)
     return expression_style_note
@@ -554,7 +556,7 @@ def update_esn_by_cls_result(expression_style_note, result_ref):
     for num_candi, candi_result in enumerate(result):
         # if the candidate is classsified as bend
         if candi_result[-1] == 0 and candi_result[0] != 0:
-            for num_note, note in enumerate(expression_style_note-1):
+            for num_note, note in enumerate(expression_style_note[:-1]):
                 # if the candidate exact cover consecutive two notes:
                 if candi_result[0] > note[1] and candi_result[0] < note[1]+note[2] and \
                    candi_result[1] > expression_style_note[num_note+1,1] and \
@@ -914,10 +916,13 @@ def main(args):
         """
 
         SB = SlowBend(ascending_pattern, descending_pattern)
-        (expression_style_note, long_ascending_note, long_descending_note, 
+        (expression_style_note, slow_bend_note, slow_release_note, 
         short_ascending_pattern, short_descending_pattern) = SB.detect(expression_style_note) 
 
         if args.debug:
+            # save slow bend and slow release
+            np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.slow_bend',slow_bend_note, fmt='%s')
+            np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.slow_release',slow_release_note, fmt='%s')
             # save expression_style_note
             np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.after_SlowBend.esn',expression_style_note, fmt='%s')
             save_esn_for_visualization(expression_style_note, args.output_dir+os.sep+'debug', name+'after_SlowBend')
@@ -1012,8 +1017,8 @@ def main(args):
         result_all = np.vstack((np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[0]+'.candidate'+'.classification_result'), np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[1]+'.candidate'+'.classification_result')))
         # sort by time
         result_all = result_all[np.argsort(result_all[:,0], axis = 0)]
-        # merge bend and slide note
-        expression_style_note = merge_bend_and_slide(expression_style_note, result_all)
+        # merge bend and note
+        expression_style_note = merge_bend_and_release(expression_style_note, result_all)
 
         if args.debug:
             # save merged expression style note
@@ -1024,7 +1029,7 @@ def main(args):
 
         if args.debug:
             # save updated expression style note
-            np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.after_classification'+'.esn', expression_style_note, fmt='%s')
+            np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.after_Classification_&_bend_merged'+'.esn', expression_style_note, fmt='%s')
             save_esn_for_visualization(expression_style_note, args.output_dir+os.sep+'debug', name+'after_Classification_&_bend_merged')
 
         if args.eval_expr:
