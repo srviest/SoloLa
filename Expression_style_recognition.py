@@ -25,6 +25,7 @@ Returns:
                              extenion.
 
     Example:
+        (0)    (1)   (2)   (3)   (4)   (5)   (6)   (7)   (8)   (9)  (10)  (11)
         Pit     On   Dur  PreB     B     R     P     H     S    SI    SO     V    
     [    66   1.24   0.5     2     0     0     0     0     1     2     1     1]
 
@@ -83,7 +84,7 @@ from Feature_extraction import feature_extractor
 from Classification import data_preprocessing
 from GuitarTranscription_parameters import *
 from GuitarTranscription_utility import note_pruning
-from GuitarTranscription_evaluation import evaluation_note, evaluation_expr
+from GuitarTranscription_evaluation import evaluation_note, evaluation_expr, evaluation_candidate_classification
 import fnmatch
 
 class Common(object):
@@ -780,6 +781,9 @@ def parser():
     # debug
     p.add_argument('-debug', dest='debug', default=None, action='store_true',
                     help='result data to file for debugging.')
+    # classification evaluation
+    p.add_argument('-eval_cls', '--evaluation_classification', type=str, default=None, dest='eval_cls', 
+                    help='Conduct classfication evaluation. The followed argument is parent directory of time-stamp annotation.')
     # expression style evaluation
     eval_expr = p.add_argument_group('Expression style recognition evaluation arguments')
     eval_expr.add_argument('-eval_expr', '--evaluation_expression_style', type=str, default=None, dest='eval_expr', 
@@ -959,14 +963,14 @@ def main(args):
         candidate_type = ['ascending','descending']
         # loop in ascending and descending candidate list
         for ct in candidate_type:
-            print '         EXtracting features from ', ct, ' candadites...'
+            print '         Extracting features from', ct, 'candidates...'
             # candidate file path
             candidate_path = args.output_dir+os.sep+name+'.'+ct+'.candidate'
             # inspect if candidate file exist and load it
             try:
                 candidate = np.loadtxt(candidate_path)
             except IOError:
-                print 'The candidate of ', name, ' doesn\'t exist!'
+                print 'The candidate of', name,' doesn\'t exist!'
             # reshape candidate if it is in one dimension
             if candidate.shape==(2,): candidate = candidate.reshape(1,2)
             # convert seconds into samples
@@ -1020,6 +1024,13 @@ def main(args):
         # merge bend and note
         expression_style_note = merge_bend_and_release(expression_style_note, result_all)
 
+        if args.eval_cls:
+            print '  Evaluating classification result...' 
+            # load time-stamp answer
+            annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
+            evaluation_candidate_classification(annotation_ts, result_all, args.output_dir, name, 
+                tech_dic = {'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}, string=None, mode='w')
+
         if args.debug:
             # save merged expression style note
             np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.after_bend_merged'+'.esn', expression_style_note, fmt='%s')
@@ -1034,12 +1045,14 @@ def main(args):
 
         if args.eval_expr:
             print '  Evaluating bended notes merging...' 
+            # load esn answer
             annotation_esn = np.loadtxt(args.eval_expr+os.sep+name+'.esn.answer')
             evaluation_expr(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
                 string='Result after bended notes merged', mode='a')
 
         if args.eval_note:
-            print '  Evaluating note accuracy...'            
+            print '  Evaluating note accuracy...'
+            # load note answer
             annotation = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
             note = expression_style_note[:,0:3]
             # pruned_note = note_pruning(note, threshold=args.p)
