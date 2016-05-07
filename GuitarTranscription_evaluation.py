@@ -92,7 +92,7 @@ def fit_mir_eval_transcription(annotation, note):
     est_pitches = note[:,0]
     return ref_intervals, ref_pitches, est_intervals, est_pitches
 
-def calculate_candidate_classification_accuracy(annotation_ts_pseudo, candidate_result_pseudo, tech_dic):
+def calculate_candidate_classification_accuracy_f_measure(annotation_ts_pseudo, candidate_result_pseudo, tech_dic):
     from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
     # make pseudo answer and predicted labels
     annotation_ts = annotation_ts_pseudo.copy()
@@ -115,9 +115,9 @@ def calculate_candidate_classification_accuracy(annotation_ts_pseudo, candidate_
     for index_candi, candi_result in enumerate(candidate_result):
         for index_ann, ts_ann in enumerate(annotation_ts):
             # if candidate time segment covers the instant of employment
-            if candi_result[0]!=-1 and candi_result[0] < ts_ann[0] and candi_result[1] > ts_ann[0]:
+            if candi_result[0] < ts_ann[0] and candi_result[1] > ts_ann[0]:
                 # if the answer covered by candidate is in the target tech list
-                if ts_ann[-1] in target_tech_list:
+                if ts_ann[-1] in target_tech_index_list:
                     # fill answer list
                     if ts_ann[-1] in [3,4,5]:
                         y_true[index_candi]=tech_dic['bend']
@@ -134,12 +134,9 @@ def calculate_candidate_classification_accuracy(annotation_ts_pseudo, candidate_
                     y_true[index_candi]=tech_dic['normal']
 
                 # check the key of the predicted index number
-                t = [k for k, v in tech_dic.iteritems() if v == candi_result[-1]][0]
+                # t = [k for k, v in tech_dic.iteritems() if v == candi_result[-1]][0]
 
     # the ratio of (# corrected classified candidate / # of all candidates)
-    print 'after evaluating'
-    print 'y_true: ', y_true
-    print 'y_pred: ', y_pred
     cls_accuracy = accuracy_score(y_true, y_pred)
     # make target names list in index order
     target_names = []
@@ -148,7 +145,7 @@ def calculate_candidate_classification_accuracy(annotation_ts_pseudo, candidate_
     # make classification report
     cls_report = classification_report(y_true, y_pred, target_names=target_names)
     # make confusion matrix
-    confusion_table = confusion_matrix(y_true, y_pred, labels=target_names)
+    confusion_table = confusion_matrix(y_true, y_pred)
 
     # calculate non tech candidate which are predicted as normal
     # non_tech_candi_predicted_as_normal = np.where(candidate_result[np.where(candidate_result[:,2]!=-1)[0], 2]==tech_dic['normal'])[0].size
@@ -222,10 +219,13 @@ def calculate_expr_f_measure(annotation_esn, prediction_esn, tech, onset_toleran
         F=0
     return P, R, F, TP, FP, FN
 
-def evaluation_candidate_classification(annotation_ts, candidate_result, output_dir, filename, tech_dic, string=None, mode='a'):
+def evaluation_candidate_classification(annotation_ts, candidate_result, 
+    output_dir, filename, tech_dic, string=None, mode='a'):
 
     # evaluation
-    cls_accuracy, cls_report, confusion_table, candidate_answer_ratio, tech_candidte_ratio, target_names = calculate_candidate_classification_accuracy(annotation_ts, candidate_result, tech_dic=tech_dic)
+    (cls_accuracy, cls_report, confusion_table, 
+     candidate_answer_ratio, tech_candidte_ratio, 
+     target_names) = calculate_candidate_classification_accuracy_f_measure(annotation_ts, candidate_result, tech_dic=tech_dic)
     # write result to file
     save_stdout = sys.stdout
     fh = open(output_dir+os.sep+filename+'.cls.eval',mode)
@@ -257,12 +257,14 @@ def evaluation_candidate_classification(annotation_ts, candidate_result, output_
     print ' '
     print 'Confusion matrix'
     print '----------------'
+    print '%8s'%' ',
     for t in target_names:
         if t!=target_names[-1]:
             print '%8s'%t,
         else:
             print '%8s'%t
-    for row in confusion_table:
+    for index, row in enumerate(confusion_table):
+        print '%8s'%target_names[index],
         for e in row:
             print '%8s'%e,
         print '\n'
