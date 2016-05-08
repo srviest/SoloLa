@@ -503,7 +503,7 @@ class SlowBend(Common):
         # return note_of_long_CAD, note_of_short_CAD, long_CAD, short_CAD
         return note_of_long_CAD, short_CAD
 
-def merge_bend_and_release(expression_style_note, result_ref):
+def merge_and_update_prebend_bend_release(expression_style_note, result_ref):
     result = result_ref.copy()
     note_to_be_deleted = np.empty([0])
     for index_candi, candi_result in enumerate(result):
@@ -551,29 +551,29 @@ def merge_bend_and_release(expression_style_note, result_ref):
     expression_style_note = np.delete(expression_style_note, note_to_be_deleted,axis=0)
     return expression_style_note
 
-def update_esn_by_cls_result(expression_style_note, result_ref):
+def update_pull_hamm_slide(expression_style_note, result_ref):
 
     result = result_ref.copy()
-    for num_candi, candi_result in enumerate(result):
+    for index_candi, candi_result in enumerate(result):
         # if the candidate is classsified as bend
         if candi_result[-1] == 0 and candi_result[0] != 0:
-            for num_note, note in enumerate(expression_style_note[:-1]):
+            for index_note, note in enumerate(expression_style_note[:-1]):
                 # if the candidate exact cover consecutive two notes:
                 if candi_result[0] > note[1] and candi_result[0] < note[1]+note[2] and \
-                   candi_result[1] > expression_style_note[num_note+1,1] and \
-                   candi_result[1] < expression_style_note[num_note+1,1]+expression_style_note[num_note+1,2]:
+                   candi_result[1] > expression_style_note[index_note+1,1] and \
+                   candi_result[1] < expression_style_note[index_note+1,1]+expression_style_note[index_note+1,2]:
                     # hamm
                     if candi_result[-1]==1:
-                        expression_style_note[num_note, 7]=1
-                        expression_style_note[num_note+1, 7]=2
+                        expression_style_note[index_note, 7]=1
+                        expression_style_note[index_note+1, 7]=2
                     # pull
                     elif candi_result[-1]==3:
-                        expression_style_note[num_note, 6]=1
-                        expression_style_note[num_note+1, 6]=2
+                        expression_style_note[index_note, 6]=1
+                        expression_style_note[index_note+1, 6]=2
                     # slide
                     elif candi_result[-1]==4:
-                        expression_style_note[num_note, 8]=1
-                        expression_style_note[num_note+1, 8]=2
+                        expression_style_note[index_note, 8]=1
+                        expression_style_note[index_note+1, 8]=2
 
     return expression_style_note
 
@@ -850,34 +850,36 @@ def main(args):
             evaluation_note(annotation_note, raw_note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, mode='w')
 
         """
-        -----------------------------------------------------------------------
-        S1. Recognize expression styles by heuristics
-        -----------------------------------------------------------------------
-        
-        S1.1 Detect wild vibrato by recognizing the serrated pattern in note events.
-                    ------------
+        =====================================================================================
+        S.1 Detect {wild vibrato} by recognizing the serrated pattern in note events.
+        =====================================================================================
         """
         
         WV = WildVibrato()
         expression_style_note = WV.detect(raw_note)
 
         if args.debug:
+            # create result directory
+            debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.1_Wild_vibrato_detection'
+            if not os.path.exists(debug_dir): 
+                    os.makedirs(debug_dir)
             # save expression_style_note
-            np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.super_wild_vibrato',WV.super_wild_vibrato, fmt='%s')
-            np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.wild_vibrato',WV.wild_vibrato, fmt='%s')
-            np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.after_WideVibrato.esn',expression_style_note, fmt='%s')
-            save_esn_for_visualization(expression_style_note, args.output_dir+os.sep+'debug', name+'after_WideVibrato')
+            np.savetxt(debug_dir+os.sep+name+'.super_wild_vibrato',WV.super_wild_vibrato, fmt='%s')
+            np.savetxt(debug_dir+os.sep+name+'.wild_vibrato',WV.wild_vibrato, fmt='%s')
+            np.savetxt(debug_dir+os.sep+name+'.esn', expression_style_note, fmt='%s')
+            save_esn_for_visualization(expression_style_note, debug_dir, name)
 
         if args.eval_expr:
-            print '  Evaluating wild vibrato detection...' 
+            print '  Evaluating expression style note after wild vibrato detection...' 
             annotation_esn = np.loadtxt(args.eval_expr+os.sep+name+'.esn.answer')
             evaluation_expr(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
                 string='Result after wild vibrato detection', mode='w')
 
 
         """
-        S1.2 Detect slide in/out by recognizing the ladder pattern in quantised melody contour.
-                    ------------
+        =====================================================================================
+        S.2 Detect {slide in} {slide out} by recognizing the ladder pattern in quantised melody contour.
+        =====================================================================================
         """
         LS = LongSlide(MIDI_smooth_melody, hop=contour_hop, sr=contour_sr, 
                        max_transition_note_duration=max_transition_note_duration, 
@@ -885,20 +887,27 @@ def main(args):
         expression_style_note = LS.detect(expression_style_note)        
 
         if args.debug:
-            # save expression_style_note
-            np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.quantised.melody',LS.quantised_melody, fmt='%s')
-            np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.long_slide',LS.long_slide, fmt='%s')
-            np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.after_LongSlide.esn',expression_style_note, fmt='%s')
-            save_esn_for_visualization(expression_style_note, args.output_dir+os.sep+'debug', name+'after_LongSlide')
+            # create result directory
+            debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.2_Slide_in_slide_out_detection'
+            if not os.path.exists(debug_dir): 
+                    os.makedirs(debug_dir)
+            # save updated expression style note
+            np.savetxt(debug_dir+os.sep+name+'.esn', expression_style_note, fmt='%s')
+            save_esn_for_visualization(expression_style_note, debug_dir, name)
+            # save outputs
+            np.savetxt(debug_dir+os.sep+name+'.quantised.melody',LS.quantised_melody, fmt='%s')
+            np.savetxt(debug_dir+os.sep+name+'.long_slide',LS.long_slide, fmt='%s')
 
         if args.eval_expr:
-            print '  Evaluating slide in/out detection...' 
+            print '  Evaluating expression style note after slide in/out detection...' 
             annotation_esn = np.loadtxt(args.eval_expr+os.sep+name+'.esn.answer')
             evaluation_expr(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
                 string='Result after slide in/out detection', mode='a')
 
         """
-        S1.3 Find continuously ascending or descending pattern in melody contour.
+        =====================================================================================
+        S.3 Find continuously ascending or descending (CAD) pattern in melody contour.
+        =====================================================================================
         """
         # find continuously ascending (CAD) F0 sequence patterns
         ascending_pattern, ascending_pitch_contour = continuously_ascending_descending_pattern(
@@ -914,9 +923,12 @@ def main(args):
         np.savetxt(args.output_dir+os.sep+name+'.descending.pattern',descending_pattern, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.descending.pitch_contour',descending_pitch_contour, fmt='%s')
 
-        """                
-        S1.4 Detect slow bend by searching consecutive adjacent three or four notes which covered by CAD pattern.
-                    --------- 
+        """    
+        =====================================================================================            
+        S.4 Detect {slow bend} by using following heuristic rule: 
+            i) search three or four consecutive adjacent notes differed by a semitone which covered by CAD pattern.
+            ii)
+        =====================================================================================
         """
 
         SB = SlowBend(ascending_pattern, descending_pattern)
@@ -924,27 +936,36 @@ def main(args):
         short_ascending_pattern, short_descending_pattern) = SB.detect(expression_style_note) 
 
         if args.debug:
+            # create result directory
+            debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.4_Slow_bend_release_detection'
+            if not os.path.exists(debug_dir): 
+                    os.makedirs(debug_dir)
+            # save updated expression style note
+            np.savetxt(debug_dir+os.sep+name+'.esn', expression_style_note, fmt='%s')
+            save_esn_for_visualization(expression_style_note, debug_dir, name)
             # save slow bend and slow release
-            np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.slow_bend',slow_bend_note, fmt='%s')
-            np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.slow_release',slow_release_note, fmt='%s')
-            # save expression_style_note
-            np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.after_SlowBend.esn',expression_style_note, fmt='%s')
-            save_esn_for_visualization(expression_style_note, args.output_dir+os.sep+'debug', name+'after_SlowBend')
-
+            np.savetxt(debug_dir+os.sep+name+'.slow_bend',slow_bend_note, fmt='%s')
+            np.savetxt(debug_dir+os.sep+name+'.slow_release',slow_release_note, fmt='%s')
+           
         if args.eval_expr:
-            print '  Evaluating slow bend detection...' 
+            print '  Evaluating expression style note after slow bend detection...' 
             annotation_esn = np.loadtxt(args.eval_expr+os.sep+name+'.esn.answer')
             evaluation_expr(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
                 string='Result after slow bend detection', mode='a')
 
         """
-        -----------------------------------------------------------------------
-        S2. Recognize expression styles by Support Vector Machine
-        -----------------------------------------------------------------------
-        
-        S2.1 Candidate selection by finding intersection of note and CAD pattern.
-             i.e., the candidate of {bend, hammer-on, normal, pull-off, slide}.
+        ===================================================================================================
+        S.5 Detect {bend} {hammer on} {pull off} {slide} by analyzing timbre of selected candidate regions.
+        ===================================================================================================
         """
+
+        """
+        -----------------------------------------------------------------------------
+        S.5.1 Candidate selection by finding note transitions covered by CAD pattern.
+              i.e., the candidate of {bend, hammer-on, normal, pull-off, slide}.
+        -----------------------------------------------------------------------------
+        """                          
+        
         ascending_candidate, ascending_candidate_note, non_candidate_ascending_note = candidate_selection(expression_style_note[:,0:3], short_ascending_pattern)
         # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_bend, TP_slide, TP_hamm, FN_bend, FN_slide, FN_hamm = short_pattern_evaluate(ascending_candidate,FN_bend,FN_slide,join(hamm_answer_dir,name_ext))   
         descending_candidate, descending_candidate_note, non_candidate_descending_note = candidate_selection(expression_style_note[:,0:3], short_descending_pattern)
@@ -954,7 +975,9 @@ def main(args):
         np.savetxt(args.output_dir+os.sep+name+'.descending.candidate',descending_candidate, fmt='%s')
         
         """
-        S2.2 Extract audio features of selected candidate regions.
+        -----------------------------------------------------
+        S.5.2 Extract features of selected candidate regions.
+        -----------------------------------------------------
         """
         # load audio
         audio = MonoLoader(filename = f)()
@@ -991,7 +1014,9 @@ def main(args):
 
 
         """
-        S2.3 Classfication using pre-train classifier.
+        -----------------------------------------------
+        S.5.3 Classfication using pre-train classifier.
+        -----------------------------------------------
         """        
         # load pre-trained SVM
         try:
@@ -1012,17 +1037,11 @@ def main(args):
             y_pred = clf.predict(data)
             result = np.hstack((candidate, np.asarray(y_pred).reshape(len(y_pred), 1)))
             np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.classification_result', result, fmt='%s')
-            # print y_pred
 
-        """
-        S2.4 Merge bend note and updata expression style note by classification result
-        """
         # combine ascending and descending cadidates
         result_all = np.vstack((np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[0]+'.candidate'+'.classification_result'), np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[1]+'.candidate'+'.classification_result')))
         # sort by time
         result_all = result_all[np.argsort(result_all[:,0], axis = 0)]
-        # merge bend and note
-        expression_style_note = merge_bend_and_release(expression_style_note, result_all)
 
         if args.eval_cls:
             print '  Evaluating classification result...' 
@@ -1031,24 +1050,55 @@ def main(args):
             evaluation_candidate_classification(annotation_ts, result_all, args.output_dir, name, 
                 tech_dic = {'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}, string=None, mode='w')
 
-        if args.debug:
-            # save merged expression style note
-            np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.after_bend_merged'+'.esn', expression_style_note, fmt='%s')
+        """
+        -------------------------------------------------------------------------------------------
+        S.5.4 Merge bend & release notes and update expression style note by classification result.
+        -------------------------------------------------------------------------------------------
+        """
+        
+        # merge bend and note
+        expression_style_note = merge_and_update_prebend_bend_release(expression_style_note, result_all)
 
-        # update esn
-        expression_style_note = update_esn_by_cls_result(expression_style_note, result_all)
-
         if args.debug:
+            # create result directory
+            debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.4_Merge_and_update_prebend_bend_release'
+            if not os.path.exists(debug_dir): 
+                    os.makedirs(debug_dir)
             # save updated expression style note
-            np.savetxt(args.output_dir+os.sep+'debug'+os.sep+name+'.after_Classification_&_bend_merged'+'.esn', expression_style_note, fmt='%s')
-            save_esn_for_visualization(expression_style_note, args.output_dir+os.sep+'debug', name+'after_Classification_&_bend_merged')
+            np.savetxt(debug_dir+os.sep+name+'.esn', expression_style_note, fmt='%s')
+            save_esn_for_visualization(expression_style_note, debug_dir, name)
 
         if args.eval_expr:
-            print '  Evaluating bended notes merging...' 
+            print '  Evaluating expression style note after bended notes merged...' 
             # load esn answer
             annotation_esn = np.loadtxt(args.eval_expr+os.sep+name+'.esn.answer')
             evaluation_expr(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
-                string='Result after bended notes merged', mode='a')
+                string='Result after bended notes merged.', mode='a')
+
+        """
+        ---------------------------------------------------------------------------------------------------
+        S.5.5 Update pull-off, hammer-on and slide notes to expression style note by classification result.
+        ---------------------------------------------------------------------------------------------------
+        """
+
+        # update esn
+        expression_style_note = update_pull_hamm_slide(expression_style_note, result_all)
+
+        if args.debug:
+            # create result directory
+            debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.5_Update_pull_hamm_slide'
+            if not os.path.exists(debug_dir): 
+                    os.makedirs(debug_dir)
+            # save updated expression style note
+            np.savetxt(debug_dir+os.sep+name+'.esn', expression_style_note, fmt='%s')
+            save_esn_for_visualization(expression_style_note, debug_dir, name)
+
+        if args.eval_expr:
+            print '  Evaluating expression style note after pull-off, hammer-on and slide updated with classification result...' 
+            # load esn answer
+            annotation_esn = np.loadtxt(args.eval_expr+os.sep+name+'.esn.answer')
+            evaluation_expr(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
+                string='Result after pull-off, hammer-on and slide notes updated.', mode='a')
 
         if args.eval_note:
             print '  Evaluating note accuracy...'
@@ -1057,19 +1107,19 @@ def main(args):
             note = expression_style_note[:,0:3]
             # pruned_note = note_pruning(note, threshold=args.p)
             evaluation_note(annotation, note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, 
-                string='Result after bended notes merged', mode='a')
+                string='Result after pull-off, hammer-on and slide notes updated.', mode='a')
             
         
         """
-        S2.5 Detect hammer-on and pull-off by analysing the timbre of note transition.
+        ====================================================================================================================
+        S.6 Detect {hammer on} {pull off} by analyzing the timbre of remained note transition which are not selected in S.5.
+        ====================================================================================================================
         """
 
         """
-        S2.6 Detect grace bend.
-        """
-
-        """
-        S2.7 Detect soft vibrato on each note.
+        ==================================================================================
+        S.7 Detect {vibrato} on each note.
+        ==================================================================================
         """
 
         
