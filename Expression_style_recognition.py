@@ -504,74 +504,137 @@ class SlowBend(Common):
         return note_of_long_CAD, short_CAD
 
 def merge_and_update_prebend_bend_release(expression_style_note, result_ref):
+    import sys
+    save_stdout = sys.stdout
+    fh = open('/Users/Frank/Documents/Code/Python/Test_ExpressionStyle_result/lick_80/S3.ExpressionStyle/debug/after_S.5.4_Merge_and_update_prebend_bend_release/merge_and_update_prebend_bend_release_procedure.txt','w')
+    sys.stdout = fh
+
     result = result_ref.copy()
     note_to_be_deleted = np.empty([0])
     for index_candi, candi_result in enumerate(result):
         # if the candidate is classsified as bend
         if candi_result[-1] == 0 and candi_result[0] != 0:
             for index_note, note in enumerate(expression_style_note[:-1]):
-                # if the candidate exact cover consecutive two notes:
+                # if the candidate exact covers consecutive two notes:
                 if candi_result[0] > note[1] and candi_result[0] < note[1]+note[2] and \
                    candi_result[1] > expression_style_note[index_note+1,1] and \
                    candi_result[1] < expression_style_note[index_note+1,1]+expression_style_note[index_note+1,2]:
-                    current_num_candi = index_candi
-                    current_num_note = index_note+1
-                    while current_num_note+1 <= expression_style_note.shape[0] and \
-                          current_num_candi+1 <= result.shape[0] and \
-                          result[current_num_candi+1,2] == 0 and \
-                          result[current_num_candi+1,0] > expression_style_note[current_num_note,1] and \
-                          result[current_num_candi+1,0] < expression_style_note[current_num_note,1]+expression_style_note[current_num_note,2] and \
-                          result[current_num_candi+1,1] > expression_style_note[current_num_note+1,1] and \
-                          result[current_num_candi+1,1] < expression_style_note[current_num_note+1,1]+expression_style_note[current_num_note,2]:
-                        current_num_candi+=1
-                        current_num_note+=1
+                    current_index_candi = index_candi
+                    current_index_note = index_note+1
+                    print 'Candidate exact covers consecutive two notes'
+                    print '    index_candi: ', index_candi
+                    print '    current_index_candi: ', current_index_candi
+                    print '    index_note: ', index_note
+                    print '    current_index_note: ', current_index_note
+                    while current_index_note+1 <= expression_style_note.shape[0] and \
+                          current_index_candi+1 <= result.shape[0] and \
+                          result[current_index_candi+1,2] == 0 and \
+                          result[current_index_candi+1,0] > expression_style_note[current_index_note,1] and \
+                          result[current_index_candi+1,0] < expression_style_note[current_index_note,1]+expression_style_note[current_index_note,2] and \
+                          result[current_index_candi+1,1] > expression_style_note[current_index_note+1,1] and \
+                          result[current_index_candi+1,1] < expression_style_note[current_index_note+1,1]+expression_style_note[current_index_note,2]:
+                        current_index_candi+=1
+                        current_index_note+=1
+                    print '    Checking whether or not the followed candidate is predicted as bend.' 
+                    print '    index_candi: ', index_candi
+                    print '    current_index_candi: ', current_index_candi
+                    print '    index_note: ', index_note
+                    print '    current_index_note: ', current_index_note
                     # delete the note which is about to be merged
-                    note_to_be_deleted = np.append(note_to_be_deleted,range(index_note+1,current_num_note+1), axis=0)
+                    note_to_be_deleted = np.append(note_to_be_deleted,range(index_note+1,current_index_note+1), axis=0)
+                    print '    note_to_be_deleted: ', note_to_be_deleted
                     # mark the merged candidate as 0
-                    if current_num_candi-index_candi > 0:
-                        result[index_candi+1:current_num_candi+1, 0:2] = 0
-                    # replace the pitch of first note with the lowest pitch between index_note to current_num_note
-                    expression_style_note[index_note,0]= np.min(expression_style_note[index_note:current_num_note+1,0])
+                    # if current_index_candi-index_candi > 0:
+                    result[index_candi:current_index_candi+1, 0:2] = 0
                     # replace the duration of first note with the difference of the 2nd note offset and 1st note onset
-                    expression_style_note[index_note,2]=expression_style_note[current_num_note,1]+expression_style_note[current_num_note,2]-expression_style_note[index_note,1]
-                    # keep the predicted expression styles of merged notes
-                    expression_style_note[index_note,6:]=np.nanmax(expression_style_note[index_note+1:current_num_note+1,4:])
-                    # mark the bend in expression style note
-                    pitch_diff = np.diff(expression_style_note[index_note:current_num_note+1,0])
-                    for n in range(index_note,current_num_note):
+                    expression_style_note[index_note,2]=expression_style_note[current_index_note,1]+expression_style_note[current_index_note,2]-expression_style_note[index_note,1]
+                    # keep the predicted expression styles on merged notes which is going to be deleted
+                    expression_style_note[index_note,6:]=np.nanmax(expression_style_note[index_note+1:current_index_note+1,6:], axis=0)
+                    # mark the bend in expression style note                    
+                    print '    range(index_note,current_index_note): ', range(index_note,current_index_note)
+                    for n in range(index_note,current_index_note):
+                        print '    pitch of expression_style_note[n,0]', expression_style_note[n,0]
+                    for n in range(index_note,current_index_note):
+                        print 'expression_style_note[n+1,0]: ', expression_style_note[n+1,0]
+                        print 'expression_style_note[n,0]: ', expression_style_note[n,0]
                         pitch_diff = expression_style_note[n+1,0]-expression_style_note[n,0]
+                        print '    pitch_diff ', pitch_diff
                         if pitch_diff > 0:
                             expression_style_note[index_note,4] = pitch_diff
                         elif pitch_diff < 0:
                             expression_style_note[index_note,5] = abs(pitch_diff)
+                    print '    Note index: ', index_note
+                    print '         Pitch: ', expression_style_note[index_note, 0]
+                    print '         Bend: ', expression_style_note[index_note, 4]
+                    print '         Release: ', expression_style_note[index_note, 5]
                     if expression_style_note[index_note, 4]==0 and expression_style_note[index_note, 5]!=0:
-                        expression_style_note[index_note, 3]=expression_style_note[index_note, 5]
-                    # expression_style_note[index_note,4] = int(note[3]-expression_style_note[index_note,3])
+                        print '    Here should be a pre-bend.'
+                        expression_style_note[index_note, 3] = expression_style_note[index_note, 5]
+                    # replace the pitch of first note with the lowest pitch among index_note to current_index_note
+                    expression_style_note[index_note,0]= np.min(expression_style_note[index_note:current_index_note+1,0])
     # print note_to_be_deleted
-    expression_style_note = np.delete(expression_style_note, note_to_be_deleted,axis=0)
+    expression_style_note = np.delete(expression_style_note, note_to_be_deleted, axis=0)
+
+    sys.stdout = save_stdout
+    fh.close()
+
     return expression_style_note
 
-def update_pull_hamm_slide(expression_style_note, result_ref):
+def update_pull_hamm_slide(expression_style_note, result_ref, tech_index_dic):
+    if tech_index_dic.has_key('pull'):
+        if type(tech_index_dic['pull']) is int:
+            pull_index_list=[tech_index_dic['pull']]
+        else:
+            pull_index_list=tech_index_dic['pull']
+    else: 
+        pull_index_list=[]
+    if tech_index_dic.has_key('hamm'):
+        if type(tech_index_dic['hamm']) is int:
+            hamm_index_list=[tech_index_dic['hamm']]
+        else:
+            hamm_index_list=tech_index_dic['hamm']
+    else: 
+        hamm_index_list=[]
+    if tech_index_dic.has_key('slide'):
+        if type(tech_index_dic['slide']) is int:
+            slide_index_list=[tech_index_dic['slide']]
+        else:
+            slide_index_list=tech_index_dic['slide']
+    else: 
+        slide_index_list=[]
 
+    target_tech_index_list = pull_index_list+hamm_index_list+slide_index_list
+    
     result = result_ref.copy()
     for index_candi, candi_result in enumerate(result):
-        # if the candidate is classsified as bend
-        if candi_result[-1] == 0 and candi_result[0] != 0:
+        # if the candidate is classified as target techniques
+        if candi_result[-1] in target_tech_index_list and candi_result[0] != 0:
             for index_note, note in enumerate(expression_style_note[:-1]):
-                # if the candidate exact cover consecutive two notes:
+                # if the candidate exact covers consecutive two notes:
                 if candi_result[0] > note[1] and candi_result[0] < note[1]+note[2] and \
                    candi_result[1] > expression_style_note[index_note+1,1] and \
                    candi_result[1] < expression_style_note[index_note+1,1]+expression_style_note[index_note+1,2]:
-                    # hamm
-                    if candi_result[-1]==1:
-                        expression_style_note[index_note, 7]=1
-                        expression_style_note[index_note+1, 7]=2
+                    t = [k for k, v in tech_index_dic.iteritems() if v == candi_result[-1]][0]   
                     # pull
-                    elif candi_result[-1]==3:
-                        expression_style_note[index_note, 6]=1
-                        expression_style_note[index_note+1, 6]=2
+                    if t=='pull':
+                        if expression_style_note[index_note, 6]==0 and \
+                           expression_style_note[index_note+1, 6]==0:
+                            expression_style_note[index_note, 6]=1
+                            expression_style_note[index_note+1, 6]=2
+                        elif expression_style_note[index_note, 6]!=0 and \
+                           expression_style_note[index_note+1, 6]==0:
+                            expression_style_note[index_note+1, 6]=2
+                    # hamm
+                    elif t=='hamm':
+                        if expression_style_note[index_note, 7]==0 and \
+                           expression_style_note[index_note+1, 7]==0:
+                            expression_style_note[index_note, 7]=1
+                            expression_style_note[index_note+1, 7]=2
+                        elif expression_style_note[index_note, 7]!=0 and \
+                           expression_style_note[index_note+1, 7]==0:
+                            expression_style_note[index_note+1, 7]=2
                     # slide
-                    elif candi_result[-1]==4:
+                    elif t=='slide':
                         expression_style_note[index_note, 8]=1
                         expression_style_note[index_note+1, 8]=2
 
@@ -714,21 +777,23 @@ def save_esn_for_visualization(esn, output_dir, name):
     np.savetxt(output_dir+os.sep+name+'.si.esn', esn[:,[0,1,2,9]], fmt='%s')
     np.savetxt(output_dir+os.sep+name+'.so.esn', esn[:,[0,1,2,10]], fmt='%s')
     np.savetxt(output_dir+os.sep+name+'.v.esn', esn[:,[0,1,2,11]], fmt='%s')
+    np.savetxt(output_dir+os.sep+name+'.index.esn', np.hstack([esn[:,0:3], np.arange(esn.shape[0]).reshape(esn.shape[0],1)]), fmt='%s')
+
 
 def save_cls_result_for_visualization(result_all, output_dir, name, tech_index_dic):
     answer_tech_dic = {'bend':[3,4,5], 'pull':[6], 'hamm':[7], 'slide':[8,9,10], 'vibrato':[11]}    
     target_tech_list = [t for t in tech_index_dic if t in answer_tech_dic.keys()]
     for t in target_tech_list:
         if t=='bend':
-            np.savetxt(output_dir+os.sep+name+'.b.cls_result', result_all[np.where(result_all[:,2]==tech_index_dic[t]),:], fmt='%s')
+            np.savetxt(output_dir+os.sep+name+'.b.cls_result', result_all[np.where(result_all[:,2]==tech_index_dic[t])[0],:], fmt='%s')
         elif t=='pull':
-            np.savetxt(output_dir+os.sep+name+'.p.cls_result', result_all[np.where(result_all[:,2]==tech_index_dic[t]),:], fmt='%s')
+            np.savetxt(output_dir+os.sep+name+'.p.cls_result', result_all[np.where(result_all[:,2]==tech_index_dic[t])[0],:], fmt='%s')
         elif t=='hamm':
-            np.savetxt(output_dir+os.sep+name+'.h.cls_result', result_all[np.where(result_all[:,2]==tech_index_dic[t]),:], fmt='%s')            
+            np.savetxt(output_dir+os.sep+name+'.h.cls_result', result_all[np.where(result_all[:,2]==tech_index_dic[t])[0],:], fmt='%s')            
         elif t=='slide':
-            np.savetxt(output_dir+os.sep+name+'.s.cls_result', result_all[np.where(result_all[:,2]==tech_index_dic[t]),:], fmt='%s')            
+            np.savetxt(output_dir+os.sep+name+'.s.cls_result', result_all[np.where(result_all[:,2]==tech_index_dic[t])[0],:], fmt='%s')            
         elif t=='vibrato':
-            np.savetxt(output_dir+os.sep+name+'.v.cls_result', result_all[np.where(result_all[:,2]==tech_index_dic[t]),:], fmt='%s')            
+            np.savetxt(output_dir+os.sep+name+'.v.cls_result', result_all[np.where(result_all[:,2]==tech_index_dic[t])[0],:], fmt='%s')            
             
 
 def parse_input_files(input_files, ext):
@@ -1107,7 +1172,7 @@ def main(args):
         """
 
         # update esn
-        expression_style_note = update_pull_hamm_slide(expression_style_note, result_all)
+        expression_style_note = update_pull_hamm_slide(expression_style_note, result_all, tech_index_dic=tech_index_dic)
 
         if args.debug:
             # create result directory
