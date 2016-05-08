@@ -92,19 +92,19 @@ def fit_mir_eval_transcription(annotation, note):
     est_pitches = note[:,0]
     return ref_intervals, ref_pitches, est_intervals, est_pitches
 
-def calculate_candidate_classification_accuracy_f_measure(annotation_ts_pseudo, candidate_result_pseudo, tech_dic):
+def calculate_candidate_classification_accuracy_f_measure(annotation_ts_pseudo, candidate_result_pseudo, tech_index_dic):
     from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
     # make pseudo answer and predicted labels
     annotation_ts = annotation_ts_pseudo.copy()
     candidate_result = candidate_result_pseudo.copy()
     # create answer list filled with index of normal
     y_true = np.empty([candidate_result.shape[0]])
-    y_true.fill(tech_dic['normal'])
+    y_true.fill(tech_index_dic['normal'])
     # create predicted list
     y_pred = candidate_result[:,2].copy()
     answer_tech_dic = {'bend':[3,4,5], 'pull':[6], 'hamm':[7], 'slide':[8,9,10], 'vibrato':[11]}
     # make target tech list, e.g., ['bend', 'pull', 'vibrato']
-    target_tech_list = [t for t in tech_dic if t in answer_tech_dic.keys()]
+    target_tech_list = [t for t in tech_index_dic if t in answer_tech_dic.keys()]
     # make target tech index list, e.g., [3,4,5,6,11]
     target_tech_index_list = []
     for t in target_tech_list:
@@ -120,35 +120,35 @@ def calculate_candidate_classification_accuracy_f_measure(annotation_ts_pseudo, 
                 if ts_ann[-1] in target_tech_index_list:
                     # fill answer list
                     if ts_ann[-1] in [3,4,5]:
-                        y_true[index_candi]=tech_dic['bend']
+                        y_true[index_candi]=tech_index_dic['bend']
                     elif ts_ann[-1]==6:
-                        y_true[index_candi]=tech_dic['pull']
+                        y_true[index_candi]=tech_index_dic['pull']
                     elif ts_ann[-1]==7:
-                        y_true[index_candi]=tech_dic['hamm']
+                        y_true[index_candi]=tech_index_dic['hamm']
                     elif ts_ann[-1] in [8,9,10]:
-                        y_true[index_candi]=tech_dic['slide']
+                        y_true[index_candi]=tech_index_dic['slide']
                     elif ts_ann[-1]==11:
-                        y_true[index_candi]=tech_dic['vibrato']
+                        y_true[index_candi]=tech_index_dic['vibrato']
                     tech_candidate+=1
                 else:
-                    y_true[index_candi]=tech_dic['normal']
+                    y_true[index_candi]=tech_index_dic['normal']
 
                 # check the key of the predicted index number
-                # t = [k for k, v in tech_dic.iteritems() if v == candi_result[-1]][0]
+                # t = [k for k, v in tech_index_dic.iteritems() if v == candi_result[-1]][0]
 
     # the ratio of (# corrected classified candidate / # of all candidates)
     cls_accuracy = accuracy_score(y_true, y_pred)
     # make target names list in index order
     target_names = []
-    for index in range(len(tech_dic)):
-        target_names.append([k for k, v in tech_dic.iteritems() if v == index][0])
+    for index in range(len(tech_index_dic)):
+        target_names.append([k for k, v in tech_index_dic.iteritems() if v == index][0])
     # make classification report
     cls_report = classification_report(y_true, y_pred, target_names=target_names)
     # make confusion matrix
     confusion_table = confusion_matrix(y_true, y_pred)
 
     # calculate non tech candidate which are predicted as normal
-    # non_tech_candi_predicted_as_normal = np.where(candidate_result[np.where(candidate_result[:,2]!=-1)[0], 2]==tech_dic['normal'])[0].size
+    # non_tech_candi_predicted_as_normal = np.where(candidate_result[np.where(candidate_result[:,2]!=-1)[0], 2]==tech_index_dic['normal'])[0].size
     # the ratio of (# of answers covered by candidate / # of all answers)
     candidate_answer_ratio = tech_candidate/float(annotation_ts.shape[0])
     # the ratio of (# of expression style candidates / # of all candidates)
@@ -220,12 +220,12 @@ def calculate_expr_f_measure(annotation_esn, prediction_esn, tech, onset_toleran
     return P, R, F, TP, FP, FN
 
 def evaluation_candidate_classification(annotation_ts, candidate_result, 
-    output_dir, filename, tech_dic, string=None, mode='a'):
+    output_dir, filename, tech_index_dic, string=None, mode='a'):
 
     # evaluation
     (cls_accuracy, cls_report, confusion_table, 
      candidate_answer_ratio, tech_candidte_ratio, 
-     target_names) = calculate_candidate_classification_accuracy_f_measure(annotation_ts, candidate_result, tech_dic=tech_dic)
+     target_names) = calculate_candidate_classification_accuracy_f_measure(annotation_ts, candidate_result, tech_index_dic=tech_index_dic)
     # write result to file
     save_stdout = sys.stdout
     fh = open(output_dir+os.sep+filename+'.cls.eval',mode)

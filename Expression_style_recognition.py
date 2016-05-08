@@ -704,16 +704,32 @@ def transition_locater(note,step,direction = None,min_note_duration = 0.05,gap_t
     return transition
 
 
-def save_esn_for_visualization(esn, answer_esn_for_visual_path, name):    
-    np.savetxt(answer_esn_for_visual_path+os.sep+name+'.preb.esn', esn[:,[0,1,2,3]], fmt='%s')
-    np.savetxt(answer_esn_for_visual_path+os.sep+name+'.b.esn', esn[:,[0,1,2,4]], fmt='%s')
-    np.savetxt(answer_esn_for_visual_path+os.sep+name+'.r.esn', esn[:,[0,1,2,5]], fmt='%s')
-    np.savetxt(answer_esn_for_visual_path+os.sep+name+'.p.esn', esn[:,[0,1,2,6]], fmt='%s')
-    np.savetxt(answer_esn_for_visual_path+os.sep+name+'.h.esn', esn[:,[0,1,2,7]], fmt='%s')
-    np.savetxt(answer_esn_for_visual_path+os.sep+name+'.s.esn', esn[:,[0,1,2,8]], fmt='%s')
-    np.savetxt(answer_esn_for_visual_path+os.sep+name+'.si.esn', esn[:,[0,1,2,9]], fmt='%s')
-    np.savetxt(answer_esn_for_visual_path+os.sep+name+'.so.esn', esn[:,[0,1,2,10]], fmt='%s')
-    np.savetxt(answer_esn_for_visual_path+os.sep+name+'.v.esn', esn[:,[0,1,2,11]], fmt='%s')
+def save_esn_for_visualization(esn, output_dir, name):    
+    np.savetxt(output_dir+os.sep+name+'.preb.esn', esn[:,[0,1,2,3]], fmt='%s')
+    np.savetxt(output_dir+os.sep+name+'.b.esn', esn[:,[0,1,2,4]], fmt='%s')
+    np.savetxt(output_dir+os.sep+name+'.r.esn', esn[:,[0,1,2,5]], fmt='%s')
+    np.savetxt(output_dir+os.sep+name+'.p.esn', esn[:,[0,1,2,6]], fmt='%s')
+    np.savetxt(output_dir+os.sep+name+'.h.esn', esn[:,[0,1,2,7]], fmt='%s')
+    np.savetxt(output_dir+os.sep+name+'.s.esn', esn[:,[0,1,2,8]], fmt='%s')
+    np.savetxt(output_dir+os.sep+name+'.si.esn', esn[:,[0,1,2,9]], fmt='%s')
+    np.savetxt(output_dir+os.sep+name+'.so.esn', esn[:,[0,1,2,10]], fmt='%s')
+    np.savetxt(output_dir+os.sep+name+'.v.esn', esn[:,[0,1,2,11]], fmt='%s')
+
+def save_cls_result_for_visualization(result_all, output_dir, name, tech_index_dic):
+    answer_tech_dic = {'bend':[3,4,5], 'pull':[6], 'hamm':[7], 'slide':[8,9,10], 'vibrato':[11]}    
+    target_tech_list = [t for t in tech_index_dic if t in answer_tech_dic.keys()]
+    for t in target_tech_list:
+        if t=='bend':
+            np.savetxt(output_dir+os.sep+name+'.b.cls_result', result_all[np.where(result_all[:,2]==tech_index_dic[t]),:], fmt='%s')
+        elif t=='pull':
+            np.savetxt(output_dir+os.sep+name+'.p.cls_result', result_all[np.where(result_all[:,2]==tech_index_dic[t]),:], fmt='%s')
+        elif t=='hamm':
+            np.savetxt(output_dir+os.sep+name+'.h.cls_result', result_all[np.where(result_all[:,2]==tech_index_dic[t]),:], fmt='%s')            
+        elif t=='slide':
+            np.savetxt(output_dir+os.sep+name+'.s.cls_result', result_all[np.where(result_all[:,2]==tech_index_dic[t]),:], fmt='%s')            
+        elif t=='vibrato':
+            np.savetxt(output_dir+os.sep+name+'.v.cls_result', result_all[np.where(result_all[:,2]==tech_index_dic[t]),:], fmt='%s')            
+            
 
 def parse_input_files(input_files, ext):
     """
@@ -1019,6 +1035,7 @@ def main(args):
         -----------------------------------------------
         """        
         # load pre-trained SVM
+        tech_index_dic = {'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}
         try:
             clf = np.load(args.input_model).item()
         except IOError:
@@ -1036,19 +1053,27 @@ def main(args):
             # classfication
             y_pred = clf.predict(data)
             result = np.hstack((candidate, np.asarray(y_pred).reshape(len(y_pred), 1)))
-            np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.classification_result', result, fmt='%s')
+            np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.cls_result', result, fmt='%s')
 
         # combine ascending and descending cadidates
-        result_all = np.vstack((np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[0]+'.candidate'+'.classification_result'), np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[1]+'.candidate'+'.classification_result')))
+        result_all = np.vstack((np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[0]+'.candidate'+'.cls_result'), np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[1]+'.candidate'+'.cls_result')))
         # sort by time
         result_all = result_all[np.argsort(result_all[:,0], axis = 0)]
+
+        if args.debug:
+            # create result directory
+            debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.3_classification'
+            if not os.path.exists(debug_dir): 
+                    os.makedirs(debug_dir)
+            np.savetxt(debug_dir+os.sep+name+'.all.cls_result', result_all, fmt='%s')
+            save_cls_result_for_visualization(result_all, debug_dir, name, tech_index_dic=tech_index_dic)
 
         if args.eval_cls:
             print '  Evaluating classification result...' 
             # load time-stamp answer
             annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
             evaluation_candidate_classification(annotation_ts, result_all, args.output_dir, name, 
-                tech_dic = {'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}, string=None, mode='w')
+                tech_index_dic=tech_index_dic, string=None, mode='w')
 
         """
         -------------------------------------------------------------------------------------------
