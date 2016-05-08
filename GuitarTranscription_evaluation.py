@@ -133,7 +133,7 @@ def calculate_candidate_classification_accuracy_f_measure(annotation_ts_pseudo, 
                 else:
                     y_true[index_candi]=tech_index_dic['normal']
 
-                # check the key of the predicted index number
+                # get key by value
                 # t = [k for k, v in tech_index_dic.iteritems() if v == candi_result[-1]][0]
 
     # the ratio of (# corrected classified candidate / # of all candidates)
@@ -178,33 +178,67 @@ def calculate_expr_f_measure(annotation_esn, prediction_esn, tech, onset_toleran
     elif tech == 'Vibrato':
         tech_index = 11
 
-    # tech_num = np.count_nonzero(annotation_esn_mask[:,tech_index])
-
-    # loop in annotated expression style note
-    for index_ann, note_ann in enumerate(annotation_esn_mask):
-        # if technique is identified in annotated esn
-        if note_ann[tech_index]!=0:
-            # loop in predicted expression style note
-            for index_pre, note_pre in enumerate(prediction_esn_mask):
-                # if technique is identified in predicted esn
-                if note_pre[tech_index]!=0:
-                    # check if two esn are matched
-                    if note_ann[1]-onset_tolerance < note_pre[1] and note_ann[1]+onset_tolerance > note_pre[1] and \
-                       note_ann[1]+note_ann[2]-note_ann[2]*offset_ratio < note_pre[1]+note_pre[2] and \
-                       note_ann[1]+note_ann[2]+note_ann[2]*offset_ratio > note_pre[1]+note_pre[2]:
-                        if correct_pitch is True:
-                            if note_ann[0] == note_pre[0]:
+    if tech=='Pre-bend' or tech=='Bend' or tech=='Release' or tech=='Slide in' or tech=='Slide out' or tech=='Vibrato':
+        # loop in annotated expression style note
+        for index_ann, note_ann in enumerate(annotation_esn_mask):
+            # if technique is identified in annotated esn
+            if note_ann[tech_index]!=0:
+                # loop in predicted expression style note
+                for index_pre, note_pre in enumerate(prediction_esn_mask):
+                    # if technique is identified in predicted esn
+                    if note_pre[tech_index]!=0:
+                        # check if two esn are matched
+                        if note_ann[1]-onset_tolerance < note_pre[1] and note_ann[1]+onset_tolerance > note_pre[1] and \
+                           note_ann[1]+note_ann[2]-note_ann[2]*offset_ratio < note_pre[1]+note_pre[2] and \
+                           note_ann[1]+note_ann[2]+note_ann[2]*offset_ratio > note_pre[1]+note_pre[2]:
+                            if correct_pitch is True:
+                                if note_ann[0] == note_pre[0]:
+                                    note_ann[tech_index] = -1
+                                    note_pre[tech_index] = -1
+                            else:
                                 note_ann[tech_index] = -1
                                 note_pre[tech_index] = -1
-                        else:
-                            note_ann[tech_index] = -1
-                            note_pre[tech_index] = -1
 
+        TP = np.extract(annotation_esn_mask[:,tech_index]==-1, annotation_esn_mask[:,tech_index]).size
+        FP = np.extract(prediction_esn_mask[:,tech_index]>0, prediction_esn_mask[:,tech_index]).size
+        FN = np.extract(annotation_esn_mask[:,tech_index]>0, annotation_esn_mask[:,tech_index]).size
 
-    TP = np.extract(annotation_esn_mask[:,tech_index]==-1, annotation_esn_mask[:,tech_index]).size
-    FP = np.extract(prediction_esn_mask[:,tech_index]>0, prediction_esn_mask[:,tech_index]).size
-    FN = np.extract(annotation_esn_mask[:,tech_index]>0, annotation_esn_mask[:,tech_index]).size
+    elif tech=='Pull-off' or tech=='Hammer-on' or tech=='Slide':
+        TP=0
+        # loop in annotated expression style note
+        for index_ann, note_ann in enumerate(annotation_esn_mask[:-1]):
+            # if technique is identified in annotated esn
+            if note_ann[tech_index]!=0 and annotation_esn_mask[index_ann+1,tech_index]!=0:
+                # loop in predicted expression style note
+                for index_pre, note_pre in enumerate(prediction_esn_mask[:-1]):
+                    # if technique is identified in predicted esn
+                    if note_pre[tech_index]!=0 and prediction_esn_mask[index_pre+1, tech_index]:
+                        # check if two esn are matched
+                        if annotation_esn_mask[index_ann+1,1]-onset_tolerance < prediction_esn_mask[index_pre+1,1] and \
+                           annotation_esn_mask[index_ann+1,1]+onset_tolerance > prediction_esn_mask[index_pre+1,1] and \
+                           annotation_esn_mask[index_ann+1,1]+annotation_esn_mask[index_ann+1,2]-annotation_esn_mask[index_ann+1,2]*offset_ratio < prediction_esn_mask[index_pre+1,1]+prediction_esn_mask[index_pre+1,2] and \
+                           annotation_esn_mask[index_ann+1,1]+annotation_esn_mask[index_ann+1,2]+annotation_esn_mask[index_ann+1,2]*offset_ratio > prediction_esn_mask[index_pre+1,1]+prediction_esn_mask[index_pre+1,2]:
+                            if correct_pitch is True:
+                                if annotation_esn_mask[index_ann+1,0] == prediction_esn_mask[index_pre+1,0]:
+                                    TP+=1
+                                    annotation_esn_mask[index_ann,tech_index]=-1
+                                    prediction_esn_mask[index_pre,tech_index]=-1
+                            else:
+                                TP+=1
+                                annotation_esn_mask[index_ann,tech_index]=-1
+                                prediction_esn_mask[index_pre,tech_index]=-1
+        FP=0
+        for index in range(prediction_esn_mask.shape[0]-1):
+            if (prediction_esn_mask[index,tech_index]>0 and prediction_esn_mask[index+1,tech_index]>0) or \
+               (prediction_esn_mask[index,tech_index]>0 and prediction_esn_mask[index+1,tech_index]<0):
+                FP+=1
+        FN=0
+        for index in range(annotation_esn_mask.shape[0]-1):
+            if (annotation_esn_mask[index,tech_index]>0 and annotation_esn_mask[index+1,tech_index]>0) or \
+               (annotation_esn_mask[index,tech_index]>0 and annotation_esn_mask[index+1,tech_index]<0):
+                FN+=1
 
+    # calculate precision, recall, f-measure
     if TP !=0 or FP!=0:
         P = TP/float(TP+FP) 
     elif TP ==0 and FP==0:
@@ -217,6 +251,7 @@ def calculate_expr_f_measure(annotation_esn, prediction_esn, tech, onset_toleran
         F = 2*P*R/float(P+R)
     else:
         F=0
+
     return P, R, F, TP, FP, FN
 
 def evaluation_candidate_classification(annotation_ts, candidate_result, 
