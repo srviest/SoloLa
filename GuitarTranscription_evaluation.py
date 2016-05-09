@@ -92,7 +92,7 @@ def fit_mir_eval_transcription(annotation, note):
     est_pitches = note[:,0]
     return ref_intervals, ref_pitches, est_intervals, est_pitches
 
-def calculate_candidate_classification_accuracy_f_measure(annotation_ts_pseudo, candidate_result_pseudo, tech_index_dic):
+def calculate_candidate_cls_accuracy_f_measure(annotation_ts_pseudo, candidate_result_pseudo, tech_index_dic):
     from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
     # make pseudo answer and predicted labels
     annotation_ts = annotation_ts_pseudo.copy()
@@ -156,7 +156,57 @@ def calculate_candidate_classification_accuracy_f_measure(annotation_ts_pseudo, 
 
     return cls_accuracy, cls_report, confusion_table, candidate_answer_ratio, tech_candidte_ratio, target_names
 
-def calculate_expr_f_measure(annotation_esn, prediction_esn, tech, onset_tolerance=0.05, offset_ratio=0.2, correct_pitch=None):
+
+def calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list):
+    # check the annotation dimension
+    try:
+        annotation_ts.shape[1]
+    except IndexError:
+        annotation_ts = annotation_ts.reshape(1, annotation_ts.shape[0])
+    # check the prediction dimension
+    try:
+        prediction_ts.shape[1]
+    except IndexError:
+        prediction_ts = prediction_ts.reshape(1, prediction_ts.shape[0])
+    # check tech_index_list data type
+    if type(tech_index_list)!=list:
+        tech_index_list = [tech_index_list]
+        
+    (TP, FP, FN) = 0,0,0
+    for tech_index in tech_index_list:
+        target_annotation_ts = annotation_ts[np.where(annotation_ts[:,-1]==tech_index)[0],:]
+        target_prediction_ts = prediction_ts[np.where(prediction_ts[:,-1]==tech_index)[0],:]
+        (tp, fp, fn)=0,0,0
+        for index_ann, ts_ann in enumerate(target_annotation_ts):
+            for index_pre, ts_pre in enumerate(target_prediction_ts):
+                if target_prediction_ts[index_pre,0]<target_annotation_ts[index_ann,0] and \
+                   target_prediction_ts[index_pre,1]>target_annotation_ts[index_ann,0]:
+                    target_annotation_ts[index_ann,-1]=-1
+                    target_prediction_ts[index_pre,-1]=-1
+        tp=np.where(target_prediction_ts[:,-1]==-1)[0].size
+        fp=np.where(target_prediction_ts[:,-1]!=-1)[0].size
+        fn=np.where(target_annotation_ts[:,-1]!=-1)[0].size
+        TP=TP+tp
+        FP=FP+fp
+        FN=FN+fn
+
+    # calculate precision, recall, f-measure
+    if TP !=0 or FP!=0:
+        P = TP/float(TP+FP) 
+    elif TP ==0 and FP==0:
+        P=0
+    if TP !=0 or FN!=0:
+        R = TP/float(TP+FN)
+    elif TP ==0 and FN==0:
+        R = 0
+    if P !=0 or R!=0:
+        F = 2*P*R/float(P+R)
+    else:
+        F=0
+
+    return P, R, F, TP, FP, FN
+
+def calculate_esn_f_measure(annotation_esn, prediction_esn, tech, onset_tolerance=0.05, offset_ratio=0.2, correct_pitch=None):
     annotation_esn_mask = annotation_esn.copy()
     prediction_esn_mask = prediction_esn.copy()
     if tech == 'Pre-bend':
@@ -204,7 +254,7 @@ def calculate_expr_f_measure(annotation_esn, prediction_esn, tech, onset_toleran
         FN = np.extract(annotation_esn_mask[:,tech_index]>0, annotation_esn_mask[:,tech_index]).size
 
     elif tech=='Pull-off' or tech=='Hammer-on' or tech=='Slide':
-        TP=0
+        (TP, FP, FN)=0,0,0
         # loop in annotated expression style note
         for index_ann, note_ann in enumerate(annotation_esn_mask[:-1]):
             # if technique is identified in annotated esn
@@ -227,12 +277,12 @@ def calculate_expr_f_measure(annotation_esn, prediction_esn, tech, onset_toleran
                                 TP+=1
                                 annotation_esn_mask[index_ann,tech_index]=-1
                                 prediction_esn_mask[index_pre,tech_index]=-1
-        FP=0
+
         for index in range(prediction_esn_mask.shape[0]-1):
             if (prediction_esn_mask[index,tech_index]>0 and prediction_esn_mask[index+1,tech_index]>0) or \
                (prediction_esn_mask[index,tech_index]>0 and prediction_esn_mask[index+1,tech_index]<0):
                 FP+=1
-        FN=0
+
         for index in range(annotation_esn_mask.shape[0]-1):
             if (annotation_esn_mask[index,tech_index]>0 and annotation_esn_mask[index+1,tech_index]>0) or \
                (annotation_esn_mask[index,tech_index]>0 and annotation_esn_mask[index+1,tech_index]<0):
@@ -254,13 +304,13 @@ def calculate_expr_f_measure(annotation_esn, prediction_esn, tech, onset_toleran
 
     return P, R, F, TP, FP, FN
 
-def evaluation_candidate_classification(annotation_ts, candidate_result, 
+def evaluation_candidate_cls(annotation_ts, candidate_result, 
     output_dir, filename, tech_index_dic, string=None, mode='a'):
 
     # evaluation
     (cls_accuracy, cls_report, confusion_table, 
      candidate_answer_ratio, tech_candidte_ratio, 
-     target_names) = calculate_candidate_classification_accuracy_f_measure(annotation_ts, candidate_result, tech_index_dic=tech_index_dic)
+     target_names) = calculate_candidate_cls_accuracy_f_measure(annotation_ts, candidate_result, tech_index_dic=tech_index_dic)
     # write result to file
     save_stdout = sys.stdout
     fh = open(output_dir+os.sep+filename+'.cls.eval',mode)
@@ -344,7 +394,7 @@ def evaluation_note(annotation, note, output_dir, filename, onset_tolerance=0.05
     sys.stdout = save_stdout
     fh.close()
 
-def evaluation_expr(annotation_esn, prediction_esn, output_dir, filename, onset_tolerance=0.05, offset_ratio=0.2, string=None, mode='a'):
+def evaluation_esn(annotation_esn, prediction_esn, output_dir, filename, onset_tolerance=0.05, offset_ratio=0.2, string=None, mode='a'):
 
     # convert format to fit mir_eval
     ref_intervals, ref_pitches, est_intervals, est_pitches = fit_mir_eval_transcription(annotation_esn[:,0:3], prediction_esn[:,0:3])
@@ -375,7 +425,7 @@ def evaluation_expr(annotation_esn, prediction_esn, output_dir, filename, onset_
     onset_tolerance=[0.05, 0.1]
     offset_ratio=[0.20, 0.35]
     correct_pitch = [True, False]
-    print '                                Expression style                            '
+    print '                           Expression style (note)                          '
     print '----------------------------------------------------------------------------'
     for on in onset_tolerance:
         for off in offset_ratio:
@@ -383,23 +433,23 @@ def evaluation_expr(annotation_esn, prediction_esn, output_dir, filename, onset_
                 print ('                Correct P(%s)On(%s)Off(%s)      ' % (cp, on, off))
                 print '----------------------------------------------------------------------------'
                 print '                   Precision                    Recall             F-measure'
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Pre-bend', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Pre-bend', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Pre-bend', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Bend', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Bend', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Bend', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Release', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Release', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Release', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Pull-off', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Pull-off', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Pull-off', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Hammer-on', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Hammer-on', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Hammer-on', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Slide', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Slide', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Slide', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Slide in', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Slide in', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Slide in', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Slide out', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Slide out', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Slide out', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_expr_f_measure(annotation_esn, prediction_esn, tech='Vibrato', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
+                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Vibrato', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
                 print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Vibrato', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
                 print '                                                            '
     # return to normal:
@@ -407,7 +457,63 @@ def evaluation_expr(annotation_esn, prediction_esn, output_dir, filename, onset_
     fh.close()
 
 
+def evaluation_ts(annotation_ts, prediction_ts, output_dir, filename, string=None, mode='a'):
 
+    save_stdout = sys.stdout
+    fh = open(output_dir+os.sep+filename+'.ts.eval',mode)
+    sys.stdout = fh
+    if string:
+        print string
+    print '============================================================================'
+    print 'Evaluation on song '+filename
+    print '============================================================================'
+    # 
+    print '                          Expression style (time segment)                   '
+    print '----------------------------------------------------------------------------'
+    print '                   Precision                    Recall             F-measure'
+    
+    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=[3,4,5])
+    print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Bend', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=6)
+    print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Pull-off', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=7)
+    print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Hammer-on', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=[8,9,10])
+    print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Slide', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=11)
+    print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Vibrato', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    print '                                                                            '
+
+
+
+    print '----------------------------------------------------------------------------'
+    print '                         Techniques sub-divided                             '
+    print '----------------------------------------------------------------------------'
+    print '                   Precision                    Recall             F-measure'
+    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=3)
+    print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Pre-bend', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=4)
+    print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Bend', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=5)
+    print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Release', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=6)
+    print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Pull-off', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=7)
+    print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Hammer-on', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=8)
+    print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Slide', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=9)
+    print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Slide in', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=10)
+    print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Slide out', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=11)
+    print ('%12s%16.4f%10s%16.4f%10s%12.4s' % ('Vibrato', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    print '                                                            '
+
+
+    # return to normal:
+    sys.stdout = save_stdout
+    fh.close()
 
 
 
