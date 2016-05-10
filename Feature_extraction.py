@@ -72,6 +72,26 @@ def feature_extractor(audio, features, pool_methods=['mean', 'var', 'min', 'max'
     
     return feature_vec
 
+def extract_feature_of_audio_clip(audio, time_segment, sr):
+    # reshape candidate if it is in one dimension
+    if time_segment.shape==(2,): time_segment=time_segment.reshape(1,2)
+    # convert seconds into samples
+    time_segment_sample = time_segment*sr
+    # create feature matrix
+    feature_vec_all = np.array([])
+    # loop in candidates
+    for c in time_segment_sample:
+        # clipping audio signal
+        audio_clip = audio[int(c[0]):int(c[1])]
+        # extract features
+        feature_vec = feature_extractor(audio=audio_clip, features=selected_features)
+        feature_vec_all = np.concatenate((feature_vec_all,feature_vec), axis = 0)            
+    # reshpe feature vector and save result
+    if feature_vec_all.size!=0:
+        feature_vec_all = feature_vec_all.reshape(len(time_segment_sample),len(feature_vec_all)/len(time_segment_sample))
+
+    return feature_vec_all
+
 def parse_input_files(input_files, ext='.wav'):
     """
     Collect all files by given extension and keywords.

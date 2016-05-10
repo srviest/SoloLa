@@ -25,6 +25,7 @@ import math
 from scipy.io import wavfile
 from GuitarTranscription_parameters import *
 
+
 def continuously_ascending_descending_pattern(melody,direction,MinLastingDuration,MaxPitchDifference,MinPitchDifference,hop,sr):
     """
     Find continuously ascending or descending pattern in melody contour.
@@ -121,6 +122,99 @@ def candidate_selection(note, short_CAD_pattern):
     non_candidate_note = np.delete(pseudo_note,candidate_note_index,axis=0)
     return candidate, candidate_note, non_candidate_note
 
+
+def pull_hamm_candidate_selection(expression_style_note, max_pitch_diff, tech=None, time_segment_mask=None, min_note_duration=0.05, gap_tolerence=0.05):
+    """
+    Find the timestamp of transition of two consecutive notes.
+    Usage:
+    :param note:              array of notes [pitch(hertz) onset(sec) duration(sec)].
+    :param max_step:          the maximal pitch distance between two notes.
+    :param min_note_duration: the minimal duration of two consecutive notes
+    :param gap_tolerence:     the minimal silent gap between two notes
+
+    """
+    
+    transition_candi=np.empty([0,1])
+    for index_note, note in enumerate(expression_style_note[:-1]):
+                            # the pitch difference of two consecutive notes must smaller than or equal to given step
+        is_transition_candi=(abs(expression_style_note[index_note,0]-expression_style_note[index_note+1,0]) =< max_pitch_diff and \
+                            # the pitch difference of two consecutive notes must larger than or equal to 1 semitone
+                            abs(expression_style_note[index_note,0]-expression_style_note[index_note+1,0]) >= 1 and \
+                            # the duration of first note must longer than threshold
+                            expression_style_note[index_note,2]>min_note_duration and \
+                            # the duration of second note must longer than threshold
+                            expression_style_note[index_note+1,2]>min_note_duration and \
+                            # the gap between two consecutive notes must smaller than threshold
+                            (expression_style_note[index_note+1,1]-(expression_style_note[index_note,1]+expression_style_note[index_note,2])) < gap_tolerence)
+
+         if is_transition_candi:
+            transition = np.mean([expression_style_note[index_note,1]+expression_style_note[index_note,2], expression_style_note[index_note+1,1]])
+            if tech == None:
+                transition_candi = np.append(transition_candi, [transition], axis=0)
+            elif tech == 'hamm':
+                if expression_style_note[index_note,0]<expression_style_note[index_note+1,0]:
+                    transition_candi = np.append(transition_candi, [transition], axis=0)
+            elif tech == 'pull':
+                if expression_style_note[index_note,0]>expression_style_note[index_note+1,0]:
+                    transition_candi = np.append(transition_candi, [transition], axis=0)
+
+    if time_segment_mask!=None:
+        index_to_be_deleted = []
+        for t in time_segment_mask.shape[0]:
+            for index, c in transition_candi:
+                if time_segment_mask[0]<c and time_segment_mask[1]>c:
+                    index_to_be_deleted.append(index)
+        transition_candi=np.delete(transition_candi, index_to_be_deleted)
+
+    candidate = np.empty([transition_candi.shape[0],2])
+    candidate[:,0]=transition_candi-0.05
+    candidate[:,1]=transition_candi+0.05
+
+    return candidate
+
+def transition_locater(note,step,direction = None,min_note_duration = 0.05,gap_tolerence = 0.05):
+    """
+    Find the timestamp of transition of two consecutive notes.
+    Usage:
+    :param note:              array of notes [pitch(hertz) onset(sec) duration(sec)].
+    :param step:              the pithc distance between two notes.
+    :param min_note_duration: the minimal duration of two consecutive notes
+    :param gap_tolerence:     the minimal silent gap between two notes
+
+    """
+    transition = []
+    for n in range(note.shape[0]-1):
+        # print 'abs(np.log(note[n,0])-np.log(note[n+1,0])) is ', abs(np.log(note[n,0])-np.log(note[n+1,0]))
+        # print 'note[n,2] is ', note[n,2]
+        # print 'note[n+1,2] is ', note[n+1,2]
+        # print 'min_note_duration*fs/hop is ', min_note_duration*fs/hop
+        # print abs(np.log(note[n,0])-np.log(note[n+1,0]))
+        # print '(note[n+1,1]-(note[n,1]+note[n,2])) is ', (note[n+1,1]-(note[n,1]+note[n,2]))
+        # print 'gap_tolerence*fs/hop is ', gap_tolerence*fs/hop
+                                # the pitch difference of two consecutive notes must smaller than or equal to given step
+        is_transition_candi =   (abs(np.log(note[n,0])-np.log(note[n+1,0])) < step*0.0578+0.0578/2 and \
+                                # the pitch difference of two consecutive notes must larger than or equal to given step
+                                abs(np.log(note[n,0])-np.log(note[n+1,0])) > step*0.0578-0.0578/2 and \
+                                # the duration of first note must longer than threshold
+                                note[n,2]>min_note_duration and \
+                                # the duration of second note must longer than threshold
+                                note[n+1,2]>min_note_duration and \
+                                # the gap between two consecutive notes must smaller than threshold
+                                (note[n+1,1]-(note[n,1]+note[n,2])) < gap_tolerence)
+        if is_transition_candi:
+            if direction == None:
+                transition.append(np.mean([note[n,1]+note[n,2], note[n+1,1]]))
+            elif direction == 'upward':
+                if note[n,0]<note[n+1,0]:
+                    transition.append(np.mean([note[n,1]+note[n,2], note[n+1,1]]))
+            elif direction == 'downward':
+                if note[n,0]>note[n+1,0]:
+                    transition.append(np.mean([note[n,1]+note[n,2], note[n+1,1]]))
+
+
+    transition = np.asarray(transition)
+    return transition
+
 def parse_input_files(input_files, ext):
     """
     Collect all files by given extension.
@@ -212,7 +306,7 @@ def main(args):
         # load note
         note_path = args.input_note+os.sep+name+'.pruned.note'
         try:
-            pruned_note = np.loadtxt(note_path)
+            note = np.loadtxt(note_path)
         except IOError:
             print 'The note event of ', name, ' doesn\'t exist!'
 
@@ -238,8 +332,8 @@ def main(args):
         Find intersection of note and pattern of {bend,slide,pull-off,hammer-on,normal})
         """
         # candidate selection
-        ascending_candidate, ascending_candidate_note, non_candidate_ascending_note = candidate_selection(pruned_note, ascending_pattern)
-        descending_candidate, descending_candidate_note, non_candidate_descending_note = candidate_selection(pruned_note, descending_pattern)
+        ascending_candidate, ascending_candidate_note, non_candidate_ascending_note = candidate_selection(note, ascending_pattern)
+        descending_candidate, descending_candidate_note, non_candidate_descending_note = candidate_selection(note, descending_pattern)
         # save result: candidate
         np.savetxt(args.output_dir+os.sep+name+'.ascending.candidate',ascending_candidate, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.descending.candidate',descending_candidate, fmt='%s')

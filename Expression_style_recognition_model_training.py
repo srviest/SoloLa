@@ -89,7 +89,6 @@ def main(args):
                       output_dir+os.sep+'S4.Feature'])
 
     # S5.Classification
-    # f = open(output_dir+os.sep+'S5.Classification'+os.sep+'Result.txt', 'w')
     if args.cl: call(['python', 'Classification.py', 
                       output_dir+os.sep+'S4.Feature', 
                       output_dir+os.sep+'S5.Classification',

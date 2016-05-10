@@ -79,12 +79,12 @@ import operator
 import pickle
 from essentia import *
 from essentia.standard import *
-from Candidate_selection import continuously_ascending_descending_pattern, candidate_selection
-from Feature_extraction import feature_extractor
+import Candidate_selection as CS
+from Feature_extraction import extract_feature_of_audio_clip
 from Classification import data_preprocessing
 from GuitarTranscription_parameters import *
 from GuitarTranscription_utility import note_pruning
-from GuitarTranscription_evaluation import evaluation_note, evaluation_esn, evaluation_ts, evaluation_candidate_cls
+import GuitarTranscription_evaluation as GTEval
 import fnmatch
 
 class Common(object):
@@ -784,50 +784,6 @@ def short_pattern_evaluate(pattern,bend_answer_path,slide_answer_path,pullhamm_a
 
     return numValidCandidate, numInvalidCandidate, InvalidCandidate, TP_bend, TP_slide, TP_pullhamm, FN_bend, FN_slide, FN_pullhamm
 
-
-def transition_locater(note,step,direction = None,min_note_duration = 0.05,gap_tolerence = 0.05):
-    """
-    Find the timestamp of transition of two consecutive notes.
-    Usage:
-    :param note:              array of notes [pitch(hertz) onset(sec) duration(sec)].
-    :param step:              the pithc distance between two notes.
-    :param min_note_duration: the minimal duration of two consecutive notes
-    :param gap_tolerence:     the minimal silent gap between two notes
-
-    """
-    transition = []
-    for n in range(note.shape[0]-1):
-        # print 'abs(np.log(note[n,0])-np.log(note[n+1,0])) is ', abs(np.log(note[n,0])-np.log(note[n+1,0]))
-        # print 'note[n,2] is ', note[n,2]
-        # print 'note[n+1,2] is ', note[n+1,2]
-        # print 'min_note_duration*fs/hop is ', min_note_duration*fs/hop
-        # print abs(np.log(note[n,0])-np.log(note[n+1,0]))
-        # print '(note[n+1,1]-(note[n,1]+note[n,2])) is ', (note[n+1,1]-(note[n,1]+note[n,2]))
-        # print 'gap_tolerence*fs/hop is ', gap_tolerence*fs/hop
-                                # the pitch difference of two consecutive notes must smaller than or equal to given step
-        is_transition_candi =   (abs(np.log(note[n,0])-np.log(note[n+1,0])) < step*0.0578+0.0578/2 and \
-                                # the pitch difference of two consecutive notes must larger than or equal to given step
-                                abs(np.log(note[n,0])-np.log(note[n+1,0])) > step*0.0578-0.0578/2 and \
-                                # the duration of first note must longer than threshold
-                                note[n,2]>min_note_duration and \
-                                # the duration of second note must longer than threshold
-                                note[n+1,2]>min_note_duration and \
-                                # the gap between two consecutive notes must smaller than threshold
-                                (note[n+1,1]-(note[n,1]+note[n,2])) < gap_tolerence)
-        if is_transition_candi:
-            if direction == None:
-                transition.append(np.mean([note[n,1]+note[n,2], note[n+1,1]]))
-            elif direction == 'upward':
-                if note[n,0]<note[n+1,0]:
-                    transition.append(np.mean([note[n,1]+note[n,2], note[n+1,1]]))
-            elif direction == 'downward':
-                if note[n,0]>note[n+1,0]:
-                    transition.append(np.mean([note[n,1]+note[n,2], note[n+1,1]]))
-
-
-    transition = np.asarray(transition)
-    return transition
-
 def convert_index_clf_cls_2_anno_tech(cls_result, tech_index_dic):
     cls_result_in_anno_index = cls_result.copy()
     answer_tech_index_dic = {'bend':4, 'pull':6, 'hamm':7, 'slide':8, 'vibrato':11}
@@ -1001,7 +957,7 @@ def main(args):
 
         if args.eval_esn:
             annotation_note = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
-            evaluation_note(annotation_note, raw_note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, mode='w')
+            GTEval.evaluation_note(annotation_note, raw_note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, mode='w')
 
         """
         =====================================================================================
@@ -1027,13 +983,13 @@ def main(args):
         if args.eval_esn:
             print '  Evaluating note-level expression style after wild vibrato detection...' 
             annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
-            evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
+            GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
                 string='Result after wild vibrato detection', mode='w')
 
         if args.eval_ts:
             print '  Evaluating time segment-level expression style after wild vibrato detection...' 
             annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
-            evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name, 
+            GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name, 
                 string='Result after wild vibrato detection', mode='w')
 
 
@@ -1064,13 +1020,13 @@ def main(args):
         if args.eval_esn:
             print '  Evaluating note-level expression style after slide in / slide out detection...' 
             annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
-            evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
+            GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
                 string='Result after slide in / slide out detection', mode='a')
 
         if args.eval_ts:
             print '  Evaluating time segment-level expression style after slide in / slide out detection...' 
             annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
-            evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
+            GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
                 string='Result after slide in / slide out detection', mode='a')
 
         """
@@ -1079,11 +1035,11 @@ def main(args):
         =====================================================================================
         """
         # find continuously ascending (CAD) F0 sequence patterns
-        ascending_pattern, ascending_pitch_contour = continuously_ascending_descending_pattern(
+        ascending_pattern, ascending_pitch_contour = CS.continuously_ascending_descending_pattern(
                                 MIDI_smooth_melody,direction='up',MinLastingDuration=0.05, 
                                 MaxPitchDifference=3.8, MinPitchDifference=0.8,hop=contour_hop,sr=contour_sr)
         # find continuously descending (CAD) F0 sequence patterns
-        descending_pattern, descending_pitch_contour = continuously_ascending_descending_pattern(
+        descending_pattern, descending_pitch_contour = CS.continuously_ascending_descending_pattern(
                                 MIDI_smooth_melody,direction='down',MinLastingDuration=0.05, 
                                 MaxPitchDifference=3.8, MinPitchDifference=0.8,hop=contour_hop,sr=contour_sr)
         # save result: CAD F0 sequence pattern
@@ -1119,13 +1075,13 @@ def main(args):
         if args.eval_esn:
             print '  Evaluating note-level expression style after slow bend detection...' 
             annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
-            evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
+            GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
                 string='Result after slow bend detection', mode='a')
 
         if args.eval_ts:
             print '  Evaluating time segment-level expression style after slow bend detection...'
             annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
-            evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
+            GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
                 string='Result after slow bend detection', mode='a')
 
         """
@@ -1140,11 +1096,11 @@ def main(args):
               i.e., the candidate of {bend, hammer-on, normal, pull-off, slide}.
         -----------------------------------------------------------------------------
         """                          
-        
-        ascending_candidate, ascending_candidate_note, non_candidate_ascending_note = candidate_selection(expression_style_note[:,0:3], SB.short_ascending_pattern)
-        # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_bend, TP_slide, TP_hamm, FN_bend, FN_slide, FN_hamm = short_pattern_evaluate(ascending_candidate,FN_bend,FN_slide,join(hamm_answer_dir,name_ext))   
-        descending_candidate, descending_candidate_note, non_candidate_descending_note = candidate_selection(expression_style_note[:,0:3], SB.short_descending_pattern)
-        # num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_release, TP_slide, TP_pull, FN_release, FN_slide, FN_pull = short_pattern_evaluate(descending_candidate,FN_release,FN_slide,join(pull_answer_dir,name_ext))
+        # select ascending candidate
+        ascending_candidate, ascending_candidate_note, non_candidate_ascending_note = CS.candidate_selection(expression_style_note[:,0:3], SB.short_ascending_pattern)
+        # select descending candidate
+        descending_candidate, descending_candidate_note, non_candidate_descending_note = CS.candidate_selection(expression_style_note[:,0:3], SB.short_descending_pattern)
+
         # save result: candidate
         np.savetxt(args.output_dir+os.sep+name+'.ascending.candidate',ascending_candidate, fmt='%s')
         np.savetxt(args.output_dir+os.sep+name+'.descending.candidate',descending_candidate, fmt='%s')
@@ -1156,37 +1112,14 @@ def main(args):
         """
         # load audio
         audio = MonoLoader(filename = f)()
-        # processing
-        print '     Processing file: ', f
-        candidate_type = ['ascending','descending']
-        # loop in ascending and descending candidate list
-        for ct in candidate_type:
-            print '         Extracting features of', ct, 'candidates...'
-            # candidate file path
-            candidate_path = args.output_dir+os.sep+name+'.'+ct+'.candidate'
-            # inspect if candidate file exist and load it
-            try:
-                candidate = np.loadtxt(candidate_path)
-            except IOError:
-                print 'The candidate of', name,' doesn\'t exist!'
-            # reshape candidate if it is in one dimension
-            if candidate.shape==(2,): candidate = candidate.reshape(1,2)
-            # convert seconds into samples
-            candidate_sample = candidate*contour_sr
-            # create feature matrix
-            feature_vec_all = np.array([])
-            # loop in candidates
-            for c in candidate_sample:
-                # clipping audio signal
-                audio_clip = audio[int(c[0]):int(c[1])]
-                # extract features
-                feature_vec = feature_extractor(audio=audio_clip, features=selected_features)
-                feature_vec_all = np.concatenate((feature_vec_all,feature_vec), axis = 0)            
-            # reshpe feature vector and save result
-            if feature_vec_all.size!=0:
-                feature_vec_all = feature_vec_all.reshape(len(candidate_sample),len(feature_vec_all)/len(candidate_sample))
-                np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature', feature_vec_all, fmt='%s')
-
+        # extract features of ascending candidate
+        feature_vec_all = extract_feature_of_audio_clip(audio, ascending_candidate, sr=contour_sr) 
+        # write to text file
+        np.savetxt(args.output_dir+os.sep+name+'.ascending'+'.candidate'+'.raw.feature', feature_vec_all, fmt='%s')
+        # extract features of descending candidate
+        feature_vec_all = extract_feature_of_audio_clip(audio, descending_candidate, sr=contour_sr) 
+        # write to text file
+        np.savetxt(args.output_dir+os.sep+name+'.descending'+'.candidate'+'.raw.feature', feature_vec_all, fmt='%s')
 
         """
         -----------------------------------------------
@@ -1200,6 +1133,7 @@ def main(args):
         except IOError:
             print 'The expression style recognition model ', args.input_model, ' doesn\'t exist!'
 
+        candidate_type = ['ascending','descending']
         for ct in candidate_type:
             # load raw features
             candidate = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate')
@@ -1237,13 +1171,13 @@ def main(args):
             print '  Evaluating classification result...' 
             # load time-stamp answer
             annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
-            evaluation_candidate_cls(annotation_ts, result_all, args.output_dir, name, 
+            GTEval.evaluation_candidate_cls(annotation_ts, result_all, args.output_dir, name, 
                 tech_index_dic=tech_index_dic, string=None, mode='w')
 
         if args.eval_ts:
             print '  Evaluating time segment-level expression style after candidate classification...'
             annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
-            evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
+            GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
                 string='Result after candidate classification', mode='a')
 
         """
@@ -1268,7 +1202,7 @@ def main(args):
             print '  Evaluating expression style note after bended notes merged...' 
             # load esn answer
             annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
-            evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
+            GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
                 string='Result after bended notes merged.', mode='a')
 
         """
@@ -1293,7 +1227,7 @@ def main(args):
             print '  Evaluating expression style note after pull-off, hammer-on and slide updated with classification result...' 
             # load esn answer
             annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
-            evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
+            GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
                 string='Result after pull-off, hammer-on and slide notes updated.', mode='a')
         if args.eval_note:
             print '  Evaluating note accuracy...'
@@ -1301,7 +1235,7 @@ def main(args):
             annotation = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
             note = expression_style_note[:,0:3]
             # pruned_note = note_pruning(note, threshold=args.p)
-            evaluation_note(annotation, note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, 
+            GTEval.evaluation_note(annotation, note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, 
                 string='Result after pull-off, hammer-on and slide notes updated.', mode='a')
             
         
@@ -1310,6 +1244,10 @@ def main(args):
         S.6 Detect {hammer on} {pull off} by analyzing the timbre of remained note transition which are not selected in S.5.
         ====================================================================================================================
         """
+
+        hamm_candidate = CS.pull_hamm_candidate_selection(expression_style_note, max_pitch_diff, tech='hamm', time_segment_mask=ascending_candidate, min_note_duration=0.05, gap_tolerence=0.05)
+        pull_candidate = CS.pull_hamm_candidate_selection(expression_style_note, max_pitch_diff, tech='pull', time_segment_mask=descending_candidate, min_note_duration=0.05, gap_tolerence=0.05)
+         
 
         """
         ==================================================================================
