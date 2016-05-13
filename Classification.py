@@ -65,7 +65,7 @@ def collect_same_technique_feature_files(feature_dir, technique_type = ['bend', 
     technique_file_dict = collections.OrderedDict(sorted(technique_file_dict.items()))
     return technique_file_dict
 
-def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method, scaler_path=None, output_dir=None):
+def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method, scaler_path=None, output_path=None):
     from sklearn.preprocessing import Imputer, scale, robust_scale, StandardScaler
 
     # replace nan feature with the median of column values
@@ -92,20 +92,19 @@ def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_me
         data = robust_scale(raw_data)
 
     elif 'StandardScaler' in data_preprocessing_method:
-        if scaler_path=None and output_dir!=None:
+        if scaler_path=None and output_path!=None:
             print '    Standardizing data by StandardScaler method...'
             scaler = StandardScaler().fit(raw_data)
             # save scaler
-            np.save(args.output_dir+os.sep+class_data_num_str+'.scaler', scaler)
+            np.save(output_path+'.scaler', scaler)
             data = scaler.transform(raw_data)
-        elif scaler_path!=None and output_dir==None:
+        elif scaler_path!=None and output_path==None:
             print '    Standardizing data by pre-computed scaler...'
             # load scaler
             scaler = np.load(scaler_path).itme()
             data = scaler.transform(raw_data)
-        elif scaler_path==None and output_dir==None:
+        elif scaler_path==None and output_path==None:
             print 'Please specify the scaler path or path to restore the scaler.'
-
 
     return data
 
@@ -218,7 +217,7 @@ def main(args):
     label, raw_data, class_data_num_str, class_data_num_dict, f_dimension = data_loader(technique_file_dict)
 
     # pre-processing data
-    data = data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method, output_dir=output_dir)
+    data = data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method, output_path=args.output_dir+os.sep+class_data_num_str)
     X, y = data, label
     
     if args.GridSearchCV:
