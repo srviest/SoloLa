@@ -92,7 +92,7 @@ def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_me
         data = robust_scale(raw_data)
 
     elif 'StandardScaler' in data_preprocessing_method:
-        if scaler_path=None and output_path!=None:
+        if scaler_path==None and output_path!=None:
             print '    Standardizing data by StandardScaler method...'
             scaler = StandardScaler().fit(raw_data)
             # save scaler
