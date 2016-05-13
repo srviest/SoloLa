@@ -702,87 +702,6 @@ def update_pull_hamm_slide(expression_style_note, result_ref, tech_index_dic):
 
     return expression_style_note
 
-def long_pattern_evaluate(pattern,bend_answer_path,slide_answer_path):
-    if type(bend_answer_path).__name__=='ndarray':
-        bend_answer = bend_answer_path.copy()
-    else:
-        bend_answer = np.loadtxt(bend_answer_path)
-    if type(slide_answer_path).__name__=='ndarray':
-        slide_answer = slide_answer_path.copy()
-    else:
-        slide_answer = np.loadtxt(slide_answer_path)    
-    TP_bend = np.array([]);TP_slide = np.array([])
-    FN_bend = np.array([]);FN_slide = np.array([])
-    candidate = pattern.copy()
-    candidate_mask = np.ones(len(candidate))
-    bend_answer_mask = np.ones(len(bend_answer))
-    slide_answer_mask = np.ones(len(slide_answer))  
-    for c in range(len(candidate)):
-        for b in range(len(bend_answer)):
-            if bend_answer[b,0]>candidate[c,0] and bend_answer[b,0]<candidate[c,1]:
-                candidate_mask[c] = 0
-                bend_answer_mask[b] = 0
-        for s in range(len(slide_answer)):
-            if slide_answer[s,0]>candidate[c,0] and slide_answer[s,0]<candidate[c,1]:
-                candidate_mask[c] = 0
-                slide_answer_mask[s] = 0
-
-    num_invalid_candidate = np.sum(candidate_mask)
-    num_valid_candidate = len(candidate_mask)-num_invalid_candidate
-    invalid_candidate = np.delete(candidate,np.nonzero(candidate_mask==0)[0],axis = 0)
-
-    TP_bend = bend_answer[np.nonzero(bend_answer_mask==0)[0]]
-    FN_bend = bend_answer[np.nonzero(bend_answer_mask==1)[0]]
-    TP_slide = slide_answer[np.nonzero(slide_answer_mask==0)[0]]
-    FN_slide = slide_answer[np.nonzero(slide_answer_mask==1)[0]]
-    
-    return num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_bend, TP_slide, FN_bend, FN_slide
-
-
-def short_pattern_evaluate(pattern,bend_answer_path,slide_answer_path,pullhamm_answer_path):
-    if type(bend_answer_path).__name__=='ndarray':
-        bend_answer = bend_answer_path.copy()
-    else:
-        bend_answer = np.loadtxt(bend_answer_path)
-    if type(slide_answer_path).__name__=='ndarray':
-        slide_answer = slide_answer_path.copy()
-    else:
-        slide_answer = np.loadtxt(slide_answer_path)
-    if type(pullhamm_answer_path).__name__=='ndarray':
-        pullhamm_answer = pullhamm_answer_path.copy()
-    else:
-        pullhamm_answer = np.loadtxt(pullhamm_answer_path)
-    candidate = pattern.copy()
-    candidate_mask = np.ones(len(candidate))
-    bend_answer_mask = np.ones(len(bend_answer))
-    slide_answer_mask = np.ones(len(slide_answer))
-    pullhamm_answer_mask = np.ones(len(pullhamm_answer))
-    for c in range(len(candidate)):
-        for b in range(len(bend_answer)):
-            if bend_answer[b,0]>candidate[c,0] and bend_answer[b,0]<candidate[c,1]:
-                candidate_mask[c] = 0
-                bend_answer_mask[b] = 0
-        for s in range(len(slide_answer)):
-            if slide_answer[s,0]>candidate[c,0] and slide_answer[s,0]<candidate[c,1]:
-                candidate_mask[c] = 0
-                slide_answer_mask[s] = 0
-        for p in range(len(pullhamm_answer)):
-            if pullhamm_answer[p,0]>candidate[c,0] and pullhamm_answer[p,0]<candidate[c,1]:
-                candidate_mask[c] = 0
-                pullhamm_answer_mask[p] = 0
-
-    numInvalidCandidate = np.sum(candidate_mask)
-    numValidCandidate = len(candidate_mask)-numInvalidCandidate
-    InvalidCandidate = np.delete(candidate,np.nonzero(candidate_mask==0)[0],axis = 0)
-
-    TP_bend = bend_answer[np.nonzero(bend_answer_mask==0)[0]]
-    FN_bend = bend_answer[np.nonzero(bend_answer_mask==1)[0]]
-    TP_slide = slide_answer[np.nonzero(slide_answer_mask==0)[0]]
-    FN_slide = slide_answer[np.nonzero(slide_answer_mask==1)[0]]
-    TP_pullhamm = pullhamm_answer[np.nonzero(pullhamm_answer_mask==0)[0]]
-    FN_pullhamm = pullhamm_answer[np.nonzero(pullhamm_answer_mask==1)[0]]
-
-    return numValidCandidate, numInvalidCandidate, InvalidCandidate, TP_bend, TP_slide, TP_pullhamm, FN_bend, FN_slide, FN_pullhamm
 
 def convert_index_clf_cls_2_anno_tech(cls_result, tech_index_dic):
     cls_result_in_anno_index = cls_result.copy()
@@ -1029,10 +948,8 @@ def main(args):
             GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
                 string='Result after slide in / slide out detection', mode='a')
 
-        """
-        =====================================================================================
+        """ 
         S.3 Find continuously ascending or descending (CAD) pattern in melody contour.
-        =====================================================================================
         """
         # find continuously ascending (CAD) F0 sequence patterns
         ascending_pattern, ascending_pitch_contour = CS.continuously_ascending_descending_pattern(
@@ -1050,7 +967,7 @@ def main(args):
 
         """    
         =====================================================================================            
-        S.4 Detect {slow bend} in pace by using following heuristic rule: 
+        S.3 Detect {slow bend} in pace by using following heuristic rule: 
             i) search three or four consecutive adjacent notes differed by a semitone which covered by CAD pattern.
             ii)
         =====================================================================================
@@ -1086,13 +1003,13 @@ def main(args):
 
         """
         ===================================================================================================
-        S.5 Detect {bend} {hammer on} {pull off} {slide} by analyzing timbre of selected candidate regions.
+        S.4 Detect {bend} {hammer on} {pull off} {slide} by analyzing timbre of selected candidate regions.
         ===================================================================================================
         """
 
         """
         -----------------------------------------------------------------------------
-        S.5.1 Candidate selection by finding note transitions covered by CAD pattern.
+        S.4.1 Candidate selection by finding note transitions covered by CAD pattern.
               i.e., the candidate of {bend, hammer-on, normal, pull-off, slide}.
         -----------------------------------------------------------------------------
         """                          
@@ -1107,11 +1024,11 @@ def main(args):
         
         """
         -----------------------------------------------------
-        S.5.2 Extract features of selected candidate regions.
+        S.4.2 Extract features of selected candidate regions.
         -----------------------------------------------------
         """
         # load audio
-        audio = MonoLoader(filename = f)()
+        audio = EasyLoader(filename = f)()
         # extract features of ascending candidate
         feature_vec_all = extract_feature_of_audio_clip(audio, ascending_candidate, sr=contour_sr) 
         # write to text file
@@ -1123,7 +1040,7 @@ def main(args):
 
         """
         -----------------------------------------------
-        S.5.3 Classfication using pre-train classifier.
+        S.4.3 Classfication using pre-train classifier.
         -----------------------------------------------
         """        
         # load pre-trained SVM
@@ -1182,7 +1099,7 @@ def main(args):
 
         """
         -------------------------------------------------------------------------------------------
-        S.5.4 Merge bend & release notes and update expression style note by classification result.
+        S.4.4 Merge bend & release notes and update expression style note by classification result.
         -------------------------------------------------------------------------------------------
         """
         
@@ -1241,17 +1158,80 @@ def main(args):
         
         """
         ====================================================================================================================
-        S.6 Detect {hammer on} {pull off} by analyzing the timbre of remained note transition which are not selected in S.5.
+        S.5 Detect {hammer on} {pull off} by analyzing the timbre of remained note transition which are not selected in S.5.
+        ====================================================================================================================
+        """
+        # candidate_type = ['pull','hamm']
+        # time_segment_mask = {'pull':descending_candidate,'hamm':ascending_candidate}
+        # for ct in candidate_type:
+        #     # pull and hamm candidate selection
+        #     candidate = CS.pull_hamm_candidate_selection(expression_style_note, max_pitch_diff, tech=ct, time_segment_mask=time_segment_mask[ct], min_note_duration=0.05, gap_tolerence=0.05)
+        #     # write to text file
+        #     np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate', hamm_candidate, fmt='%s')
+        #     # extract features of ascending candidate
+        #     feature_vec_all = extract_feature_of_audio_clip(audio, candidate, sr=contour_sr) 
+        #     # write to text file
+        #     np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature', feature_vec_all, fmt='%s')
+
+        #     # load pre-trained SVM
+        #     tech_index_dic = {ct:0, 'normal':1}
+        #     try:
+        #         clf = np.load(args.input_model).item()
+        #     except IOError:
+        #         print 'The expression style recognition model ', args.input_model, ' doesn\'t exist!'
+
+        #     # load raw features
+        #     candidate = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate')
+        #     raw_feature = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature')
+        #     # raw_data = np.vstack((ascending_raw_feature, descending_raw_feature))
+
+        #     # data preprocessing
+        #     data = data_preprocessing(raw_feature)
+
+        #     # classfication
+        #     y_pred = clf.predict(data)
+        #     result = np.hstack((candidate, np.asarray(y_pred).reshape(len(y_pred), 1)))
+        #     np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.cls_result', result, fmt='%s')
+
+        #     # sort by time
+        #     result = result[np.argsort(result[:,0], axis=0)]
+        #     # convert class indices of classifier into technique indices in annotation
+        #     cls_result = convert_index_clf_cls_2_anno_tech(result, tech_index_dic)
+        #     # update ests
+        #     expression_style_ts = np.vstack([expression_style_ts, cls_result])
+        #     expression_style_ts = expression_style_ts[np.argsort(expression_style_ts[:,0], axis = 0)]
+
+        #     if args.debug:
+        #     # create result directory
+        #     debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.6_pull_hamm_classification'
+        #     if not os.path.exists(debug_dir): 
+        #             os.makedirs(debug_dir)
+        #     np.savetxt(debug_dir+os.sep+name+'.all.cls_result', result_all, fmt='%s')
+        #     np.savetxt(debug_dir+os.sep+name+'.ts', expression_style_ts, fmt='%s')
+        #     save_cls_result_for_visualization(result_all, debug_dir, name, tech_index_dic=tech_index_dic)
+
+        #     if args.eval_cls:
+        #         print '  Evaluating classification result...' 
+        #         # load time-stamp answer
+        #         annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
+        #         GTEval.evaluation_candidate_cls(annotation_ts, result_all, args.output_dir, name, 
+        #             tech_index_dic=tech_index_dic, string=None, mode='w')
+
+        #     if args.eval_ts:
+        #         print '  Evaluating time segment-level expression style after candidate classification...'
+        #         annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
+        #         GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
+        #             string='Result after candidate classification', mode='a')
+
+        """
+        ====================================================================================================================
+        S.6 Detect {grace bend}
         ====================================================================================================================
         """
 
-        hamm_candidate = CS.pull_hamm_candidate_selection(expression_style_note, max_pitch_diff, tech='hamm', time_segment_mask=ascending_candidate, min_note_duration=0.05, gap_tolerence=0.05)
-        pull_candidate = CS.pull_hamm_candidate_selection(expression_style_note, max_pitch_diff, tech='pull', time_segment_mask=descending_candidate, min_note_duration=0.05, gap_tolerence=0.05)
-         
-
         """
         ==================================================================================
-        S.7 Detect {vibrato} on each note.
+        S.6 Detect {vibrato} on each note.
         ==================================================================================
         """
 

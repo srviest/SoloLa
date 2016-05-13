@@ -34,7 +34,8 @@ def delta(input_sig, n=1, axis=0):
         derivative = concatenate(([input_sig[:,0:n]],diff(input_sig,axis = 1)))
     return derivative
 
-def feature_extractor(audio, features, pool_methods=['mean', 'var', 'min', 'max', 'median', 'skew', 'kurt', 'dmean', 'dvar', 'dmean2', 'dvar2']):
+def feature_extractor(audio, features, 
+    pool_methods=['mean', 'var', 'min', 'max', 'median', 'skew', 'kurt', 'dmean', 'dvar', 'dmean2', 'dvar2']):
     """
     Collect all files by given extension and keywords.
 
@@ -46,7 +47,7 @@ def feature_extractor(audio, features, pool_methods=['mean', 'var', 'min', 'max'
     # initiate pool
     pool = Pool()
     # extract features
-    feature = LowLevelSpectralExtractor(frameSize = 2048, hopSize = 1024)(audio)
+    feature = LowLevelSpectralExtractor(frameSize=2048, hopSize=128)(audio)
     # create feature names list
     feature_name_list = LowLevelSpectralExtractor().outputNames()
     # 'mfcc', 'barkbands', 'barkbands_kurtosis', 'barkbands_skewness', 'barkbands_spread', 
@@ -170,20 +171,20 @@ def main(args):
         ext = os.path.basename(f).split('.')[-1]
         name = os.path.basename(f).split('.')[0]
         # load audio into 
-        audio = MonoLoader(filename = f)()
+        audio = EasyLoader(filename = f)()
         # processing
         print '     Processing file: ', f
         candidate_type = ['ascending','descending']
         # loop in ascending and descending candidate list
         for ct in candidate_type:
-            print '         Extracting features from ', ct, ' candadites...'
+            print '         Extracting features of', ct, 'candadites...'
             # candidate file path
             candidate_path = args.input_candidates+os.sep+name+'.'+ct+'.candidate'
             # inspect if candidate file exist and load it
             try:
                 candidate = np.loadtxt(candidate_path)
             except IOError:
-                print 'The candidate of ', name, ' doesn\'t exist!'
+                print 'The candidate of', name, 'doesn\'t exist!'
             # reshape candidate if it is in one dimension
             if candidate.shape==(2,): candidate = candidate.reshape(1,2)
             # convert seconds into samples

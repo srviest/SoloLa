@@ -137,7 +137,7 @@ def pull_hamm_candidate_selection(expression_style_note, max_pitch_diff, tech=No
     transition_candi=np.empty([0,1])
     for index_note, note in enumerate(expression_style_note[:-1]):
                             # the pitch difference of two consecutive notes must smaller than or equal to given step
-        is_transition_candi=(abs(expression_style_note[index_note,0]-expression_style_note[index_note+1,0]) =< max_pitch_diff and \
+        is_transition_candi=(abs(expression_style_note[index_note,0]-expression_style_note[index_note+1,0]) <= max_pitch_diff and \
                             # the pitch difference of two consecutive notes must larger than or equal to 1 semitone
                             abs(expression_style_note[index_note,0]-expression_style_note[index_note+1,0]) >= 1 and \
                             # the duration of first note must longer than threshold
@@ -147,7 +147,7 @@ def pull_hamm_candidate_selection(expression_style_note, max_pitch_diff, tech=No
                             # the gap between two consecutive notes must smaller than threshold
                             (expression_style_note[index_note+1,1]-(expression_style_note[index_note,1]+expression_style_note[index_note,2])) < gap_tolerence)
 
-         if is_transition_candi:
+        if is_transition_candi:
             transition = np.mean([expression_style_note[index_note,1]+expression_style_note[index_note,2], expression_style_note[index_note+1,1]])
             if tech == None:
                 transition_candi = np.append(transition_candi, [transition], axis=0)
@@ -270,6 +270,7 @@ def parser():
                    help='note events to be processed')
     p.add_argument('output_dir', type=str, metavar='output_dir',
                    help='output directory.')
+    # p.add_argument('classes',  nargs='+',  type=str, metavar='classes',  help="the types to which data belong")
     # version
     p.add_argument('--version', action='version',
                    version='%(prog)spec 1.03 (2016-03-07)')
@@ -290,6 +291,11 @@ def main(args):
     # create result directory
     if not os.path.exists(args.output_dir): os.makedirs(args.output_dir)
     print '  Output directory: ', '\n', '    ', args.output_dir
+
+    # if set(args.classes)==set(['bend', 'hamm', 'normal', 'pull', 'slide']):
+    #     candidate_type=['ascending_descending']
+    # elif set(args.classes)==set(['hamm', 'normal', 'pull']):
+
 
     # processing
     for f in melody_files:
