@@ -65,18 +65,46 @@ def collect_same_technique_feature_files(feature_dir, technique_type = ['bend', 
     technique_file_dict = collections.OrderedDict(sorted(technique_file_dict.items()))
     return technique_file_dict
 
-def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method):
-    from sklearn.preprocessing import Imputer, scale, robust_scale
+def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method, scaler_path=None, output_dir=None):
+    from sklearn.preprocessing import Imputer, scale, robust_scale, StandardScaler
 
     # replace nan feature with the median of column values
     imp = Imputer(missing_values='NaN', strategy='median', axis=0)
     raw_data = imp.fit_transform(raw_data)
 
+    # remove inf and -inf
+    if np.where(np.isinf(raw_data)==True)[0].size!=0:
+        print 'Removing Inf and -Inf values...'
+        med = np.median(raw_data, axis=0)
+        axis_0 = np.where(np.isinf(raw_data)==True)[0]
+        axis_1 = np.where(np.isinf(raw_data)==True)[1]
+        for index in range(len(axis_0)):
+            raw_data[axis_0[index], axis_1[index]]=med[axis_1[index]]
+
+    # standardization
     if 'z-score' in data_preprocessing_method:
+        print '    Standardizing data by z-score...'
         # z-score standardization
         data = scale(raw_data)
     elif 'robust z-score' in data_preprocessing_method:
+        print '    Standardizing data by robust z-score...'
+        # robust z-score standardization
         data = robust_scale(raw_data)
+
+    elif 'StandardScaler' in data_preprocessing_method:
+        if scaler_path=None and output_dir!=None:
+            print '    Standardizing data by StandardScaler method...'
+            scaler = StandardScaler().fit(raw_data)
+            # save scaler
+            np.save(args.output_dir+os.sep+class_data_num_str+'.scaler', scaler)
+            data = scaler.transform(raw_data)
+        elif scaler_path!=None and output_dir==None:
+            print '    Standardizing data by pre-computed scaler...'
+            # load scaler
+            scaler = np.load(scaler_path).itme()
+            data = scaler.transform(raw_data)
+        elif scaler_path==None and output_dir==None:
+            print 'Please specify the scaler path or path to restore the scaler.'
 
 
     return data
@@ -190,7 +218,7 @@ def main(args):
     label, raw_data, class_data_num_str, class_data_num_dict, f_dimension = data_loader(technique_file_dict)
 
     # pre-processing data
-    data = data_preprocessing(raw_data)
+    data = data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method, output_dir=output_dir)
     X, y = data, label
     
     if args.GridSearchCV:
