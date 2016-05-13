@@ -22,9 +22,9 @@ Requirements
 - `scipy <http://www.scipy.org>`_
 - `nose <https://github.com/nose-devs/nose>`_
 - `madmom <https://github.com/CPJKU/madmom>`_
-- `scikit-learn <http://scikit-learn.org/stable/>`_
+- `scikit-learn (0.17.0) <http://scikit-learn.org/stable/>`_
 - `networkx <https://networkx.github.io/>`_
-- `ESSENTIA <http://essentia.upf.edu/>`_
+- `ESSENTIA (2.1-dec) <http://essentia.upf.edu/>`_
 
 
 

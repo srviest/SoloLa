@@ -148,10 +148,9 @@ def main(args):
 
         
         # S1.1 initiate MELODIA
-        pcm = PredominantMelody(harmonicWeight = harmonicWeight, minDuration = minDuration, 
-            binResolution = binResolution, guessUnvoiced=args.gu, frameSize=args.fs, 
-            hopSize=contour_hop, maxFrequency = args.maxf0, minFrequency = args.minf0, sampleRate = contour_sr, 
-            voiceVibrato = voiceVibrato, voicingTolerance = voicingTolerance)
+        pcm = PitchMelodia(harmonicWeight=harmonicWeight, minDuration=minDuration, 
+            binResolution=binResolution, guessUnvoiced=args.gu, frameSize=args.fs, 
+            hopSize=contour_hop, maxFrequency=args.maxf0, minFrequency=args.minf0, sampleRate=contour_sr)
         audio = MonoLoader(filename = f)()
         # run MELODIA
         melody_contour, pitchConfidence = pcm(audio)
