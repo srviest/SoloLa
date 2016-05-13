@@ -39,8 +39,9 @@ selected_features = ['hfc', 'pitch', 'pitch_instantaneous_confidence',
             'spectral_energyband_middle_low', 'spectral_energyband_middle_high', 
             'spectral_energyband_high', 'spectral_flatness_db', 'spectral_flux', 
             'spectral_rms', 'spectral_rolloff', 'spectral_strongpeak', 
-            'zerocrossingrate', 'inharmonicity', 'tristimulus', \
+            'zerocrossingrate', 'inharmonicity', 'tristimulus',
             'oddtoevenharmonicenergyratio']
 
 # data preprocessing
-data_preprocessing_method = ['z-score']
+# data_preprocessing_method = ['z-score']
+data_preprocessing_method = ['robust z-score']

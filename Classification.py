@@ -22,8 +22,6 @@ Returns:
 
 import glob, os, sys
 # sys.path.append('/Users/Frank/Documents/Code/Python')
-# sys.path.append('/Users/Frank/Documents/Code/Python/libsvm-3.18/python')
-# sys.path.append('/Users/Frank/Documents/Code/Python/libsvm-3.18/tools')
 # from grid import *
 import numpy as np
 import math
@@ -67,16 +65,19 @@ def collect_same_technique_feature_files(feature_dir, technique_type = ['bend', 
     technique_file_dict = collections.OrderedDict(sorted(technique_file_dict.items()))
     return technique_file_dict
 
-def data_preprocessing(raw_data, data_preprocessing_method = ['z-score']):
-    from sklearn.preprocessing import Imputer, scale
+def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method):
+    from sklearn.preprocessing import Imputer, scale, robust_scale
 
     # replace nan feature with the median of column values
     imp = Imputer(missing_values='NaN', strategy='median', axis=0)
     raw_data = imp.fit_transform(raw_data)
 
-    if 'z-score' in data_preprocessing_method: 
+    if 'z-score' in data_preprocessing_method:
         # z-score standardization
         data = scale(raw_data)
+    elif 'robust z-score' in data_preprocessing_method:
+        data = robust_scale(raw_data)
+
 
     return data
 

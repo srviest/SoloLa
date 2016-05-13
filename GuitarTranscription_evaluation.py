@@ -63,6 +63,88 @@ from mir_eval.transcription import precision_recall_f1
 import numpy as np
 import os, sys
 
+def long_pattern_evaluate(pattern,bend_answer_path,slide_answer_path):
+    if type(bend_answer_path).__name__=='ndarray':
+        bend_answer = bend_answer_path.copy()
+    else:
+        bend_answer = np.loadtxt(bend_answer_path)
+    if type(slide_answer_path).__name__=='ndarray':
+        slide_answer = slide_answer_path.copy()
+    else:
+        slide_answer = np.loadtxt(slide_answer_path)    
+    TP_bend = np.array([]);TP_slide = np.array([])
+    FN_bend = np.array([]);FN_slide = np.array([])
+    candidate = pattern.copy()
+    candidate_mask = np.ones(len(candidate))
+    bend_answer_mask = np.ones(len(bend_answer))
+    slide_answer_mask = np.ones(len(slide_answer))  
+    for c in range(len(candidate)):
+        for b in range(len(bend_answer)):
+            if bend_answer[b,0]>candidate[c,0] and bend_answer[b,0]<candidate[c,1]:
+                candidate_mask[c] = 0
+                bend_answer_mask[b] = 0
+        for s in range(len(slide_answer)):
+            if slide_answer[s,0]>candidate[c,0] and slide_answer[s,0]<candidate[c,1]:
+                candidate_mask[c] = 0
+                slide_answer_mask[s] = 0
+
+    num_invalid_candidate = np.sum(candidate_mask)
+    num_valid_candidate = len(candidate_mask)-num_invalid_candidate
+    invalid_candidate = np.delete(candidate,np.nonzero(candidate_mask==0)[0],axis = 0)
+
+    TP_bend = bend_answer[np.nonzero(bend_answer_mask==0)[0]]
+    FN_bend = bend_answer[np.nonzero(bend_answer_mask==1)[0]]
+    TP_slide = slide_answer[np.nonzero(slide_answer_mask==0)[0]]
+    FN_slide = slide_answer[np.nonzero(slide_answer_mask==1)[0]]
+    
+    return num_valid_candidate, num_invalid_candidate, invalid_candidate, TP_bend, TP_slide, FN_bend, FN_slide
+
+
+def short_pattern_evaluate(pattern,bend_answer_path,slide_answer_path,pullhamm_answer_path):
+    if type(bend_answer_path).__name__=='ndarray':
+        bend_answer = bend_answer_path.copy()
+    else:
+        bend_answer = np.loadtxt(bend_answer_path)
+    if type(slide_answer_path).__name__=='ndarray':
+        slide_answer = slide_answer_path.copy()
+    else:
+        slide_answer = np.loadtxt(slide_answer_path)
+    if type(pullhamm_answer_path).__name__=='ndarray':
+        pullhamm_answer = pullhamm_answer_path.copy()
+    else:
+        pullhamm_answer = np.loadtxt(pullhamm_answer_path)
+    candidate = pattern.copy()
+    candidate_mask = np.ones(len(candidate))
+    bend_answer_mask = np.ones(len(bend_answer))
+    slide_answer_mask = np.ones(len(slide_answer))
+    pullhamm_answer_mask = np.ones(len(pullhamm_answer))
+    for c in range(len(candidate)):
+        for b in range(len(bend_answer)):
+            if bend_answer[b,0]>candidate[c,0] and bend_answer[b,0]<candidate[c,1]:
+                candidate_mask[c] = 0
+                bend_answer_mask[b] = 0
+        for s in range(len(slide_answer)):
+            if slide_answer[s,0]>candidate[c,0] and slide_answer[s,0]<candidate[c,1]:
+                candidate_mask[c] = 0
+                slide_answer_mask[s] = 0
+        for p in range(len(pullhamm_answer)):
+            if pullhamm_answer[p,0]>candidate[c,0] and pullhamm_answer[p,0]<candidate[c,1]:
+                candidate_mask[c] = 0
+                pullhamm_answer_mask[p] = 0
+
+    numInvalidCandidate = np.sum(candidate_mask)
+    numValidCandidate = len(candidate_mask)-numInvalidCandidate
+    InvalidCandidate = np.delete(candidate,np.nonzero(candidate_mask==0)[0],axis = 0)
+
+    TP_bend = bend_answer[np.nonzero(bend_answer_mask==0)[0]]
+    FN_bend = bend_answer[np.nonzero(bend_answer_mask==1)[0]]
+    TP_slide = slide_answer[np.nonzero(slide_answer_mask==0)[0]]
+    FN_slide = slide_answer[np.nonzero(slide_answer_mask==1)[0]]
+    TP_pullhamm = pullhamm_answer[np.nonzero(pullhamm_answer_mask==0)[0]]
+    FN_pullhamm = pullhamm_answer[np.nonzero(pullhamm_answer_mask==1)[0]]
+
+    return numValidCandidate, numInvalidCandidate, InvalidCandidate, TP_bend, TP_slide, TP_pullhamm, FN_bend, FN_slide, FN_pullhamm
+
 def fit_mir_eval_transcription(annotation, note):
     """
     Transform 2-D numpy array of note event into mir_eval format.
@@ -238,16 +320,26 @@ def calculate_esn_f_measure(annotation_esn, prediction_esn, tech, onset_toleranc
                     # if technique is identified in predicted esn
                     if note_pre[tech_index]!=0:
                         # check if two esn are matched
-                        if note_ann[1]-onset_tolerance < note_pre[1] and note_ann[1]+onset_tolerance > note_pre[1] and \
-                           note_ann[1]+note_ann[2]-note_ann[2]*offset_ratio < note_pre[1]+note_pre[2] and \
-                           note_ann[1]+note_ann[2]+note_ann[2]*offset_ratio > note_pre[1]+note_pre[2]:
-                            if correct_pitch is True:
+                        if note_ann[1]-onset_tolerance < note_pre[1] and note_ann[1]+onset_tolerance > note_pre[1]:
+                            if correct_pitch is True and offset_ratio!=None:
+                                if note_ann[0] == note_pre[0] and \
+                                    note_ann[1]+note_ann[2]-note_ann[2]*offset_ratio < note_pre[1]+note_pre[2] and \
+                                    note_ann[1]+note_ann[2]+note_ann[2]*offset_ratio > note_pre[1]+note_pre[2]:
+                                    note_ann[tech_index] = -1
+                                    note_pre[tech_index] = -1
+                            elif correct_pitch is False and offset_ratio!=None:
+                                if note_ann[1]+note_ann[2]-note_ann[2]*offset_ratio < note_pre[1]+note_pre[2] and \
+                                    note_ann[1]+note_ann[2]+note_ann[2]*offset_ratio > note_pre[1]+note_pre[2]:
+                                    note_ann[tech_index] = -1
+                                    note_pre[tech_index] = -1
+                            elif correct_pitch is True and offset_ratio==None:
                                 if note_ann[0] == note_pre[0]:
                                     note_ann[tech_index] = -1
                                     note_pre[tech_index] = -1
-                            else:
+                            elif correct_pitch is False and offset_ratio==None:
                                 note_ann[tech_index] = -1
                                 note_pre[tech_index] = -1
+
 
         TP = np.extract(annotation_esn_mask[:,tech_index]==-1, annotation_esn_mask[:,tech_index]).size
         FP = np.extract(prediction_esn_mask[:,tech_index]>0, prediction_esn_mask[:,tech_index]).size
@@ -265,15 +357,26 @@ def calculate_esn_f_measure(annotation_esn, prediction_esn, tech, onset_toleranc
                     if note_pre[tech_index]!=0 and prediction_esn_mask[index_pre+1, tech_index]:
                         # check if two esn are matched
                         if annotation_esn_mask[index_ann+1,1]-onset_tolerance < prediction_esn_mask[index_pre+1,1] and \
-                           annotation_esn_mask[index_ann+1,1]+onset_tolerance > prediction_esn_mask[index_pre+1,1] and \
-                           annotation_esn_mask[index_ann+1,1]+annotation_esn_mask[index_ann+1,2]-annotation_esn_mask[index_ann+1,2]*offset_ratio < prediction_esn_mask[index_pre+1,1]+prediction_esn_mask[index_pre+1,2] and \
-                           annotation_esn_mask[index_ann+1,1]+annotation_esn_mask[index_ann+1,2]+annotation_esn_mask[index_ann+1,2]*offset_ratio > prediction_esn_mask[index_pre+1,1]+prediction_esn_mask[index_pre+1,2]:
-                            if correct_pitch is True:
+                           annotation_esn_mask[index_ann+1,1]+onset_tolerance > prediction_esn_mask[index_pre+1,1]:
+                            if correct_pitch is True and offset_ratio!=None:
+                                if annotation_esn_mask[index_ann+1,0] == prediction_esn_mask[index_pre+1,0] and \
+                                    annotation_esn_mask[index_ann+1,1]+annotation_esn_mask[index_ann+1,2]-annotation_esn_mask[index_ann+1,2]*offset_ratio < prediction_esn_mask[index_pre+1,1]+prediction_esn_mask[index_pre+1,2] and \
+                                    annotation_esn_mask[index_ann+1,1]+annotation_esn_mask[index_ann+1,2]+annotation_esn_mask[index_ann+1,2]*offset_ratio > prediction_esn_mask[index_pre+1,1]+prediction_esn_mask[index_pre+1,2]:
+                                    TP+=1
+                                    annotation_esn_mask[index_ann,tech_index]=-1
+                                    prediction_esn_mask[index_pre,tech_index]=-1    
+                            elif correct_pitch is False and offset_ratio!=None:
+                                if annotation_esn_mask[index_ann+1,1]+annotation_esn_mask[index_ann+1,2]-annotation_esn_mask[index_ann+1,2]*offset_ratio < prediction_esn_mask[index_pre+1,1]+prediction_esn_mask[index_pre+1,2] and \
+                                    annotation_esn_mask[index_ann+1,1]+annotation_esn_mask[index_ann+1,2]+annotation_esn_mask[index_ann+1,2]*offset_ratio > prediction_esn_mask[index_pre+1,1]+prediction_esn_mask[index_pre+1,2]:
+                                    TP+=1
+                                    annotation_esn_mask[index_ann,tech_index]=-1
+                                    prediction_esn_mask[index_pre,tech_index]=-1    
+                            elif correct_pitch is True and offset_ratio==None:
                                 if annotation_esn_mask[index_ann+1,0] == prediction_esn_mask[index_pre+1,0]:
                                     TP+=1
                                     annotation_esn_mask[index_ann,tech_index]=-1
                                     prediction_esn_mask[index_pre,tech_index]=-1
-                            else:
+                            elif correct_pitch is False and offset_ratio==None:
                                 TP+=1
                                 annotation_esn_mask[index_ann,tech_index]=-1
                                 prediction_esn_mask[index_pre,tech_index]=-1
@@ -304,13 +407,32 @@ def calculate_esn_f_measure(annotation_esn, prediction_esn, tech, onset_toleranc
 
     return P, R, F, TP, FP, FN
 
-def evaluation_candidate_cls(annotation_ts, candidate_result, 
-    output_dir, filename, tech_index_dic, string=None, mode='a'):
+def evaluation_candidate_cls(annotation_ts, candidate_result, output_dir, filename, tech_index_dic, string=None, mode='a', plot=True):
 
     # evaluation
     (cls_accuracy, cls_report, confusion_table, 
      candidate_answer_ratio, tech_candidte_ratio, 
      target_names) = calculate_candidate_cls_accuracy_f_measure(annotation_ts, candidate_result, tech_index_dic=tech_index_dic)
+
+    if plot is True:
+        import matplotlib.pyplot as plt
+        def plot_confusion_matrix(cm, title='Confusion matrix', cmap=plt.cm.Blues, tech_index_dic=tech_index_dic):
+            tech_list=np.asarray(sorted(tech_index_dic.keys()))
+            plt.imshow(cm, interpolation='nearest', cmap=cmap)
+            plt.title(title)
+            plt.colorbar()
+            tick_marks = np.arange(len(tech_list))
+            plt.xticks(tick_marks, tech_list, rotation=45)
+            plt.yticks(tick_marks, tech_list)
+            plt.tight_layout()
+            plt.ylabel('True label')
+            plt.xlabel('Predicted label')
+        # Compute confusion matrix        
+        np.set_printoptions(precision=2)
+        plt.figure()
+        plot_confusion_matrix(confusion_table)
+        plt.savefig(output_dir+os.sep+filename+'.cm.png')
+
     # write result to file
     save_stdout = sys.stdout
     fh = open(output_dir+os.sep+filename+'.cls.eval',mode)
@@ -412,7 +534,7 @@ def evaluation_esn(annotation_esn, prediction_esn, output_dir, filename, onset_t
     print '\n'
 
     onset_tolerance=[0.05, 0.1]
-    offset_ratio=[0.20, 0.35]
+    offset_ratio=[0.20, 0.35, None]
     correct_pitch = [True, False]
     print '                       Expression style (note)                      '
     print '--------------------------------------------------------------------'
