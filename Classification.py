@@ -126,7 +126,7 @@ def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_me
 
     return data
 
-def data_loader(technique_file_dict):
+def data_loader(technique_file_dict, downsample=False):
     """
     Read raw featrues from S5_feature folder and return labels y
     and data instances x with the format of numpy array.
@@ -170,8 +170,22 @@ def data_loader(technique_file_dict):
     
     label = asarray(label)
     label = label.reshape(label.shape[0])
- 
-    return label, training_instances, class_data_num_str, class_data_num_dict, tech_index_dic, f_dimension
+
+    if downsample:
+        X_raw, y = balanced_subsample(training_instances, label, subsample_size=1.0)
+        class_data_num_str = str()
+        for t in technique_file_dict.keys():
+            num_of_instances = np.where(y==tech_index_dic[t])[0].size
+            class_data_num_dict[t] = num_of_instances
+            if t!=technique_file_dict.keys()[-1]:
+                class_data_num_str += t+'_'+str(num_of_instances)+'_'
+            else:
+                class_data_num_str += t+'_'+str(num_of_instances)
+
+    else:
+        X_raw, y = training_instances, label
+
+    return X_raw, y, class_data_num_str, class_data_num_dict, tech_index_dic, f_dimension
 
 def balanced_subsample(x,y,subsample_size=1.0):
 
@@ -300,13 +314,11 @@ def main(args):
     technique_file_dict = collect_same_technique_feature_files(args.input_features, technique_type = args.classes)
     
     # data loader
-    (label, raw_data, class_data_num_str, 
-    class_data_num_dict, tech_index_dic, f_dimension) = data_loader(technique_file_dict)
+    (X, y, class_data_num_str, 
+    class_data_num_dict, tech_index_dic, f_dimension) = data_loader(technique_file_dict, downsample=args.downsample)
 
     # pre-processing data
     # data = data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method, output_path=args.output_dir+os.sep+class_data_num_str)
-    X, y = raw_data, label
-    X_orignial = X.copy()
     
     if args.GridSearchCV:
         # inspect if there exists the cross validation indices
@@ -315,7 +327,7 @@ def main(args):
             print 'Load pre-partitioned cross validation folds...'
         except IOError:
             print 'Shuffling the samples and dividing them into ', args.f, ' folds...'
-            CVfold = StratifiedKFold(label, args.f, shuffle=True)
+            CVfold = StratifiedKFold(y, args.f, shuffle=True)
             np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(args.f)+'.CVFold.npy', CVfold)
 
 
@@ -363,9 +375,6 @@ def main(args):
 
                 clf = GridSearchCV(SVC(class_weight='balanced'), tuned_parameters, cv=4,
                                    scoring='%s_weighted' % m)
-
-                if args.downsample:
-                    X_train, y_train = balanced_subsample(X_train, y_train, subsample_size=1.0)
         
                 X_train = data_preprocessing(X_train, data_preprocessing_method=data_preprocessing_method, output_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m)
 
@@ -396,7 +405,7 @@ def main(args):
                 X_test = data_preprocessing(X_test, data_preprocessing_method=data_preprocessing_method, scaler_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+'.robust_scaler.npy')
                 y_true, y_pred = y_test, clf.predict(X_test)
 
-                # # Compute confusion matrix        
+                # Compute confusion matrix        
                 confusion_table = confusion_matrix(y_true, y_pred)
                 # save plot
                 np.set_printoptions(precision=2)
