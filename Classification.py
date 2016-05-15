@@ -30,8 +30,10 @@ import subprocess as subp
 from GuitarTranscription_parameters import data_preprocessing_method
 from sklearn.cross_validation import StratifiedKFold
 from sklearn.grid_search import GridSearchCV
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.svm import SVC
+import matplotlib.pyplot as plt
+from matplotlib.colors import Normalize
 
 def collect_same_technique_feature_files(feature_dir, technique_type = ['bend', 'pull', 'normal','hamm', 'slide']):
     """
@@ -66,7 +68,7 @@ def collect_same_technique_feature_files(feature_dir, technique_type = ['bend', 
     return technique_file_dict
 
 def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method, scaler_path=None, output_path=None):
-    from sklearn.preprocessing import Imputer, scale, robust_scale, StandardScaler
+    from sklearn.preprocessing import Imputer, scale, robust_scale, StandardScaler, RobustScaler
 
     # replace nan feature with the median of column values
     imp = Imputer(missing_values='NaN', strategy='median', axis=0)
@@ -96,7 +98,7 @@ def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_me
             print '    Standardizing data by StandardScaler method...'
             scaler = StandardScaler().fit(raw_data)
             # save scaler
-            np.save(output_path+'.scaler', scaler)
+            np.save(output_path+'.standard_scaler', scaler)
             data = scaler.transform(raw_data)
         elif scaler_path!=None and output_path==None:
             print '    Standardizing data by pre-computed scaler...'
@@ -105,6 +107,22 @@ def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_me
             data = scaler.transform(raw_data)
         elif scaler_path==None and output_path==None:
             print 'Please specify the scaler path or path to restore the scaler.'
+
+    elif 'RobustScaler' in data_preprocessing_method:
+        if scaler_path==None and output_path!=None:
+            print '    Standardizing data by RobustScaler method...'
+            scaler = RobustScaler().fit(raw_data)
+            # save scaler
+            np.save(output_path+'.robust_scaler', scaler)
+            data = scaler.transform(raw_data)
+        elif scaler_path!=None and output_path==None:
+            print '    Standardizing data by pre-computed scaler...'
+            # load scaler
+            scaler = np.load(scaler_path).itme()
+            data = scaler.transform(raw_data)
+        elif scaler_path==None and output_path==None:
+            print 'Please specify the scaler path or path to restore the scaler.'
+
 
     return data
 
@@ -124,9 +142,11 @@ def data_loader(technique_file_dict):
 
     class_data_num_str = str()
     class_data_num_dict = dict()
+    tech_index_dic = dict()
 
     # concatenate all features and make label
     for t in technique_file_dict.keys():
+        tech_index_dic[t] = index_of_class
         num_of_instances = 0
         for f in technique_file_dict[t]:
             feature = loadtxt(f)
@@ -151,8 +171,41 @@ def data_loader(technique_file_dict):
     label = asarray(label)
     label = label.reshape(label.shape[0])
  
-    return label, training_instances, class_data_num_str, class_data_num_dict, f_dimension
+    return label, training_instances, class_data_num_str, class_data_num_dict, tech_index_dic, f_dimension
 
+def plot_confusion_matrix(cm, tech_index_dic, title='Confusion matrix', cmap=plt.cm.Blues):
+    tech_list=np.asarray(sorted(tech_index_dic.keys()))
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(tech_list))
+    plt.xticks(tick_marks, tech_list, rotation=45)
+    plt.yticks(tick_marks, tech_list)
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+
+def plot_heatmap_validation_accuracy(grid_scores, C_range, g_range):
+    scores = [x[1] for x in grid_scores]
+    scores = np.array(scores).reshape(len(C_range), len(g_range))
+    plt.subplots_adjust(left=.2, right=0.95, bottom=0.15, top=0.95)
+    plt.imshow(scores, interpolation='nearest', cmap=plt.cm.hot,
+               norm=MidpointNormalize(vmin=0.2, midpoint=0.92))
+    plt.xlabel('gamma')
+    plt.ylabel('C')
+    plt.colorbar()
+    plt.xticks(np.arange(len(g_range)), g_range, rotation=45)
+    plt.yticks(np.arange(len(C_range)), C_range)
+    plt.title('Validation accuracy')
+
+class MidpointNormalize(Normalize):
+    def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
+        self.midpoint = midpoint
+        Normalize.__init__(self, vmin, vmax, clip)
+
+    def __call__(self, value, clip=None):
+        x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
+        return np.ma.masked_array(np.interp(value, x, y))
 
 def blockPrint():
     sys.stdout = open(os.devnull, 'w')
@@ -214,7 +267,8 @@ def main(args):
     technique_file_dict = collect_same_technique_feature_files(args.input_features, technique_type = args.classes)
     
     # data loader
-    label, raw_data, class_data_num_str, class_data_num_dict, f_dimension = data_loader(technique_file_dict)
+    (label, raw_data, class_data_num_str, 
+    class_data_num_dict, tech_index_dic, f_dimension) = data_loader(technique_file_dict)
 
     # pre-processing data
     data = data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method, output_path=args.output_dir+os.sep+class_data_num_str)
@@ -231,12 +285,14 @@ def main(args):
             np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(args.f)+'.CVFold.npy', CVfold)
 
 
-        # Set the parameters by cross-validation
-        C_range = np.ndarray.tolist(np.logspace(-3, 4, 7, base=2))
-        g_range = np.ndarray.tolist(np.logspace(-8, -3, 5, base=2))
+        # Set the parameters tuneed by grid searching
+        C_range = np.logspace(-5, 5, 10, base=2)
+        # np.logspace(-5, 5, 10, base=2)
+        # np.logspace(-3, 4, 7, base=2)
+        g_range = np.logspace(-10, -2, 8, base=2)
+        # np.logspace(-8, -3, 5, base=2)
 
-        tuned_parameters = [{'kernel': ['rbf'], 'gamma': g_range,'C': C_range}, 
-                              {'kernel': ['linear'], 'C': C_range}  ]
+        tuned_parameters = [{'kernel': ['rbf'], 'gamma': g_range,'C': C_range}] 
                             # {'kernel': ['linear'], 'C': C_range}]
 
         # tuned_parameters = [{'kernel': ['linear'], 'C': C_range }]
@@ -281,20 +337,34 @@ def main(args):
                 # gamma_final+= clf.best_params_['gamma']
                 print '------------------------------------------------------------' 
                 print("Grid scores on development set:")
-                # print '\n'
+                
                 for params, mean_score, scores in clf.grid_scores_:
                     print("%0.3f (+/-%0.03f) for %r"
                           % (mean_score, scores.std() * 2, params))
-                # print '\n'
+                
+                # draw heatmap of the validation accuracy as a function of gamma and C
+                plt.figure(figsize=(8, 6))
+                plot_heatmap_validation_accuracy(clf.grid_scores_, C_range, g_range)
+                plt.savefig(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+'.validation_acc.heatmap.png')
+
                 print '------------------------------------------------------------' 
                 print("Detailed classification report:")
-                # print '\n'
+                
                 print("The model is trained on the full development set.")
                 print("The scores are computed on the full evaluation set.")
-                # print '\n'
                 y_true, y_pred = y_test, clf.predict(X_test)
+
+                # # Compute confusion matrix        
+                confusion_table = confusion_matrix(y_true, y_pred)
+                # save plot
+                np.set_printoptions(precision=2)
+                plt.figure()
+                plot_confusion_matrix(confusion_table, tech_index_dic=tech_index_dic, title='Confusion matrix', cmap=plt.cm.Blues)
+                plt.savefig(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+'.cm.png')
+
+                # classification report
                 print(classification_report(y_true, y_pred))
-                # print '\n'
+
                 # save model
                 np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+'.model', clf)
                 if clf.best_params_['kernel']=='linear':

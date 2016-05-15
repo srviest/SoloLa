@@ -24,7 +24,7 @@ Requirements
 - `madmom <https://github.com/CPJKU/madmom>`_
 - `scikit-learn (0.17.0) <http://scikit-learn.org/stable/>`_
 - `networkx <https://networkx.github.io/>`_
-- `ESSENTIA (2.1-dec) <http://essentia.upf.edu/>`_
+- `ESSENTIA (2.1-dev) <http://essentia.upf.edu/>`_
 
 
 

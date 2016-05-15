@@ -45,4 +45,6 @@ selected_features = ['hfc', 'pitch', 'pitch_instantaneous_confidence',
 # data preprocessing
 # data_preprocessing_method = ['z-score']
 # data_preprocessing_method = ['robust z-score']
-data_preprocessing_method = ['StandardScaler']
+# data_preprocessing_method = ['StandardScaler']
+data_preprocessing_method = ['RobustScaler']
+
