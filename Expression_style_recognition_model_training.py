@@ -99,7 +99,8 @@ def main(args):
                           output_dir+os.sep+'S4.Feature', 
                           output_dir+os.sep+'S5.Classification_bend_pull_normal_hamm_slide',
                           'bend', 'hamm', 'slide', 'pull', 'normal', '-f', '5', 
-                          '-GridSearchCV'])
+                          '-GridSearchCV', 
+                          '-downsample'])
 
     if bend_normal_hamm_slide is True:
 
@@ -130,7 +131,8 @@ def main(args):
                           output_dir+os.sep+'S4.Feature', 
                           output_dir+os.sep+'S5.Classification_bend_normal_hamm_slide',
                           'bend', 'hamm', 'slide', 'normal', '-f', '5', 
-                          '-GridSearchCV'])
+                          '-GridSearchCV', 
+                          '-downsample'])
 
     if bend_pull_normal_slide is True:
         

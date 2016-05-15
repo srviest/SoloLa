@@ -173,6 +173,37 @@ def data_loader(technique_file_dict):
  
     return label, training_instances, class_data_num_str, class_data_num_dict, tech_index_dic, f_dimension
 
+def balanced_subsample(x,y,subsample_size=1.0):
+
+    class_xs = []
+    min_elems = None
+
+    for yi in np.unique(y):
+        elems = x[(y == yi)]
+        class_xs.append((yi, elems))
+        if min_elems == None or elems.shape[0] < min_elems:
+            min_elems = elems.shape[0]
+
+    use_elems = min_elems
+    if subsample_size < 1:
+        use_elems = int(min_elems*subsample_size)
+
+    xs = []
+    ys = []
+
+    for ci,this_xs in class_xs:
+        if len(this_xs) > use_elems:
+            np.random.shuffle(this_xs)
+        x_ = this_xs[:use_elems]
+        y_ = np.empty(use_elems)
+        y_.fill(ci)
+        xs.append(x_)
+        ys.append(y_)
+    xs = np.concatenate(xs)
+    ys = np.concatenate(ys)
+
+    return xs,ys
+
 def plot_confusion_matrix(cm, tech_index_dic, title='Confusion matrix', cmap=plt.cm.Blues):
     tech_list=np.asarray(sorted(tech_index_dic.keys()))
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
@@ -240,6 +271,8 @@ def parser():
                     help='Exhaustive search over specified parameter values for an estimator.')
     p.add_argument('-TrainingAll', dest='TrainingAll', default=False, action='store_true',
                     help='Training with all data.')
+    p.add_argument('-downsample', dest='downsample', default=False, action='store_true',
+                    help='Downsample to balance the number of data points of each class.')
     p.add_argument('-C','--C', type=float, dest='C',action='store',  help="penalty parmeter.", default=1)
     p.add_argument('-gamma','--gamma', type=float, dest='gamma',action='store',  help="gamma for RBF kernel SVM.", default=None)
     p.add_argument('-f','--fold', type=int, dest='f',action='store',  help="the number of fold in which data to be partitioned.", default=5)
@@ -313,7 +346,8 @@ def main(args):
         print 'Data preprocessing method:'
         for dpm in data_preprocessing_method:
             print '    %s' % (dpm)
-
+        print 'Downsampling to balance the number of data for each class:'
+        print '    %s' % (args.downsample)
         # train, test and evaluation
         fold=1
         for train_index, test_index in CVfold:
@@ -328,6 +362,9 @@ def main(args):
 
                 clf = GridSearchCV(SVC(class_weight='balanced'), tuned_parameters, cv=4,
                                    scoring='%s_weighted' % m)
+
+                if args.downsample:
+                    X_train, y_train = balanced_subsample(X_train, y_train, subsample_size=1.0)
         
                 clf.fit(X_train, y_train)
 
