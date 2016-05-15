@@ -101,7 +101,7 @@ def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_me
             np.save(output_path+'.standard_scaler', scaler)
             data = scaler.transform(raw_data)
         elif scaler_path!=None and output_path==None:
-            print '    Standardizing data by pre-computed scaler...'
+            print '    Standardizing data by pre-computed standard scaler...'
             # load scaler
             scaler = np.load(scaler_path).itme()
             data = scaler.transform(raw_data)
@@ -116,9 +116,9 @@ def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_me
             np.save(output_path+'.robust_scaler', scaler)
             data = scaler.transform(raw_data)
         elif scaler_path!=None and output_path==None:
-            print '    Standardizing data by pre-computed scaler...'
+            print '    Standardizing data by pre-computed robust scaler...'
             # load scaler
-            scaler = np.load(scaler_path).itme()
+            scaler = np.load(scaler_path).item()
             data = scaler.transform(raw_data)
         elif scaler_path==None and output_path==None:
             print 'Please specify the scaler path or path to restore the scaler.'
@@ -304,8 +304,9 @@ def main(args):
     class_data_num_dict, tech_index_dic, f_dimension) = data_loader(technique_file_dict)
 
     # pre-processing data
-    data = data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method, output_path=args.output_dir+os.sep+class_data_num_str)
-    X, y = data, label
+    # data = data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method, output_path=args.output_dir+os.sep+class_data_num_str)
+    X, y = raw_data, label
+    X_orignial = X.copy()
     
     if args.GridSearchCV:
         # inspect if there exists the cross validation indices
@@ -366,6 +367,8 @@ def main(args):
                 if args.downsample:
                     X_train, y_train = balanced_subsample(X_train, y_train, subsample_size=1.0)
         
+                X_train = data_preprocessing(X_train, data_preprocessing_method=data_preprocessing_method, output_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m)
+
                 clf.fit(X_train, y_train)
 
                 print("Best parameters set found on development set:")
@@ -390,6 +393,7 @@ def main(args):
                 
                 print("The model is trained on the full development set.")
                 print("The scores are computed on the full evaluation set.")
+                X_test = data_preprocessing(X_test, data_preprocessing_method=data_preprocessing_method, scaler_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+'.robust_scaler.npy')
                 y_true, y_pred = y_test, clf.predict(X_test)
 
                 # # Compute confusion matrix        
@@ -409,6 +413,10 @@ def main(args):
                     clf_all = SVC(kernel=clf.best_params_['kernel'], C=clf.best_params_['C'], class_weight='balanced')
                 elif clf.best_params_['kernel']=='rbf':
                     clf_all = SVC(kernel=clf.best_params_['kernel'], C=clf.best_params_['C'], gamma=clf.best_params_['gamma'], class_weight='balanced')
+  
+                # train model using fine-tuned paramter with whole datasets
+                # data preprocessing
+                X = data_preprocessing(X, data_preprocessing_method=data_preprocessing_method, output_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.all.metric.'+m)
                 clf_all.fit(X,y)
                 np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.all.metric.'+m+'.model', clf_all)
             fold+=1
