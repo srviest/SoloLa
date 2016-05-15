@@ -286,11 +286,12 @@ def main(args):
 
 
         # Set the parameters tuneed by grid searching
-        C_range = np.logspace(-5, 5, 10, base=2)
+        C_range = np.logspace(-5, 10, 15, base=2)
         # np.logspace(-5, 5, 10, base=2)
         # np.logspace(-3, 4, 7, base=2)
-        g_range = np.logspace(-10, -2, 8, base=2)
+        g_range = np.logspace(-14, -2, 12, base=2)
         # np.logspace(-8, -3, 5, base=2)
+        # np.logspace(-10, -2, 8, base=2)
 
         tuned_parameters = [{'kernel': ['rbf'], 'gamma': g_range,'C': C_range}] 
                             # {'kernel': ['linear'], 'C': C_range}]
