@@ -416,8 +416,8 @@ def main(args):
   
                 # train model using fine-tuned paramter with whole datasets
                 # data preprocessing
-                X = data_preprocessing(X, data_preprocessing_method=data_preprocessing_method, output_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.all.metric.'+m)
-                clf_all.fit(X,y)
+                X_all = data_preprocessing(X, data_preprocessing_method=data_preprocessing_method, output_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.all.metric.'+m)
+                clf_all.fit(X_all,y)
                 np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.all.metric.'+m+'.model', clf_all)
             fold+=1
         print '\n'
