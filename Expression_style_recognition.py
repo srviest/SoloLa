@@ -77,13 +77,13 @@ import numpy as np
 import subprocess as subp
 import operator
 import pickle
-from essentia import *
-from essentia.standard import *
+import essentia
+from essentia.standard import EasyLoader, Vibrato
 import Candidate_selection as CS
 from Feature_extraction import extract_feature_of_audio_clip
 from Classification import data_preprocessing
 from GuitarTranscription_parameters import *
-from GuitarTranscription_utility import note_pruning
+from GuitarTranscription_utility import note_pruning, midi2hertz
 import GuitarTranscription_evaluation as GTEval
 import fnmatch
 
@@ -581,7 +581,7 @@ class SoftVibrato(object):
             if expression_style_note[index_note, 11]==0:
                 onset = note[1]
                 offset = note[1]+note[2]
-                pc = self.pitch_contour[onset*self.sampleRate:offset*self.sampleRate]
+                pc = self.pitch_contour[int(onset*self.sampleRate):int(offset*self.sampleRate)]
                 V = Vibrato(sampleRate=self.sampleRate)
                 freq, extent = V(essentia.array(pc))
                 if np.count_nonzero(freq)!=0 and np.count_nonzero(extent)!=0:
@@ -1156,7 +1156,6 @@ def main(args):
             candidate = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate')
             raw_feature = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature')
             # raw_data = np.vstack((ascending_raw_feature, descending_raw_feature))
-
             # data preprocessing
             data = data_preprocessing(raw_feature, data_preprocessing_method=data_preprocessing_method, scaler_path=args.scaler_path)
 

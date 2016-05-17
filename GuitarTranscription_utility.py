@@ -19,7 +19,8 @@ def hertz2midi(melody_contour):
     """ 
     from numpy import inf
     melody_contour_MIDI = melody_contour.copy()
-    melody_contour_MIDI =12*np.log(melody_contour_MIDI/float(440))/np.log(2)+69
+    melody_contour_MIDI = np.log(melody_contour_MIDI/float(440))
+    melody_contour_MIDI =12*melody_contour_MIDI/np.log(2)+69
     melody_contour_MIDI[melody_contour_MIDI==-inf]=0
 
     return melody_contour_MIDI
@@ -32,11 +33,13 @@ def midi2hertz(melody_contour):
 
     """ 
     from numpy import inf
-    melody_contour_MIDI = melody_contour.copy()
-    melody_contour_MIDI =12*np.log(melody_contour_MIDI/float(440))/np.log(2)+69
-    melody_contour_MIDI[melody_contour_MIDI==-inf]=0
+    melody_contour_Hz = melody_contour.copy()
+    melody_contour_Hz = (melody_contour_Hz-69)*np.log(2)/12
+    melody_contour_Hz = np.exp(melody_contour_Hz)*440
+    redundant=np.exp((0-69)*np.log(2)/12)*440
+    melody_contour_Hz[melody_contour_Hz==redundant]=0
 
-    return melody_contour_MIDI
+    return melody_contour_Hz
 
 def note_pruning(note_pseudo, threshold=0.1):
     """

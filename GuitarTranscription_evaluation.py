@@ -407,14 +407,14 @@ def calculate_esn_f_measure(annotation_esn, prediction_esn, tech, onset_toleranc
 
     return P, R, F, TP, FP, FN
 
-def evaluation_candidate_cls(annotation_ts, candidate_result, output_dir, filename, tech_index_dic, string=None, mode='a', plot=True):
+def evaluation_candidate_cls(annotation_ts, candidate_result, output_dir, filename, tech_index_dic, string=None, mode='a', plot=False):
 
     # evaluation
     (cls_accuracy, cls_report, confusion_table, 
      candidate_answer_ratio, tech_candidte_ratio, 
      target_names) = calculate_candidate_cls_accuracy_f_measure(annotation_ts, candidate_result, tech_index_dic=tech_index_dic)
 
-    if plot is True:
+    if plot:
         import matplotlib.pyplot as plt
         def plot_confusion_matrix(cm, title='Confusion matrix', cmap=plt.cm.Blues, tech_index_dic=tech_index_dic):
             tech_list=np.asarray(sorted(tech_index_dic.keys()))
@@ -424,7 +424,7 @@ def evaluation_candidate_cls(annotation_ts, candidate_result, output_dir, filena
             tick_marks = np.arange(len(tech_list))
             plt.xticks(tick_marks, tech_list, rotation=45)
             plt.yticks(tick_marks, tech_list)
-            plt.tight_layout()
+            # plt.tight_layout()
             plt.ylabel('True label')
             plt.xlabel('Predicted label')
         # Compute confusion matrix        
@@ -432,6 +432,12 @@ def evaluation_candidate_cls(annotation_ts, candidate_result, output_dir, filena
         plt.figure()
         plot_confusion_matrix(confusion_table)
         plt.savefig(output_dir+os.sep+filename+'.cm.png')
+        plt.close('all')
+        confusion_table_normalized = confusion_table.astype('float') / confusion_table.sum(axis=1)[:, np.newaxis]
+        plt.figure()
+        plot_confusion_matrix(confusion_table_normalized)
+        plt.savefig(output_dir+os.sep+filename+'.norm.cm.png')
+        plt.close('all')
 
     # write result to file
     save_stdout = sys.stdout
