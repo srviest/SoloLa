@@ -565,6 +565,39 @@ class SlowBend(Common):
         # return note_of_long_CAD, note_of_short_CAD, long_CAD, short_CAD
         return note_of_long_CAD, short_CAD
 
+
+class SoftVibrato(object):
+
+    def __init__(self, pitch_contour, pitch_contour_hop, pitch_contour_sr):
+        self.technique = 'vibrato'
+        self.pitch_contour = midi2hertz(pitch_contour)
+        self.sampleRate = pitch_contour_sr/float(pitch_contour_hop)
+        self.vibrato = None
+
+    def detect(self, expression_style_note, expression_style_ts):
+
+        self.vibrato = np.empty([0,3])
+        for index_note, note in enumerate(expression_style_note): 
+            if expression_style_note[index_note, 11]==0:
+                onset = note[1]
+                offset = note[1]+note[2]
+                pc = self.pitch_contour[onset*self.sampleRate:offset*self.sampleRate]
+                V = Vibrato(sampleRate=self.sampleRate)
+                freq, extent = V(essentia.array(pc))
+                if np.count_nonzero(freq)!=0 and np.count_nonzero(extent)!=0:
+                    self.vibrato = np.append(self.vibrato,[expression_style_note[index_note,0:3]],axis=0)
+                    
+        time_segment = Common.note_2_ts(self.vibrato)
+        expression_style_ts = Common.update_ts(expression_style_ts, time_segment, technique=self.technique)
+        expression_style_note = Common.update_esn(expression_style_note=expression_style_note, 
+                                              note_with_expression_style=self.vibrato, 
+                                              technique=self.technique, 
+                                              sub_technique=1)
+
+        return expression_style_note, expression_style_ts
+
+
+
 def merge_and_update_prebend_bend_release(expression_style_note, result_ref):
     import sys
     save_stdout = sys.stdout
@@ -1301,8 +1334,32 @@ def main(args):
         S.6 Detect {vibrato} on each note.
         ==================================================================================
         """
+        V = SoftVibrato(pitch_contour=MIDI_smooth_melody, pitch_contour_hop=contour_hop, pitch_contour_sr=contour_sr)
+        expression_style_note, expression_style_ts = V.detect(expression_style_note, expression_style_ts)
 
-        
+        if args.debug:
+            # create result directory
+            debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.6_Vibrato_detection'
+            if not os.path.exists(debug_dir): os.makedirs(debug_dir)
+            # save updated expression style note
+            np.savetxt(debug_dir+os.sep+name+'.esn', expression_style_note, fmt='%s')
+            np.savetxt(debug_dir+os.sep+name+'.ts', expression_style_ts, fmt='%s')
+            save_esn_for_visualization(expression_style_note, debug_dir, name)
+            # save vibrato note
+            np.savetxt(debug_dir+os.sep+name+'.vibrato', V.vibrato, fmt='%s')
+           
+        if args.eval_esn:
+            print '  Evaluating note-level expression style after vibrato detection...' 
+            annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
+            GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
+                string='Result after vibrato detection', mode='a')
+
+        if args.eval_ts:
+            print '  Evaluating time segment-level expression style after vibrato detection...'
+            annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
+            GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
+                string='Result after vibrato detection', mode='a')     
+
 
 if __name__ == '__main__':
     args = parser()
