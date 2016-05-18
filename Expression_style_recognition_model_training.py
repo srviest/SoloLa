@@ -57,13 +57,13 @@ def main(args):
     bend_pull_normal_hamm_slide=True
 
     # input_audio = '/Users/Frank/Documents/Code/Database/test/Guitar_Licks_51_10.wav'
-    input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect'
+    # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect'
     # input_audio = '/Users/Frank/Desktop/Guitar_Score/Beatles - Let It Be Solo.wav'
-    # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single'
+    input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single'
     # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/Clean_Room'
-    # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/Clean_Tone_newly_extracted_feature'
+    output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/Clean_Tone_newly_extracted_feature'
     # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/All_Effects'
-    output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/All_Effects_fine_tuned'
+    # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/All_Effects_fine_tuned'
     # output_dir = '/Users/Frank/Documents/Code/Python/Guitar_solo_MIDI2wav'
 
 
@@ -103,13 +103,6 @@ def main(args):
                           'bend', 'hamm', 'slide', 'pull', 'normal', '-f', '5', 
                           '-GridSearchCV', 
                           '-downsample'])
-
-        # S5.Classification
-        if args.cl: call(['python', 'Classification.py', 
-                          output_dir+os.sep+'S4.Feature', 
-                          output_dir+os.sep+'S5.Classification_bend_pull_normal_hamm_slide',
-                          'bend', 'hamm', 'slide', 'pull', 'normal', '-f', '5', 
-                          '-GridSearchCV'])
 
     if bend_normal_hamm_slide is True:
 

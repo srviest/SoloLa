@@ -218,7 +218,9 @@ def balanced_subsample(x,y,subsample_size=1.0):
 
     return xs,ys
 
-def plot_confusion_matrix(cm, tech_index_dic, title='Confusion matrix', cmap=plt.cm.Blues):
+def plot_confusion_matrix(cm, tech_index_dic, output_path, title='Confusion matrix', cmap=plt.cm.Blues):
+    np.set_printoptions(precision=2)
+    plt.figure()
     tech_list=np.asarray(sorted(tech_index_dic.keys()))
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     plt.title(title)
@@ -229,6 +231,8 @@ def plot_confusion_matrix(cm, tech_index_dic, title='Confusion matrix', cmap=plt
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
+    plt.savefig(output_path)
+    plt.close('all')
 
 def plot_heatmap_validation_accuracy(grid_scores, C_range, g_range):
     scores = [x[1] for x in grid_scores]
@@ -407,11 +411,13 @@ def main(args):
 
                 # Compute confusion matrix        
                 confusion_table = confusion_matrix(y_true, y_pred)
-                # save plot
-                np.set_printoptions(precision=2)
-                plt.figure()
-                plot_confusion_matrix(confusion_table, tech_index_dic=tech_index_dic, title='Confusion matrix', cmap=plt.cm.Blues)
-                plt.savefig(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+'.cm.png')
+                confusion_table_normalized = confusion_table.astype('float') / confusion_table.sum(axis=1)[:, np.newaxis]
+
+                # plotting
+                plot_confusion_matrix(confusion_table, tech_index_dic=tech_index_dic, output_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+'.cm.png',
+                 title='Confusion matrix', cmap=plt.cm.Blues)
+                plot_confusion_matrix(confusion_table_normalized, tech_index_dic=tech_index_dic, output_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+'.norm.cm.png',
+                 title='Normalized confusion matrix', cmap=plt.cm.Blues)
 
                 # classification report
                 print(classification_report(y_true, y_pred))
