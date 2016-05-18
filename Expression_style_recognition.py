@@ -567,27 +567,46 @@ class SlowBend(Common):
 
 
 class SoftVibrato(object):
+    """
+    Detect vibrato note-wisely
 
+    :param      pitch_contour:      1-D ndarray[pitch(Hz)] 
+                                    pitch contour of whole song.
+
+    :param      pitch_contour_hop:  int
+                                    the hop size of estimated pitch contour.
+
+    :param      pitch_contour_sr:   int
+                                    the sampling rate of estimated pitch contour.
+
+    :returns    self.vibrato:       2-D ndarray[onset(s). offset(s).]                
+                                    detected note with vibrato.
+        
+    """
     def __init__(self, pitch_contour, pitch_contour_hop, pitch_contour_sr):
         self.technique = 'vibrato'
-        self.pitch_contour = midi2hertz(pitch_contour)
+        self.pitch_contour = pitch_contour
         self.sampleRate = pitch_contour_sr/float(pitch_contour_hop)
-        self.vibrato = None
+        self.vibrato = np.empty([0,3])
 
     def detect(self, expression_style_note, expression_style_ts):
-
-        self.vibrato = np.empty([0,3])
+        # loop in notes
         for index_note, note in enumerate(expression_style_note): 
+            # check if vibrato is employed on the note
             if expression_style_note[index_note, 11]==0:
-                onset = note[1]
-                offset = note[1]+note[2]
-                pc = self.pitch_contour[int(onset*self.sampleRate):int(offset*self.sampleRate)]
-                V = Vibrato(sampleRate=self.sampleRate)
-                freq, extent = V(essentia.array(pc))
+                # convert time to frame number
+                onset_frame = int(round(note[1]*self.sampleRate))
+                offset_frame = int(round((note[1]+note[2])*self.sampleRate))
+                # extract the pitch contour of the note
+                pc = self.pitch_contour[onset_frame:offset_frame]
+                # detect vibrato on the note
+                freq, extent = Vibrato(sampleRate=self.sampleRate)(essentia.array(pc))
+                # append the note if it's employed of vibrato
                 if np.count_nonzero(freq)!=0 and np.count_nonzero(extent)!=0:
                     self.vibrato = np.append(self.vibrato,[expression_style_note[index_note,0:3]],axis=0)
-                    
+        # convert vibrato note to time segment
         time_segment = Common.note_2_ts(self.vibrato)
+        # update the result
         expression_style_ts = Common.update_ts(expression_style_ts, time_segment, technique=self.technique)
         expression_style_note = Common.update_esn(expression_style_note=expression_style_note, 
                                               note_with_expression_style=self.vibrato, 
@@ -596,13 +615,11 @@ class SoftVibrato(object):
 
         return expression_style_note, expression_style_ts
 
-
-
 def merge_and_update_prebend_bend_release(expression_style_note, result_ref):
-    import sys
-    save_stdout = sys.stdout
-    fh = open('/Users/Frank/Documents/Code/Python/Test_ExpressionStyle_result/lick_80/S3.ExpressionStyle/debug/after_S.5.4_Merge_and_update_prebend_bend_release/merge_and_update_prebend_bend_release_procedure.txt','w')
-    sys.stdout = fh
+    # import sys
+    # save_stdout = sys.stdout
+    # fh = open('/Users/Frank/Documents/Code/Python/Test_ExpressionStyle_result/lick_80/S3.ExpressionStyle/debug/after_S.5.4_Merge_and_update_prebend_bend_release/merge_and_update_prebend_bend_release_procedure.txt','w')
+    # sys.stdout = fh
 
     result = result_ref.copy()
     note_to_be_deleted = np.empty([0])
@@ -616,11 +633,11 @@ def merge_and_update_prebend_bend_release(expression_style_note, result_ref):
                    candi_result[1] < expression_style_note[index_note+1,1]+expression_style_note[index_note+1,2]:
                     current_index_candi = index_candi
                     current_index_note = index_note+1
-                    print 'Candidate exact covers consecutive two notes'
-                    print '    index_candi: ', index_candi
-                    print '    current_index_candi: ', current_index_candi
-                    print '    index_note: ', index_note
-                    print '    current_index_note: ', current_index_note
+                    # print 'Candidate exact covers consecutive two notes'
+                    # print '    index_candi: ', index_candi
+                    # print '    current_index_candi: ', current_index_candi
+                    # print '    index_note: ', index_note
+                    # print '    current_index_note: ', current_index_note
                     while current_index_note+1 <= expression_style_note.shape[0] and \
                           current_index_candi+1 <= result.shape[0] and \
                           result[current_index_candi+1,2] == 0 and \
@@ -630,14 +647,14 @@ def merge_and_update_prebend_bend_release(expression_style_note, result_ref):
                           result[current_index_candi+1,1] < expression_style_note[current_index_note+1,1]+expression_style_note[current_index_note,2]:
                         current_index_candi+=1
                         current_index_note+=1
-                    print '    Checking whether or not the followed candidate is predicted as bend.' 
-                    print '    index_candi: ', index_candi
-                    print '    current_index_candi: ', current_index_candi
-                    print '    index_note: ', index_note
-                    print '    current_index_note: ', current_index_note
+                    # print '    Checking whether or not the followed candidate is predicted as bend.' 
+                    # print '    index_candi: ', index_candi
+                    # print '    current_index_candi: ', current_index_candi
+                    # print '    index_note: ', index_note
+                    # print '    current_index_note: ', current_index_note
                     # delete the note which is about to be merged
                     note_to_be_deleted = np.append(note_to_be_deleted,range(index_note+1,current_index_note+1), axis=0)
-                    print '    note_to_be_deleted: ', note_to_be_deleted
+                    # print '    note_to_be_deleted: ', note_to_be_deleted
                     # mark the merged candidate as 0
                     # if current_index_candi-index_candi > 0:
                     result[index_candi:current_index_candi+1, 0:2] = 0
@@ -646,32 +663,31 @@ def merge_and_update_prebend_bend_release(expression_style_note, result_ref):
                     # keep the predicted expression styles on merged notes which is going to be deleted
                     expression_style_note[index_note,6:]=np.nanmax(expression_style_note[index_note+1:current_index_note+1,6:], axis=0)
                     # mark the bend in expression style note                    
-                    print '    range(index_note,current_index_note): ', range(index_note,current_index_note)
+                    # print '    range(index_note,current_index_note): ', range(index_note,current_index_note)
+                    
                     for n in range(index_note,current_index_note):
-                        print '    pitch of expression_style_note[n,0]', expression_style_note[n,0]
-                    for n in range(index_note,current_index_note):
-                        print 'expression_style_note[n+1,0]: ', expression_style_note[n+1,0]
-                        print 'expression_style_note[n,0]: ', expression_style_note[n,0]
+                        # print 'expression_style_note[n+1,0]: ', expression_style_note[n+1,0]
+                        # print 'expression_style_note[n,0]: ', expression_style_note[n,0]
                         pitch_diff = expression_style_note[n+1,0]-expression_style_note[n,0]
-                        print '    pitch_diff ', pitch_diff
+                        # print '    pitch_diff ', pitch_diff
                         if pitch_diff > 0:
                             expression_style_note[index_note,4] = pitch_diff
                         elif pitch_diff < 0:
                             expression_style_note[index_note,5] = abs(pitch_diff)
-                    print '    Note index: ', index_note
-                    print '         Pitch: ', expression_style_note[index_note, 0]
-                    print '         Bend: ', expression_style_note[index_note, 4]
-                    print '         Release: ', expression_style_note[index_note, 5]
+                    # print '    Note index: ', index_note
+                    # print '         Pitch: ', expression_style_note[index_note, 0]
+                    # print '         Bend: ', expression_style_note[index_note, 4]
+                    # print '         Release: ', expression_style_note[index_note, 5]
                     if expression_style_note[index_note, 4]==0 and expression_style_note[index_note, 5]!=0:
-                        print '    Here should be a pre-bend.'
+                        # print '    Here should be a pre-bend.'
                         expression_style_note[index_note, 3] = expression_style_note[index_note, 5]
                     # replace the pitch of first note with the lowest pitch among index_note to current_index_note
                     expression_style_note[index_note,0]= np.min(expression_style_note[index_note:current_index_note+1,0])
     # print note_to_be_deleted
     expression_style_note = np.delete(expression_style_note, note_to_be_deleted, axis=0)
 
-    sys.stdout = save_stdout
-    fh.close()
+    # sys.stdout = save_stdout
+    # fh.close()
 
     return expression_style_note
 
@@ -902,6 +918,12 @@ def main(args):
         except IOError:
             print 'The melody contour of ', name, ' doesn\'t exist!'
 
+        raw_melody_path = args.input_melody+os.sep+name+'.raw.melody'
+        try:
+            raw_melody = np.loadtxt(raw_melody_path)
+        except IOError:
+            print 'The melody contour of ', name, ' doesn\'t exist!'
+
         # load raw note
         note_path = args.input_note+os.sep+name+'.raw.note'
         try:
@@ -919,11 +941,12 @@ def main(args):
         S.1 Detect {wild vibrato} by recognizing the serrated pattern in note events.
         =====================================================================================
         """
-        
+        print 'Detecting {wild vibrato}...'
         WV = WildVibrato()
         expression_style_note, expression_style_ts = WV.detect(raw_note)
 
         if args.debug:
+            print '  Restoring results for debugging...'
             # create result directory
             debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.1_Wild_vibrato_detection'
             if not os.path.exists(debug_dir): 
@@ -936,13 +959,13 @@ def main(args):
             save_esn_for_visualization(expression_style_note, debug_dir, name)
 
         if args.eval_esn:
-            print '  Evaluating note-level expression style after wild vibrato detection...' 
+            print '  Evaluating note-level expression style...' 
             annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
             GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
                 string='Result after wild vibrato detection', mode='w')
 
         if args.eval_ts:
-            print '  Evaluating time segment-level expression style after wild vibrato detection...' 
+            print '  Evaluating time segment-level expression style...'
             annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
             GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name, 
                 string='Result after wild vibrato detection', mode='w')
@@ -954,12 +977,14 @@ def main(args):
         S.2 Detect {slide in} {slide out} by recognizing the ladder pattern in quantised melody contour.
         =====================================================================================
         """
+        print 'Detecting {slide in} {slide out} ...' 
         LS = LongSlide(MIDI_smooth_melody, hop=contour_hop, sr=contour_sr, 
                        max_transition_note_duration=max_transition_note_duration, 
                        min_transition_note_duration=min_transition_note_duration)
         expression_style_note, expression_style_ts = LS.detect(expression_style_note, expression_style_ts)
 
         if args.debug:
+            print '  Restoring results for debugging...'
             # create result directory
             debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.2_Slide_in_slide_out_detection'
             if not os.path.exists(debug_dir): 
@@ -973,13 +998,14 @@ def main(args):
             np.savetxt(debug_dir+os.sep+name+'.long_slide',LS.long_slide, fmt='%s')
 
         if args.eval_esn:
-            print '  Evaluating note-level expression style after slide in / slide out detection...' 
+            print '  Evaluating note-level expression style...' 
             annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
             GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
                 string='Result after slide in / slide out detection', mode='a')
 
         if args.eval_ts:
-            print '  Evaluating time segment-level expression style after slide in / slide out detection...' 
+            
+            print '  Evaluating time segment-level expression style...'
             annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
             GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
                 string='Result after slide in / slide out detection', mode='a')
@@ -1008,11 +1034,12 @@ def main(args):
             ii)
         =====================================================================================
         """
-
+        print 'Detecting {slow bend} ...'
         SB = SlowBend(ascending_pattern, descending_pattern)
         (expression_style_note, expression_style_ts) = SB.detect(expression_style_note, expression_style_ts) 
 
         if args.debug:
+            print '  Restoring results for debugging...'
             # create result directory
             debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.4_Slow_bend_release_detection'
             if not os.path.exists(debug_dir): 
@@ -1026,13 +1053,13 @@ def main(args):
             np.savetxt(debug_dir+os.sep+name+'.slow_release', SB.slow_release_note, fmt='%s')
            
         if args.eval_esn:
-            print '  Evaluating note-level expression style after slow bend detection...' 
+            print '  Evaluating note-level expression style...' 
             annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
             GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
                 string='Result after slow bend detection', mode='a')
 
         if args.eval_ts:
-            print '  Evaluating time segment-level expression style after slow bend detection...'
+            print '  Evaluating time segment-level expression style...'
             annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
             GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
                 string='Result after slow bend detection', mode='a')
@@ -1042,7 +1069,7 @@ def main(args):
         S.4 Detect {bend} {hammer on} {pull off} {slide} by analyzing timbre of selected candidate regions.
         ===================================================================================================
         """
-
+        print 'Detecting {bend} {hammer on} {pull off} {slide} employed in the note transitions...'
         """
         -----------------------------------------------------------------------------
         S.4.1 Candidate selection by finding note transitions covered by CAD pattern.
@@ -1063,6 +1090,7 @@ def main(args):
         S.4.2 Extract features of selected candidate regions.
         -----------------------------------------------------
         """
+        print '    Extracting features...'
         # load audio
         audio = EasyLoader(filename = f)()
         # extract features of ascending candidate
@@ -1142,7 +1170,7 @@ def main(args):
 
 
         # ##########################################################################################
-
+        print '    Classifying...'
         # load pre-trained SVM
         tech_index_dic = {'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}
         try:
@@ -1175,6 +1203,7 @@ def main(args):
         expression_style_ts = expression_style_ts[np.argsort(expression_style_ts[:,0], axis = 0)]
 
         if args.debug:
+            print '  Restoring results for debugging...'
             # create result directory
             debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.3_classification'
             if not os.path.exists(debug_dir): 
@@ -1191,7 +1220,7 @@ def main(args):
                 tech_index_dic=tech_index_dic, string=None, mode='w')
 
         if args.eval_ts:
-            print '  Evaluating time segment-level expression style after candidate classification...'
+            print '  Evaluating time segment-level expression style...'
             annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
             GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
                 string='Result after candidate classification', mode='a')
@@ -1201,11 +1230,12 @@ def main(args):
         S.4.4 Merge bend & release notes and update expression style note by classification result.
         -------------------------------------------------------------------------------------------
         """
-        
+        print 'Merging bended notes...'
         # merge bend and note
         expression_style_note = merge_and_update_prebend_bend_release(expression_style_note, result_all)
 
         if args.debug:
+            print '  Restoring results for debugging...'
             # create result directory
             debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.4_Merge_and_update_prebend_bend_release'
             if not os.path.exists(debug_dir): 
@@ -1215,7 +1245,7 @@ def main(args):
             save_esn_for_visualization(expression_style_note, debug_dir, name)
 
         if args.eval_esn:
-            print '  Evaluating expression style note after bended notes merged...' 
+            print '  Evaluating note-level expression style...' 
             # load esn answer
             annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
             GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
@@ -1226,11 +1256,12 @@ def main(args):
         S.5.5 Update pull-off, hammer-on and slide notes to expression style note by classification result.
         ---------------------------------------------------------------------------------------------------
         """
-
+        print 'Update pull-off, hammer-on and slide notes to expression style note by classification result...'
         # update esn
         expression_style_note = update_pull_hamm_slide(expression_style_note, result_all, tech_index_dic=tech_index_dic)
 
         if args.debug:
+            print '  Restoring results for debugging...'
             # create result directory
             debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.5_Update_pull_hamm_slide'
             if not os.path.exists(debug_dir): 
@@ -1240,7 +1271,7 @@ def main(args):
             save_esn_for_visualization(expression_style_note, debug_dir, name)
 
         if args.eval_esn:
-            print '  Evaluating expression style note after pull-off, hammer-on and slide updated with classification result...' 
+            print '  Evaluating note-level expression style...' 
             # load esn answer
             annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
             GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
@@ -1333,10 +1364,13 @@ def main(args):
         S.6 Detect {vibrato} on each note.
         ==================================================================================
         """
-        V = SoftVibrato(pitch_contour=MIDI_smooth_melody, pitch_contour_hop=contour_hop, pitch_contour_sr=contour_sr)
-        expression_style_note, expression_style_ts = V.detect(expression_style_note, expression_style_ts)
+        print 'Detecting {vibrato}...'
+        SV = SoftVibrato(pitch_contour=raw_melody, pitch_contour_hop=contour_hop, pitch_contour_sr=contour_sr)
+        (expression_style_note, expression_style_ts) = SV.detect(expression_style_note, expression_style_ts)
+
 
         if args.debug:
+            print '  Restoring results for debugging...'
             # create result directory
             debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.6_Vibrato_detection'
             if not os.path.exists(debug_dir): os.makedirs(debug_dir)
@@ -1345,16 +1379,16 @@ def main(args):
             np.savetxt(debug_dir+os.sep+name+'.ts', expression_style_ts, fmt='%s')
             save_esn_for_visualization(expression_style_note, debug_dir, name)
             # save vibrato note
-            np.savetxt(debug_dir+os.sep+name+'.vibrato', V.vibrato, fmt='%s')
+            np.savetxt(debug_dir+os.sep+name+'.vibrato', SV.vibrato, fmt='%s')
            
         if args.eval_esn:
-            print '  Evaluating note-level expression style after vibrato detection...' 
+            print '  Evaluating note-level expression style...' 
             annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
             GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
                 string='Result after vibrato detection', mode='a')
 
         if args.eval_ts:
-            print '  Evaluating time segment-level expression style after vibrato detection...'
+            print '  Evaluating time segment-level expression style...'
             annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
             GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
                 string='Result after vibrato detection', mode='a')     

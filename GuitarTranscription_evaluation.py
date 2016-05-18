@@ -407,7 +407,7 @@ def calculate_esn_f_measure(annotation_esn, prediction_esn, tech, onset_toleranc
 
     return P, R, F, TP, FP, FN
 
-def evaluation_candidate_cls(annotation_ts, candidate_result, output_dir, filename, tech_index_dic, string=None, mode='a', plot=False):
+def evaluation_candidate_cls(annotation_ts, candidate_result, output_dir, filename, tech_index_dic, string=None, mode='a', plot=True):
 
     # evaluation
     (cls_accuracy, cls_report, confusion_table, 
@@ -416,7 +416,9 @@ def evaluation_candidate_cls(annotation_ts, candidate_result, output_dir, filena
 
     if plot:
         import matplotlib.pyplot as plt
-        def plot_confusion_matrix(cm, title='Confusion matrix', cmap=plt.cm.Blues, tech_index_dic=tech_index_dic):
+        def plot_confusion_matrix(cm, output_path, title='Confusion matrix', cmap=plt.cm.Blues, tech_index_dic=tech_index_dic):
+            np.set_printoptions(precision=2)
+            plt.figure()
             tech_list=np.asarray(sorted(tech_index_dic.keys()))
             plt.imshow(cm, interpolation='nearest', cmap=cmap)
             plt.title(title)
@@ -427,17 +429,12 @@ def evaluation_candidate_cls(annotation_ts, candidate_result, output_dir, filena
             # plt.tight_layout()
             plt.ylabel('True label')
             plt.xlabel('Predicted label')
-        # Compute confusion matrix        
-        np.set_printoptions(precision=2)
-        plt.figure()
-        plot_confusion_matrix(confusion_table)
-        plt.savefig(output_dir+os.sep+filename+'.cm.png')
-        plt.close('all')
-        confusion_table_normalized = confusion_table.astype('float') / confusion_table.sum(axis=1)[:, np.newaxis]
-        plt.figure()
-        plot_confusion_matrix(confusion_table_normalized)
-        plt.savefig(output_dir+os.sep+filename+'.norm.cm.png')
-        plt.close('all')
+            plt.savefig(output_path)
+        # Compute confusion matrix
+        plot_confusion_matrix(confusion_table, title='Confusion matrix', output_path=output_dir+os.sep+filename+'.cm.png')
+        # confusion_table_normalized = confusion_table.astype('float') / confusion_table.sum(axis=1)[:, np.newaxis]        
+        # plot_confusion_matrix(confusion_table_normalized, title='Normalized confusion matrix', output_path=output_dir+os.sep+filename+'.norm.cm.png')
+
 
     # write result to file
     save_stdout = sys.stdout
