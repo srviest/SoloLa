@@ -845,7 +845,7 @@ def parser():
     p.add_argument('input_note', type=str, metavar='input_note',
                    help='note events to be processed')
 
-    p.add_argument('input_model', type=str, metavar='input_model',
+    p.add_argument('input_model', nargs='+', type=str, metavar='input_model',
                    help='pre-trained classifier')
 
     p.add_argument('output_dir', type=str, metavar='output_dir',
@@ -973,9 +973,9 @@ def main(args):
 
 
         """
-        =====================================================================================
+        ================================================================================================
         S.2 Detect {slide in} {slide out} by recognizing the ladder pattern in quantised melody contour.
-        =====================================================================================
+        ================================================================================================
         """
         print 'Detecting {slide in} {slide out} ...' 
         LS = LongSlide(MIDI_smooth_melody, hop=contour_hop, sr=contour_sr, 
@@ -1107,66 +1107,87 @@ def main(args):
         S.4.3 Classfication using pre-train classifier.
         -----------------------------------------------
         """        
-        # if args.cls_mode='single_model':
-        #     ascending_model=args.cls_mode[0]
-        #     descending_model=args.cls_mode[1]
-        # elif args.cls_mode='double_model':
-        #     ascending_model=args.cls_mode[0]
-        #     descending_model=args.cls_mode[0]
 
-        # # load pre-trained SVM
-        # tech_index_dic = {'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}
-        # try:
-        #     clf = np.load(args.input_model).item()
-        # except IOError:
-        #     print 'The expression style recognition model ', args.input_model, ' doesn\'t exist!'
+        if len(args.input_model)==1:
+            cls_mode = 'single_model'
+            model_path_list=[args.input_model[0], args.input_model[0]]
+            tech_index_dic_list = [{'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}, 
+                                   {'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}]
 
-        # candidate_type = ['ascending','descending']
-        # for ct in candidate_type:
-        #     # load raw features
-        #     candidate = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate')
-        #     raw_feature = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature')
-        #     # raw_data = np.vstack((ascending_raw_feature, descending_raw_feature))
+        elif len(args.input_model)==2:
+            cls_mode ='double_model'
+            model_path_list=[args.cls_mode[0], args.cls_mode[1]]
+            tech_index_dic_list = [{'bend':0, 'hamm':1, 'normal':2, 'slide':4}, 
+                                   {'bend':0, 'normal':2, 'pull':3, 'slide':4}]
 
-        #     # data preprocessing
-        #     data = data_preprocessing(raw_feature, data_preprocessing_method=data_preprocessing_method, scaler_path=args.scaler_path)
+        candidate_type = ['ascending','descending']
+        for index, ct in enumerate(candidate_type):
+            # load pre-trained SVM
+            tech_index_dic = tech_index_dic_list[index]
+            try:
+                clf = np.load(model_path_list[index]).item()
+            except IOError:
+                print 'The expression style recognition model ', model_path_list[index], ' doesn\'t exist!'
 
-        #     # classfication
-        #     y_pred = clf.predict(data)
-        #     result = np.hstack((candidate, np.asarray(y_pred).reshape(len(y_pred), 1)))
-        #     np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.cls_result', result, fmt='%s')
+            # load raw features
+            candidate = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate')
+            raw_feature = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature')
+            # raw_data = np.vstack((ascending_raw_feature, descending_raw_feature))
 
-        # # combine ascending and descending cadidates
-        # result_all = np.vstack((np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[0]+'.candidate'+'.cls_result'), np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[1]+'.candidate'+'.cls_result')))
-        # # sort by time
-        # result_all = result_all[np.argsort(result_all[:,0], axis = 0)]
-        # # convert class indices of classifier into technique indices in annotation
-        # cls_result = convert_index_clf_cls_2_anno_tech(result_all, tech_index_dic)
-        # # update ests
-        # expression_style_ts = np.vstack([expression_style_ts, cls_result])
-        # expression_style_ts = expression_style_ts[np.argsort(expression_style_ts[:,0], axis = 0)]
+            # data preprocessing
+            data = data_preprocessing(raw_feature, data_preprocessing_method=data_preprocessing_method, scaler_path=args.scaler_path)
 
-        # if args.debug:
-        #     # create result directory
-        #     debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.3_classification'
-        #     if not os.path.exists(debug_dir): 
-        #             os.makedirs(debug_dir)
-        #     np.savetxt(debug_dir+os.sep+name+'.all.cls_result', result_all, fmt='%s')
-        #     np.savetxt(debug_dir+os.sep+name+'.ts', expression_style_ts, fmt='%s')
-        #     save_cls_result_for_visualization(result_all, debug_dir, name, tech_index_dic=tech_index_dic)
+            # classfication
+            y_pred = clf.predict(data)
+            result = np.hstack((candidate, np.asarray(y_pred).reshape(len(y_pred), 1)))
+            np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate.'+cls_mode+'.cls_result', result, fmt='%s')
+            
+            # convert class indices of classifier into technique indices in annotation
+            cls_result = convert_index_clf_cls_2_anno_tech(result, tech_index_dic)
+            # update ests
+            expression_style_ts = np.vstack([expression_style_ts, cls_result])
+            expression_style_ts = expression_style_ts[np.argsort(expression_style_ts[:,0], axis = 0)]
 
-        # if args.eval_cls:
-        #     print '  Evaluating classification result...' 
-        #     # load time-stamp answer
-        #     annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
-        #     GTEval.evaluation_candidate_cls(annotation_ts, result_all, args.output_dir, name, 
-        #         tech_index_dic=tech_index_dic, string=None, mode='w')
+            if args.debug:
+                # create result directory
+                debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.3_classification'+os.sep+cls_mode
+                if not os.path.exists(debug_dir): os.makedirs(debug_dir)
+                np.savetxt(debug_dir+os.sep+name+'.ts', expression_style_ts, fmt='%s')
+                save_cls_result_for_visualization(result, debug_dir, name, tech_index_dic=tech_index_dic)
 
-        # if args.eval_ts:
-        #     print '  Evaluating time segment-level expression style after candidate classification...'
-        #     annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
-        #     GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
-        #         string='Result after candidate classification', mode='a')
+            if args.eval_cls:
+                print '  Evaluating classification result...' 
+                # load time-stamp answer
+                annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
+                GTEval.evaluation_candidate_cls(annotation_ts, result, args.output_dir, name,
+                    tech_index_dic=tech_index_dic, string=None, mode='w')
+
+            if args.eval_ts:
+                print '  Evaluating time segment-level expression style after candidate classification...'
+                annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
+                GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
+                    string='Result after candidate classification', mode='a')
+
+
+        # combine ascending and descending cadidates
+        result_all = np.vstack((np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[0]+'.candidate.'+cls_mode+'.cls_result'), np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[1]+'.candidate.'+cls_mode+'.cls_result')))
+        # sort by time
+        result_all = result_all[np.argsort(result_all[:,0], axis = 0)]
+        
+        if args.debug:
+            # create result directory
+            debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.3_classification'+os.sep+cls_mode
+            if not os.path.exists(debug_dir): os.makedirs(debug_dir)
+            np.savetxt(debug_dir+os.sep+name+'.all.cls_result', result_all, fmt='%s')
+            
+            save_cls_result_for_visualization(result_all, debug_dir, name, tech_index_dic=tech_index_dic)
+
+        if args.eval_cls:
+            print '  Evaluating classification result...' 
+            # load time-stamp answer
+            annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
+            GTEval.evaluation_candidate_cls(annotation_ts, result_all, args.output_dir, name, 
+                tech_index_dic=tech_index_dic, string=None, mode='w')
 
 
         # ##########################################################################################

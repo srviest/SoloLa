@@ -103,7 +103,7 @@ def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_me
         elif scaler_path!=None and output_path==None:
             print '    Standardizing data by pre-computed standard scaler...'
             # load scaler
-            scaler = np.load(scaler_path).itme()
+            scaler = np.load(scaler_path+'.standard_scaler.npy').itme()
             data = scaler.transform(raw_data)
         elif scaler_path==None and output_path==None:
             print 'Please specify the scaler path or path to restore the scaler.'
@@ -118,7 +118,7 @@ def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_me
         elif scaler_path!=None and output_path==None:
             print '    Standardizing data by pre-computed robust scaler...'
             # load scaler
-            scaler = np.load(scaler_path).item()
+            scaler = np.load(scaler_path+'.robust_scaler.npy').item()
             data = scaler.transform(raw_data)
         elif scaler_path==None and output_path==None:
             print 'Please specify the scaler path or path to restore the scaler.'
@@ -406,7 +406,7 @@ def main(args):
                 
                 print("The model is trained on the full development set.")
                 print("The scores are computed on the full evaluation set.")
-                X_test = data_preprocessing(X_test, data_preprocessing_method=data_preprocessing_method, scaler_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+'.robust_scaler.npy')
+                X_test = data_preprocessing(X_test, data_preprocessing_method=data_preprocessing_method, scaler_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+)
                 y_true, y_pred = y_test, clf.predict(X_test)
 
                 # Compute confusion matrix        
