@@ -406,7 +406,7 @@ def main(args):
                 
                 print("The model is trained on the full development set.")
                 print("The scores are computed on the full evaluation set.")
-                X_test = data_preprocessing(X_test, data_preprocessing_method=data_preprocessing_method, scaler_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+)
+                X_test = data_preprocessing(X_test, data_preprocessing_method=data_preprocessing_method, scaler_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m)
                 y_true, y_pred = y_test, clf.predict(X_test)
 
                 # Compute confusion matrix        
