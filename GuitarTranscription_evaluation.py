@@ -432,8 +432,8 @@ def evaluation_candidate_cls(annotation_ts, candidate_result, output_dir, filena
             plt.savefig(output_path)
         # Compute confusion matrix
         plot_confusion_matrix(confusion_table, title='Confusion matrix', output_path=output_dir+os.sep+filename+'.cm.png')
-        # confusion_table_normalized = confusion_table.astype('float') / confusion_table.sum(axis=1)[:, np.newaxis]        
-        # plot_confusion_matrix(confusion_table_normalized, title='Normalized confusion matrix', output_path=output_dir+os.sep+filename+'.norm.cm.png')
+        confusion_table_normalized = confusion_table.astype('float') / confusion_table.sum(axis=1)[:, np.newaxis]        
+        plot_confusion_matrix(confusion_table_normalized, title='Normalized confusion matrix', output_path=output_dir+os.sep+filename+'.norm.cm.png')
 
 
     # write result to file
