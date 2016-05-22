@@ -25,6 +25,7 @@ import scipy.fftpack as fft
 import numpy as np
 from scipy.io import wavfile, savemat
 from sys import float_info
+import os, glob
 
 def repet_ada(x,fs):
     # Default adaptive parameters
@@ -53,7 +54,7 @@ def repet_ada(x,fs):
     except IndexError:
         # catch mono files
         k = 1
-    X = np.empty((win.shape[0],np.ceil((N-stp+x.shape[0])/stp),k),'complex128')
+    X = np.empty( (win.shape[0], int(np.ceil((N-stp+x.shape[0])/stp)), k), 'complex128')
     if k>1:
         # Loop over the channels
         for i in range(k):
@@ -64,7 +65,8 @@ def repet_ada(x,fs):
         X[:,:,i] = stft(x,win,stp)
 
     # Magnitude spectrogram (with DC component and without mirrored frequencies)
-    V = abs(X[0:N/2+1,:,:])
+    V = abs(X[0:int(N/2+1),:,:])
+    
     # Repeating period in time frames (compensate for STFT zero-padding at the beginning)
     per = map(lambda g: g*fs, per)
     per = np.ceil((per+N/stp-1)/stp)
@@ -85,7 +87,7 @@ def repet_ada(x,fs):
         # High-pass filtering of the (dual) non-repeating foreground
         s = 1
         e = 1+cof
-        Mi[s:e,:] = 1
+        Mi[int(s):int(e),:] = 1
         # Mirror the frequencies
         Mj = Mi[1:-1,:]
         Mi = np.concatenate((Mi,Mj[::-1]),0)
@@ -131,14 +133,16 @@ def stft(x,win,stp):
     # Number of frames with zero-padding
     m = np.ceil((N-stp+t)/stp)
     # Zero-padding for constant overlap-add
-    x = np.r_[np.zeros(N-stp),x,np.zeros(m*stp-t)]
-    X = np.zeros((N,m),'complex128')
+    x = np.r_[np.zeros(int(N-stp)), x, np.zeros(int(m*stp-t))]
+    
+    X = np.zeros((N,int(m)),'complex128')
+    
     # Loop over the frames
     for j in range(int(m)):														
     	s = 0+stp*j
     	e = N+stp*j
     	# Windowing and fft
-    	X[:,j] = fft.fft(x[s:e]*win)
+    	X[:,j] = fft.fft(x[int(s):int(e)]*win)
     return X
 
 """
@@ -159,19 +163,19 @@ def istft(X,win,stp):
     N,m = X.shape
     # Length with zero-padding                                                          
     l = (m-1)*stp+N
-    x = np.zeros(l)
+    x = np.zeros(int(l))
     # Loop over the frames
     for j in range(int(m)):
     	# Un-windowing and ifft (assuming constant overlap-add)
     		s = 0+stp*j
     		e = N+stp*j
-    		x[s:e] = x[s:e]+np.real(fft.ifft(X[:,j]))
+    		x[int(s):int(e)] = x[int(s):int(e)]+np.real(fft.ifft(X[:,j]))
     # Remove zero-padding at the beginning
-    x = x[0:l-(N-stp)]
+    x = x[0:int(l-(N-stp))]
     # Remove zero-padding at the end
-    x = x[N-stp::]
+    x = x[int(N-stp)::]
     # Normalize constant overlap-add using win
-    x = x/np.sum(win[0:N:stp])
+    x = x/np.sum(win[0:N:int(stp)])
     return x	
 
 
@@ -218,7 +222,6 @@ def beat_spectrum(X):
     # Correlogram using acorr [m lags, n bins]
     B = acorr(X.T) 
     g = B.dtype
-    print('The dtype of out of acorr() is ',g)                                                             
     # Mean along the frequency bins
     b = np.mean(B,1)
     return b
@@ -240,14 +243,15 @@ def beat_spectrogram(X,w,h):
     # Number of frequency bins and time frames
     n,m = X.shape
     # Zero-padding to center windows
-    X = np.concatenate((np.zeros((n,np.ceil((w-1.)/2))),X,np.zeros((n,np.floor((w-1.)/2)))),1)
-    B = np.zeros((w,m))
+    X = np.concatenate((np.zeros((n, int(np.ceil((w-1.)/2)) )), X, np.zeros((n, int(np.floor((w-1.)/2)) ))), 1)
+    B = np.zeros((int(w),m))
+    
     # Loop over the time frames (including the last one)
     for j in range(0,m,int(h))+[m-1]:
         # Beat spectrum of the windowed spectrogram centered on frame j
         s = 0+j
         e = w+j
-        B[:,j] = beat_spectrum(X[:,s:e]).T
+        B[:,j] = beat_spectrum(X[:,int(s):int(e)]).T
     return B
 
 
@@ -268,7 +272,7 @@ def repeating_periods(B,r):
     # Beat spectrogram in the repeating period range
     s = r[0]-1
     e = r[1]
-    B = B[s:e,:]
+    B = B[int(s):int(e),:]
     # Maximum values in the repeating period range for all the frames
     P = np.argmax(B,0)
     # The repeating periods are estimated as the indices of the maximum values
@@ -396,7 +400,7 @@ def parser():
 
     """)
     # general options
-    p.add_argument('input_files', type=str, metavar='input_files', nargs='+',
+    p.add_argument('input_files', type=str, metavar='input_files',
                    help='files to be processed')
     p.add_argument('output_dir', type=str, metavar='output_dir',
                    help='output directory.')
@@ -405,9 +409,7 @@ def parser():
                    version='%(prog)spec 1.03 (2015-08-18)')
     # parse arguments
     args = p.parse_args()
-    # print arguments
-    if args.verbose:
-        print args
+    
     # return args
     return args
 
@@ -422,7 +424,7 @@ def main(args):
     print 'Running monaural source separation...'
     print '====================================='
     # parse and list files to be processed
-    files = parse_input_files(args)
+    files = parse_input_files(args.input_files)
     
     # create result directory
     if not os.path.exists(args.output_dir): os.makedirs(args.output_dir)

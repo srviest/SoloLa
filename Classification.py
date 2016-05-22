@@ -69,6 +69,10 @@ def collect_same_technique_feature_files(feature_dir, technique_type = ['bend', 
 
 def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method, scaler_path=None, output_path=None):
     from sklearn.preprocessing import Imputer, scale, robust_scale, StandardScaler, RobustScaler
+    try:
+        raw_data.shape[1]
+    except IndexError:
+        raw_data = raw_data.reshape(1, raw_data.shape[0])
 
     # replace nan feature with the median of column values
     imp = Imputer(missing_values='NaN', strategy='median', axis=0)

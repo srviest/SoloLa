@@ -18,18 +18,19 @@ def parse_input_files(input_files, ext='.wav'):
     import fnmatch
     import glob
     files = []
-    for i in input_files:
-        # check what we have (file/path)
-        if isdir(i):
-            # use all files with .raw.melody in the given path
-            files = fnmatch.filter(glob.glob(i+'/*'), '*'+ext)
-        else:
-            # file was given, append to list
-            if basename(i).find(ext)!=-1:
-                files.append(i)
+
+    # check what we have (file/path)
+    if isdir(input_files):
+        # use all files with .raw.melody in the given path
+        files = fnmatch.filter(glob.glob(input_files+'/*'), '*'+ext)
+    else:
+        # file was given, append to list
+        if basename(input_files).find(ext)!=-1:
+            files.append(input_files)
     print '  Input files: '
     for f in files: print '    ', f
     return files
+
 
 def parser():
 
@@ -53,10 +54,10 @@ def parser():
 
     """)
     # general options
-    # p.add_argument('input_files', type=str, metavar='input_files', nargs='+',
-    #                help='files to be processed')    
-    # p.add_argument('output_dir', type=str, metavar='output_dir',
-    #                help='output directory.')
+    p.add_argument('input_files', type=str, metavar='input_files',
+                   help='files to be processed')    
+    p.add_argument('output_dir', type=str, metavar='output_dir',
+                   help='output directory.')
     p.add_argument('-dbt', action='store_true', default=False, 
         help='Downbeat tracking')
     p.add_argument('-mse', action='store_true', default=False, 
@@ -83,9 +84,10 @@ def main(args):
 
     # input_audio = '/Users/Frank/Documents/Code/Database/test/Guitar_Licks_51_10.wav'
     # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect'
-    args.input_files = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect'
+    
     # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/Clean_Room'
-    args.output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/All_Effects'
+    # args.input_files = '/Users/Frank/Documents/Code/Database/test'
+    # args.output_dir = '/Users/Frank/Documents/Code/Python/Test_160521_SoloLa!'
     
     
     # parse and list files to be processed
@@ -119,25 +121,28 @@ def main(args):
         # S2. Melody extraction
         if args.me: call(['python', 'Melody_extraction.py',
                           args.output_dir+os.sep+name+os.sep+'S1.IsolatedGuitar',
-                          args.output_dir+os.sep+name+'S2.Melody'])
+                          args.output_dir+os.sep+name+os.sep+'S2.Melody']) 
 
         # S3. Note tracking
         if args.nt: call(['python', 'Note_tracking.py',
-                          args.output_dir+os.sep+name+'S2.Melody',
-                          args.output_dir+os.sep+name+'S3.Note', 
-                          '-eval', '/Users/Frank/Documents/Code/Database/ground_truth/rock_lead_guitar/New_Note_original/'])
+                          args.output_dir+os.sep+name+os.sep+'S2.Melody',
+                          args.output_dir+os.sep+name+os.sep+'S3.Note'])
 
         # S4. Expression style recognition
         if args.esr: call(['python', 'Expression_style_recognition.py',
                            args.output_dir+os.sep+name+os.sep+'S1.IsolatedGuitar',
-                           args.output_dir+os.sep+name+'S2.Melody',
-                           args.output_dir+os.sep+name+'S3.Note',
-                           args.output_dir+os.sep+name+'S4.ExpressionStyle'])
+                           args.output_dir+os.sep+name+os.sep+'S2.Melody',
+                           args.output_dir+os.sep+name+os.sep+'S3.Note',
+                           '/Users/Frank/Documents/Code/Python/GPT_experiment/Pre-train_model/S5.Classification_bend_pull_normal_hamm_slide/bend_1169_hamm_1169_normal_1169_pull_1169_slide_1169.iter1.fold1.all.metric.f1.model.npy',
+                           args.output_dir+os.sep+name+os.sep+'S4.ExpressionStyle', 
+                           '-scaler_path', 
+                           '/Users/Frank/Documents/Code/Python/GPT_experiment/Pre-train_model/S5.Classification_bend_pull_normal_hamm_slide/bend_1169_hamm_1169_normal_1169_pull_1169_slide_1169.iter1.fold1.all.metric.f1', 
+                           '-debug'])
 
         # S5. Fingering arramgement
-        if args.fa: call(['python', 'Fingering_arramgement.py', 
-                          args.output_dir+os.sep+'S4.ExpressionStyle', 
-                          args.output_dir+os.sep+'S5.Fingering'])
+        if args.fa: call(['python', 'Fingering_arrangement.py', 
+                          args.output_dir+os.sep+name+os.sep+'S4.ExpressionStyle', 
+                          args.output_dir+os.sep+name+os.sep+'S5.Fingering'])
     
 
 if __name__ == '__main__':

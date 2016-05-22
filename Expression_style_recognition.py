@@ -1131,48 +1131,55 @@ def main(args):
             except IOError:
                 print 'The expression style recognition model ', model_path_list[index], ' doesn\'t exist!'
 
-            # load raw features
-            candidate = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate')
-            raw_feature = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature')
-            # raw_data = np.vstack((ascending_raw_feature, descending_raw_feature))
-
-            # data preprocessing
-            data = data_preprocessing(raw_feature, data_preprocessing_method=data_preprocessing_method, scaler_path=args.scaler_path)
-
-            # classfication
-            y_pred = clf.predict(data)
-            result = np.hstack((candidate, np.asarray(y_pred).reshape(len(y_pred), 1)))
-            np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate.'+cls_mode+'.cls_result', result, fmt='%s')
             
-            # convert class indices of classifier into technique indices in annotation
-            cls_result = convert_index_clf_cls_2_anno_tech(result, tech_index_dic)
-            # update ests
-            expression_style_ts = np.vstack([expression_style_ts, cls_result])
-            expression_style_ts = expression_style_ts[np.argsort(expression_style_ts[:,0], axis = 0)]
+            candidate = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate')
+            if candidate.size!=0:
+                if candidate.shape==(2,): candidate=candidate.reshape(1,2)
+                # load raw features    
+                raw_feature = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature')
+                # data preprocessing
+                data = data_preprocessing(raw_feature, data_preprocessing_method=data_preprocessing_method, scaler_path=args.scaler_path)
+                # classfication
+                y_pred = clf.predict(data)
+                result = np.hstack((candidate, np.asarray(y_pred).reshape(len(y_pred), 1)))
+                np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate.'+cls_mode+'.cls_result', result, fmt='%s')
+                # convert class indices of classifier into technique indices in annotation
+                cls_result = convert_index_clf_cls_2_anno_tech(result, tech_index_dic)
+                # update ests
+                expression_style_ts = np.vstack([expression_style_ts, cls_result])
+                expression_style_ts = expression_style_ts[np.argsort(expression_style_ts[:,0], axis = 0)]
 
-            if args.debug:
-                # create result directory
-                debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.3_classification'+os.sep+cls_mode
-                if not os.path.exists(debug_dir): os.makedirs(debug_dir)
-                np.savetxt(debug_dir+os.sep+name+'.ts', expression_style_ts, fmt='%s')
-                save_cls_result_for_visualization(result, debug_dir, name+'.'+ct+'.candidate.'+cls_mode, tech_index_dic=tech_index_dic)
+                if args.debug:
+                    # create result directory
+                    debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.3_classification'+os.sep+cls_mode
+                    if not os.path.exists(debug_dir): os.makedirs(debug_dir)
+                    np.savetxt(debug_dir+os.sep+name+'.ts', expression_style_ts, fmt='%s')
+                    save_cls_result_for_visualization(result, debug_dir, name+'.'+ct+'.candidate.'+cls_mode, tech_index_dic=tech_index_dic)
 
-            if args.eval_cls:
-                print '  Evaluating classification result...' 
-                # load time-stamp answer
-                annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
-                GTEval.evaluation_candidate_cls(annotation_ts, result, args.output_dir, name+'.'+ct+'.candidate.'+cls_mode,
-                    tech_index_dic=tech_index_dic, string='Result of '+ct+' candidates classifiaction', mode='w')
+                if args.eval_cls:
+                    print '  Evaluating classification result...' 
+                    # load time-stamp answer
+                    annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
+                    GTEval.evaluation_candidate_cls(annotation_ts, result, args.output_dir, name+'.'+ct+'.candidate.'+cls_mode,
+                        tech_index_dic=tech_index_dic, string='Result of '+ct+' candidates classifiaction', mode='w')
 
-            if args.eval_ts:
-                print '  Evaluating time segment-level expression style after candidate classification...'
-                annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
-                GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
-                    string='Result after '+ct+' candidate classification', mode='a')
+                if args.eval_ts:
+                    print '  Evaluating time segment-level expression style after candidate classification...'
+                    annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
+                    GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
+                        string='Result after '+ct+' candidate classification', mode='a')
 
+        try:
+            ascending_cls_result = np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[0]+'.candidate.'+cls_mode+'.cls_result')
+        except IOError:
+            ascending_cls_result = np.empty([0,3])
+        try:
+            descending_cls_result = np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[1]+'.candidate.'+cls_mode+'.cls_result')
+        except IOError:
+            descending_cls_result = np.empty([0,3])
 
         # combine ascending and descending cadidates
-        result_all = np.vstack((np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[0]+'.candidate.'+cls_mode+'.cls_result'), np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[1]+'.candidate.'+cls_mode+'.cls_result')))
+        result_all = np.vstack((ascending_cls_result, descending_cls_result))
         # sort by time
         result_all = result_all[np.argsort(result_all[:,0], axis = 0)]
         
@@ -1253,62 +1260,64 @@ def main(args):
         S.4.4 Merge bend & release notes and update expression style note by classification result.
         -------------------------------------------------------------------------------------------
         """
-        print 'Merging bended notes...'
-        # merge bend and note
-        expression_style_note = merge_and_update_prebend_bend_release(expression_style_note, result_all)
+        if result_all.size!=0:
+            print 'Merging bended notes...'
+            # merge bend and note
+            expression_style_note = merge_and_update_prebend_bend_release(expression_style_note, result_all)
 
-        if args.debug:
-            print '  Restoring results for debugging...'
-            # create result directory
-            debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.4_Merge_and_update_prebend_bend_release'
-            if not os.path.exists(debug_dir): 
-                    os.makedirs(debug_dir)
-            # save updated expression style note
-            np.savetxt(debug_dir+os.sep+name+'.esn', expression_style_note, fmt='%s')
-            save_esn_for_visualization(expression_style_note, debug_dir, name)
+            if args.debug:
+                print '  Restoring results for debugging...'
+                # create result directory
+                debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.4_Merge_and_update_prebend_bend_release'
+                if not os.path.exists(debug_dir): 
+                        os.makedirs(debug_dir)
+                # save updated expression style note
+                np.savetxt(debug_dir+os.sep+name+'.esn', expression_style_note, fmt='%s')
+                save_esn_for_visualization(expression_style_note, debug_dir, name)
 
-        if args.eval_esn:
-            print '  Evaluating note-level expression style...' 
-            # load esn answer
-            annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
-            GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
-                string='Result after bended notes merged.', mode='a')
+            if args.eval_esn:
+                print '  Evaluating note-level expression style...' 
+                # load esn answer
+                annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
+                GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
+                    string='Result after bended notes merged.', mode='a')
 
         """
         ---------------------------------------------------------------------------------------------------
         S.5.5 Update pull-off, hammer-on and slide notes to expression style note by classification result.
         ---------------------------------------------------------------------------------------------------
         """
-        print 'Update pull-off, hammer-on and slide notes to expression style note by classification result...'
-        # update esn
-        expression_style_note = update_pull_hamm_slide(expression_style_note, result_all, tech_index_dic=tech_index_dic)
+        if result_all.size!=0:
+            print 'Update pull-off, hammer-on and slide notes to expression style note by classification result...'
+            # update esn
+            expression_style_note = update_pull_hamm_slide(expression_style_note, result_all, tech_index_dic=tech_index_dic)
 
-        if args.debug:
-            print '  Restoring results for debugging...'
-            # create result directory
-            debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.5_Update_pull_hamm_slide'
-            if not os.path.exists(debug_dir): 
-                    os.makedirs(debug_dir)
-            # save updated expression style note
-            np.savetxt(debug_dir+os.sep+name+'.esn', expression_style_note, fmt='%s')
-            save_esn_for_visualization(expression_style_note, debug_dir, name)
+            if args.debug:
+                print '  Restoring results for debugging...'
+                # create result directory
+                debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.5_Update_pull_hamm_slide'
+                if not os.path.exists(debug_dir): 
+                        os.makedirs(debug_dir)
+                # save updated expression style note
+                np.savetxt(debug_dir+os.sep+name+'.esn', expression_style_note, fmt='%s')
+                save_esn_for_visualization(expression_style_note, debug_dir, name)
 
-        if args.eval_esn:
-            print '  Evaluating note-level expression style...' 
-            # load esn answer
-            annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
-            GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
-                string='Result after pull-off, hammer-on and slide notes updated.', mode='a')
-        if args.eval_note:
-            print '  Evaluating note accuracy...'
-            # load note answer
-            annotation = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
-            note = expression_style_note[:,0:3]
-            # pruned_note = note_pruning(note, threshold=args.p)
-            GTEval.evaluation_note(annotation, note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, 
-                string='Result after pull-off, hammer-on and slide notes updated.', mode='a')
+            if args.eval_esn:
+                print '  Evaluating note-level expression style...' 
+                # load esn answer
+                annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
+                GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
+                    string='Result after pull-off, hammer-on and slide notes updated.', mode='a')
+            if args.eval_note:
+                print '  Evaluating note accuracy...'
+                # load note answer
+                annotation = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
+                note = expression_style_note[:,0:3]
+                # pruned_note = note_pruning(note, threshold=args.p)
+                GTEval.evaluation_note(annotation, note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, 
+                    string='Result after pull-off, hammer-on and slide notes updated.', mode='a')
+                
             
-        
         """
         ====================================================================================================================
         S.5 Detect {hammer on} {pull off} by analyzing the timbre of remained note transition which are not selected in S.5.
@@ -1416,6 +1425,13 @@ def main(args):
             GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
                 string='Result after vibrato detection', mode='a')     
 
+
+        """
+        ==================================================================================
+        S.7 Write final expression style note into file
+        ==================================================================================
+        """
+        np.savetxt(args.output_dir+os.sep+name+'.esn', expression_style_note, fmt='%s')
 
 if __name__ == '__main__':
     args = parser()

@@ -206,7 +206,7 @@ class Score(object):
         self.score_events = []
         self.doc = None         # container for parsed music document
         for n in note:
-            Note = self._handle_note(n)
+            Note = Score.handle_note(n)
             self.score_events.append(Note)
 
     def engrave(self):
@@ -219,7 +219,8 @@ class Score(object):
         for e in self.score_events:
             print e
 
-    def _handle_note(note):
+    @staticmethod
+    def handle_note(note):
         '''
         Helper function that takes an mei note element
         and creates a Note object out of it.
@@ -273,10 +274,9 @@ class ArrangeTabAstar(object):
         fingering = np.empty([0,2])
         for s in strums:            
             for ss in s: 
-                fingering = np.append(fingering,[[ss[2].string, ss[2].fret]], axis=0)
+                fingering = np.append(fingering,[[ss[2].string+1, ss[2].fret+1]], axis=0)
 
         return fingering
-        np.savetxt(output_path, fingering, fmt='%s')
         
 
     def _gen_graph(self):
@@ -406,14 +406,14 @@ class ArrangeTabAstar(object):
         return candidates
 
 
-def parse_input_files(input_files, ext):
+def parse_input_files(input_files, ext='.wav'):
     """
-    Collect all files by given extension.
+    Collect all files by given extension and keywords.
 
-    :param input_files:  list of input files or directories.
-    :param ext:          the string of file extension.
-    :returns:            a list of stings of file name.
-    
+    :param agrs:  class 'argparse.Namespace'.
+    :param ext:   the string of file extension.
+    :returns:     a list of stings of file name.
+
     """
     from os.path import basename, isdir
     import fnmatch
@@ -431,6 +431,7 @@ def parse_input_files(input_files, ext):
     print '  Input files: '
     for f in files: print '    ', f
     return files
+
 
 def parser():
     """
@@ -470,7 +471,7 @@ def main(args):
     print 'Running fingering arrangement...'
     print '================================'
     # parse and list files to be processed
-    files = parse_input_files(args.input_files, ext='.expression_style_note')
+    files = parse_input_files(args.input_files, ext='.esn')
     
     # create result directory
     if not os.path.exists(args.output_dir): os.makedirs(args.output_dir)
@@ -481,11 +482,16 @@ def main(args):
         # parse file name and extension
         ext = os.path.basename(f).split('.')[-1]
         name = os.path.basename(f).split('.')[0]
+        # load expression style note
+        try:
+            expression_style_note = np.loadtxt(f)
+        except IOError:
+            print 'The expression style note of', name, 'doesn\'t exist!'
 
         # extract the pitch, onset and duration
         note_nparray = expression_style_note[:,0:3]
         # convert numpy array to list
-        note = np.ndarray.tolist(note_nparray)    
+        note = np.ndarray.tolist(note_nparray)        
         # generate the score model
         score = Score(note)
         astar = ArrangeTabAstar(score, num_frets=args.fn)
