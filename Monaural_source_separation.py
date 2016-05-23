@@ -23,7 +23,7 @@ Returns:
 
 import scipy.fftpack as fft
 import numpy as np
-from scipy.io import wavfile, savemat
+from scipy.io import wavfile
 from sys import float_info
 import os, glob
 

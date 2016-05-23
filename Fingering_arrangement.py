@@ -22,7 +22,6 @@ Returns:
 import numpy as np
 import os
 import networkx as nx
-import itertools
 
 class GuitarEvent(object):
 

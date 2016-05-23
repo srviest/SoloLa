@@ -19,9 +19,7 @@ Returns:
 
 import glob, os, sys
 import numpy as np
-from scipy.io import wavfile
 import math
-import operator
 from essentia import *
 from essentia.standard import *
 from GuitarTranscription_parameters import selected_features, contour_sr

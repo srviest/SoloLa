@@ -24,7 +24,6 @@ Returns:
 import glob, os, sys
 import subprocess as subp
 import numpy as np
-import math
 
 def note_pruning(note_pseudo, threshold=0.1):
     """

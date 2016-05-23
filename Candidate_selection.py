@@ -21,8 +21,6 @@ Returns:
 """
 import glob, os, sys
 import numpy as np
-import math
-from scipy.io import wavfile
 from GuitarTranscription_parameters import *
 
 
