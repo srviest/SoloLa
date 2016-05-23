@@ -184,7 +184,7 @@ def calculate_candidate_cls_accuracy_f_measure(annotation_ts_pseudo, candidate_r
     y_true.fill(tech_index_dic['normal'])
     # create predicted list
     y_pred = candidate_result[:,2].copy()
-    answer_tech_dic = {'bend':[3,4,5], 'pull':[6], 'hamm':[7], 'slide':[8,9,10], 'vibrato':[11]}
+    answer_tech_dic = {'bend':[4,5], 'pull':[6], 'hamm':[7], 'slide':[8,9,10], 'vibrato':[11]}
     # make target tech list, e.g., ['bend', 'pull', 'vibrato']
     target_tech_list = [t for t in tech_index_dic if t in answer_tech_dic.keys()]
     # make target tech index list, e.g., [3,4,5,6,11]
@@ -201,7 +201,7 @@ def calculate_candidate_cls_accuracy_f_measure(annotation_ts_pseudo, candidate_r
                 # if the answer covered by candidate is in the target tech list
                 if ts_ann[-1] in target_tech_index_list:
                     # fill answer list
-                    if ts_ann[-1] in [3,4,5]:
+                    if ts_ann[-1] in [4,5]:
                         y_true[index_candi]=tech_index_dic['bend']
                     elif ts_ann[-1]==6:
                         y_true[index_candi]=tech_index_dic['pull']

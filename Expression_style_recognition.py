@@ -614,11 +614,7 @@ class SoftVibrato(object):
         return expression_style_note, expression_style_ts
 
 def merge_and_update_prebend_bend_release(expression_style_note, result_ref):
-    # import sys
-    # save_stdout = sys.stdout
-    # fh = open('/Users/Frank/Documents/Code/Python/Test_ExpressionStyle_result/lick_80/S3.ExpressionStyle/debug/after_S.5.4_Merge_and_update_prebend_bend_release/merge_and_update_prebend_bend_release_procedure.txt','w')
-    # sys.stdout = fh
-
+    
     result = result_ref.copy()
     note_to_be_deleted = np.empty([0])
     for index_candi, candi_result in enumerate(result):
@@ -631,11 +627,6 @@ def merge_and_update_prebend_bend_release(expression_style_note, result_ref):
                    candi_result[1] < expression_style_note[index_note+1,1]+expression_style_note[index_note+1,2]:
                     current_index_candi = index_candi
                     current_index_note = index_note+1
-                    # print 'Candidate exact covers consecutive two notes'
-                    # print '    index_candi: ', index_candi
-                    # print '    current_index_candi: ', current_index_candi
-                    # print '    index_note: ', index_note
-                    # print '    current_index_note: ', current_index_note
                     while current_index_note+1 <= expression_style_note.shape[0] and \
                           current_index_candi+1 <= result.shape[0] and \
                           result[current_index_candi+1,2] == 0 and \
@@ -645,14 +636,8 @@ def merge_and_update_prebend_bend_release(expression_style_note, result_ref):
                           result[current_index_candi+1,1] < expression_style_note[current_index_note+1,1]+expression_style_note[current_index_note,2]:
                         current_index_candi+=1
                         current_index_note+=1
-                    # print '    Checking whether or not the followed candidate is predicted as bend.' 
-                    # print '    index_candi: ', index_candi
-                    # print '    current_index_candi: ', current_index_candi
-                    # print '    index_note: ', index_note
-                    # print '    current_index_note: ', current_index_note
                     # delete the note which is about to be merged
                     note_to_be_deleted = np.append(note_to_be_deleted,range(index_note+1,current_index_note+1), axis=0)
-                    # print '    note_to_be_deleted: ', note_to_be_deleted
                     # mark the merged candidate as 0
                     # if current_index_candi-index_candi > 0:
                     result[index_candi:current_index_candi+1, 0:2] = 0
@@ -661,31 +646,19 @@ def merge_and_update_prebend_bend_release(expression_style_note, result_ref):
                     # keep the predicted expression styles on merged notes which is going to be deleted
                     expression_style_note[index_note,6:]=np.nanmax(expression_style_note[index_note+1:current_index_note+1,6:], axis=0)
                     # mark the bend in expression style note                    
-                    # print '    range(index_note,current_index_note): ', range(index_note,current_index_note)
                     
                     for n in range(index_note,current_index_note):
-                        # print 'expression_style_note[n+1,0]: ', expression_style_note[n+1,0]
-                        # print 'expression_style_note[n,0]: ', expression_style_note[n,0]
                         pitch_diff = expression_style_note[n+1,0]-expression_style_note[n,0]
-                        # print '    pitch_diff ', pitch_diff
                         if pitch_diff > 0:
                             expression_style_note[index_note,4] = pitch_diff
                         elif pitch_diff < 0:
                             expression_style_note[index_note,5] = abs(pitch_diff)
-                    # print '    Note index: ', index_note
-                    # print '         Pitch: ', expression_style_note[index_note, 0]
-                    # print '         Bend: ', expression_style_note[index_note, 4]
-                    # print '         Release: ', expression_style_note[index_note, 5]
                     if expression_style_note[index_note, 4]==0 and expression_style_note[index_note, 5]!=0:
-                        # print '    Here should be a pre-bend.'
                         expression_style_note[index_note, 3] = expression_style_note[index_note, 5]
                     # replace the pitch of first note with the lowest pitch among index_note to current_index_note
                     expression_style_note[index_note,0]= np.min(expression_style_note[index_note:current_index_note+1,0])
     # print note_to_be_deleted
     expression_style_note = np.delete(expression_style_note, note_to_be_deleted, axis=0)
-
-    # sys.stdout = save_stdout
-    # fh.close()
 
     return expression_style_note
 
@@ -752,12 +725,32 @@ def update_pull_hamm_slide(expression_style_note, result_ref, tech_index_dic):
 
 def convert_index_clf_cls_2_anno_tech(cls_result, tech_index_dic):
     cls_result_in_anno_index = cls_result.copy()
-    answer_tech_index_dic = {'bend':4, 'pull':6, 'hamm':7, 'slide':8, 'vibrato':11}
-    for t in tech_index_dic:
-            if answer_tech_index_dic.has_key(t):
-                cls_result_in_anno_index[np.where(cls_result_in_anno_index[:,-1]==tech_index_dic[t])[0],-1]=answer_tech_index_dic[t]
+    tech_index_dic_pseudo = tech_index_dic.copy()
+    answer_tech_index_dic = {'bend':4, 'release':5, 'pull':6, 'hamm':7, 'slide':8, 'vibrato':11}
     
+    if 'pull' in tech_index_dic_pseudo.keys() and 'hamm' not in tech_index_dic_pseudo.keys():
+        tech_index_dic_pseudo['release'] = tech_index_dic_pseudo['bend']
+        tech_index_dic_pseudo.pop('bend', None)
+
+    for t in tech_index_dic_pseudo:
+        if answer_tech_index_dic.has_key(t):
+            cls_result_in_anno_index[np.where(cls_result_in_anno_index[:,-1]==tech_index_dic_pseudo[t])[0],-1]=-answer_tech_index_dic[t]
+    
+    cls_result_in_anno_index[:,-1] = abs(cls_result_in_anno_index[:,-1])
     return cls_result_in_anno_index
+
+
+def convert_double_model_index_2_single_model(cls_result, tech_index_single, tech_index_all):
+    # tech_index_dic_list = [{'bend':0, 'hamm':1, 'normal':2, 'slide':3}, 
+                           # {'bend':0, 'normal':1, 'pull':2, 'slide':3}, 
+                           # {'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}]
+    cls_result_in_single_model = cls_result.copy()
+    for t in tech_index_single:
+        if tech_index_all.has_key(t):
+            cls_result_in_single_model[np.where(cls_result_in_single_model[:,-1]==tech_index_single[t])[0],-1]=-tech_index_all[t]
+
+    cls_result_in_single_model[:,-1] = abs(cls_result_in_single_model[:,-1])
+    return cls_result_in_single_model
 
 def save_esn_for_visualization(esn, output_dir, name):    
     np.savetxt(output_dir+os.sep+name+'.preb.esn', esn[:,[0,1,2,3]], fmt='%s')
@@ -852,7 +845,7 @@ def parser():
     p.add_argument('-p',   '--prunning_note', dest='p',  
                    help="the minimum duration of note event.",  default=0.1)
     # set the scaler path
-    p.add_argument('-scaler_path',   '--scaler_path', type=str, dest='scaler_path',  
+    p.add_argument('-scaler_path', '--scaler_path', nargs='+', type=str, metavar='scaler_path',  
                    help="path of pre-trained scaler path.",  default=None)
     # debug
     p.add_argument('-debug', dest='debug', default=None, action='store_true',
@@ -1067,7 +1060,7 @@ def main(args):
         S.4 Detect {bend} {hammer on} {pull off} {slide} by analyzing timbre of selected candidate regions.
         ===================================================================================================
         """
-        print 'Detecting {bend} {hammer on} {pull off} {slide} employed in the note transitions...'
+        print 'Detecting {bend} {hammer on} {pull off} {slide} employed on the note transitions...'
         """
         -----------------------------------------------------------------------------
         S.4.1 Candidate selection by finding note transitions covered by CAD pattern.
@@ -1110,15 +1103,19 @@ def main(args):
             print '    Classifying with single model...'
             cls_mode = 'single_model'
             model_path_list=[args.input_model[0], args.input_model[0]]
+            scaler_path_list=[args.scaler_path[0], args.scaler_path[0]]
             tech_index_dic_list = [{'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}, 
+                                   {'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}, 
                                    {'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}]
 
         elif len(args.input_model)==2:
-            print '    Classifying with double model...'
+            print '    Classifying with double models...'
             cls_mode ='double_model'
-            model_path_list=[args.cls_mode[0], args.cls_mode[1]]
-            tech_index_dic_list = [{'bend':0, 'hamm':1, 'normal':2, 'slide':4}, 
-                                   {'bend':0, 'normal':2, 'pull':3, 'slide':4}]
+            model_path_list=[args.input_model[0], args.input_model[1]]
+            scaler_path_list=[args.scaler_path[0], args.scaler_path[1]]
+            tech_index_dic_list = [{'bend':0, 'hamm':1, 'normal':2, 'slide':3}, 
+                                   {'bend':0, 'normal':1, 'pull':2, 'slide':3}, 
+                                   {'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}]
 
         candidate_type = ['ascending','descending']
         for index, ct in enumerate(candidate_type):
@@ -1136,7 +1133,7 @@ def main(args):
                 # load raw features    
                 raw_feature = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature')
                 # data preprocessing
-                data = data_preprocessing(raw_feature, data_preprocessing_method=data_preprocessing_method, scaler_path=args.scaler_path)
+                data = data_preprocessing(raw_feature, data_preprocessing_method=data_preprocessing_method, scaler_path=scaler_path_list[index])
                 # classfication
                 y_pred = clf.predict(data)
                 result = np.hstack((candidate, np.asarray(y_pred).reshape(len(y_pred), 1)))
@@ -1155,7 +1152,7 @@ def main(args):
                     save_cls_result_for_visualization(result, debug_dir, name+'.'+ct+'.candidate.'+cls_mode, tech_index_dic=tech_index_dic)
 
                 if args.eval_cls:
-                    print '  Evaluating classification result...' 
+                    print '  Evaluating', ct, 'candidates classification result...' 
                     # load time-stamp answer
                     annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
                     GTEval.evaluation_candidate_cls(annotation_ts, result, args.output_dir, name+'.'+ct+'.candidate.'+cls_mode,
@@ -1169,10 +1166,12 @@ def main(args):
 
         try:
             ascending_cls_result = np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[0]+'.candidate.'+cls_mode+'.cls_result')
+            ascending_cls_result = convert_double_model_index_2_single_model(ascending_cls_result, tech_index_single=tech_index_dic_list[0], tech_index_all=tech_index_dic_list[2])
         except IOError:
             ascending_cls_result = np.empty([0,3])
         try:
             descending_cls_result = np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[1]+'.candidate.'+cls_mode+'.cls_result')
+            descending_cls_result = convert_double_model_index_2_single_model(descending_cls_result, tech_index_single=tech_index_dic_list[1], tech_index_all=tech_index_dic_list[2])
         except IOError:
             descending_cls_result = np.empty([0,3])
 
@@ -1180,78 +1179,21 @@ def main(args):
         result_all = np.vstack((ascending_cls_result, descending_cls_result))
         # sort by time
         result_all = result_all[np.argsort(result_all[:,0], axis = 0)]
-        
+        np.savetxt(args.output_dir+os.sep+name+'.all.'+cls_mode+'.cls_result', result_all, fmt='%s')
+
         if args.debug:
             # create result directory
             debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.3_classification'+os.sep+cls_mode
             if not os.path.exists(debug_dir): os.makedirs(debug_dir)
-            np.savetxt(debug_dir+os.sep+name+'.all.'+cls_mode+'.cls_result', result_all, fmt='%s')
-            
             save_cls_result_for_visualization(result_all, debug_dir, name, tech_index_dic=tech_index_dic)
 
         if args.eval_cls:
-            print '  Evaluating classification result...' 
+            print '  Evaluating all candidates classification result...' 
             # load time-stamp answer
             annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
             GTEval.evaluation_candidate_cls(annotation_ts, result_all, args.output_dir, name+'.all.candidate.'+cls_mode, 
-                tech_index_dic=tech_index_dic, string='Result of all candidates classifiaction', mode='w')
+                tech_index_dic=tech_index_dic_list[2], string='Result of all candidates classifiaction', mode='w')
 
-
-        # ##########################################################################################
-        # print '    Classifying...'
-        # # load pre-trained SVM
-        # tech_index_dic = {'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}
-        # try:
-        #     clf = np.load(args.input_model).item()
-        # except IOError:
-        #     print 'The expression style recognition model ', args.input_model, ' doesn\'t exist!'
-
-        # candidate_type = ['ascending','descending']
-        # for ct in candidate_type:
-        #     # load raw features
-        #     candidate = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate')
-        #     raw_feature = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature')
-        #     # raw_data = np.vstack((ascending_raw_feature, descending_raw_feature))
-        #     # data preprocessing
-        #     data = data_preprocessing(raw_feature, data_preprocessing_method=data_preprocessing_method, scaler_path=args.scaler_path)
-
-        #     # classfication
-        #     y_pred = clf.predict(data)
-        #     result = np.hstack((candidate, np.asarray(y_pred).reshape(len(y_pred), 1)))
-        #     np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.cls_result', result, fmt='%s')
-
-        # # combine ascending and descending cadidates
-        # result_all = np.vstack((np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[0]+'.candidate'+'.cls_result'), np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[1]+'.candidate'+'.cls_result')))
-        # # sort by time
-        # result_all = result_all[np.argsort(result_all[:,0], axis = 0)]
-        # # convert class indices of classifier into technique indices in annotation
-        # cls_result = convert_index_clf_cls_2_anno_tech(result_all, tech_index_dic)
-        # # update ests
-        # expression_style_ts = np.vstack([expression_style_ts, cls_result])
-        # expression_style_ts = expression_style_ts[np.argsort(expression_style_ts[:,0], axis = 0)]
-
-        # if args.debug:
-        #     print '  Restoring results for debugging...'
-        #     # create result directory
-        #     debug_dir = args.output_dir+os.sep+'debug'+os.sep+'after_S.5.3_classification'
-        #     if not os.path.exists(debug_dir): 
-        #             os.makedirs(debug_dir)
-        #     np.savetxt(debug_dir+os.sep+name+'.all.cls_result', result_all, fmt='%s')
-        #     np.savetxt(debug_dir+os.sep+name+'.ts', expression_style_ts, fmt='%s')
-        #     save_cls_result_for_visualization(result_all, debug_dir, name, tech_index_dic=tech_index_dic)
-
-        # if args.eval_cls:
-        #     print '  Evaluating classification result...' 
-        #     # load time-stamp answer
-        #     annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
-        #     GTEval.evaluation_candidate_cls(annotation_ts, result_all, args.output_dir, name, 
-        #         tech_index_dic=tech_index_dic, string=None, mode='w')
-
-        # if args.eval_ts:
-        #     print '  Evaluating time segment-level expression style...'
-        #     annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
-        #     GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
-        #         string='Result after candidate classification', mode='a')
 
         """
         -------------------------------------------------------------------------------------------
