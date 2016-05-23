@@ -32,8 +32,7 @@ from sklearn.cross_validation import StratifiedKFold
 from sklearn.grid_search import GridSearchCV
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.svm import SVC
-import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize
+
 
 def collect_same_technique_feature_files(feature_dir, technique_type = ['bend', 'pull', 'normal','hamm', 'slide']):
     """
@@ -222,11 +221,11 @@ def balanced_subsample(x,y,subsample_size=1.0):
 
     return xs,ys
 
-def plot_confusion_matrix(cm, tech_index_dic, output_path, title='Confusion matrix', cmap=plt.cm.Blues):
+def plot_confusion_matrix(cm, tech_index_dic, output_path, title='Confusion matrix'):
     np.set_printoptions(precision=2)
     plt.figure()
     tech_list=np.asarray(sorted(tech_index_dic.keys()))
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
     plt.title(title)
     plt.colorbar()
     tick_marks = np.arange(len(tech_list))
@@ -251,14 +250,6 @@ def plot_heatmap_validation_accuracy(grid_scores, C_range, g_range):
     plt.yticks(np.arange(len(C_range)), C_range)
     plt.title('Validation accuracy')
 
-class MidpointNormalize(Normalize):
-    def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
-        self.midpoint = midpoint
-        Normalize.__init__(self, vmin, vmax, clip)
-
-    def __call__(self, value, clip=None):
-        x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
-        return np.ma.masked_array(np.interp(value, x, y))
 
 def blockPrint():
     sys.stdout = open(os.devnull, 'w')
@@ -309,6 +300,18 @@ def parser():
     return args
 
 def main(args):
+    
+    class MidpointNormalize(Normalize):
+        def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
+            self.midpoint = midpoint
+            Normalize.__init__(self, vmin, vmax, clip)
+
+        def __call__(self, value, clip=None):
+            x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
+            return np.ma.masked_array(np.interp(value, x, y))
+
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import Normalize
     print '========================='
     print 'Running classification...' 
     print '========================='   

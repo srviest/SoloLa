@@ -271,7 +271,7 @@ class ArrangeTabAstar(object):
                     plucks.append((note.id, pluck))
             strums.append(plucks)
 
-        fingering = np.empty([0,2])
+        fingering = np.empty([0,2], dtype=int)
         for s in strums:            
             for ss in s: 
                 fingering = np.append(fingering,[[ss[2].string+1, ss[2].fret+1]], axis=0)

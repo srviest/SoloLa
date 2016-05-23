@@ -74,8 +74,6 @@ Returns:
 
 import glob, os
 import numpy as np
-import subprocess as subp
-import operator
 import pickle
 import essentia
 from essentia.standard import EasyLoader, Vibrato
