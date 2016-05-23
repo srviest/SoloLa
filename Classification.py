@@ -87,12 +87,12 @@ def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_me
             raw_data[axis_0[index], axis_1[index]]=med[axis_1[index]]
 
     # standardization
-    if 'z-score' in data_preprocessing_method:
-        print '    Standardizing data by z-score...'
+    if 'scale' in data_preprocessing_method:
+        print '    Standardizing data by scale...'
         # z-score standardization
         data = scale(raw_data)
-    elif 'robust z-score' in data_preprocessing_method:
-        print '    Standardizing data by robust z-score...'
+    elif 'robust_scale' in data_preprocessing_method:
+        print '    Standardizing data by robust_scale...'
         # robust z-score standardization
         data = robust_scale(raw_data)
 
@@ -101,12 +101,15 @@ def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_me
             print '    Standardizing data by StandardScaler method...'
             scaler = StandardScaler().fit(raw_data)
             # save scaler
-            np.save(output_path+'.standard_scaler', scaler)
+            np.save(output_path+'.StandardScaler.scaler', scaler)
             data = scaler.transform(raw_data)
         elif scaler_path!=None and output_path==None:
-            print '    Standardizing data by pre-computed standard scaler...'
+            print '    Standardizing data by pre-computed StandardScaler...'
             # load scaler
-            scaler = np.load(scaler_path+'.standard_scaler.npy').itme()
+            try:
+                scaler = np.load(scaler_path).item()
+            except IOError:
+                print 'The scaler: ', scaler_path, ' doesn\'t exist!'
             data = scaler.transform(raw_data)
         elif scaler_path==None and output_path==None:
             print 'Please specify the scaler path or path to restore the scaler.'
@@ -116,16 +119,18 @@ def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_me
             print '    Standardizing data by RobustScaler method...'
             scaler = RobustScaler().fit(raw_data)
             # save scaler
-            np.save(output_path+'.robust_scaler', scaler)
+            np.save(output_path+'.RobustScaler.scaler', scaler)
             data = scaler.transform(raw_data)
         elif scaler_path!=None and output_path==None:
-            print '    Standardizing data by pre-computed robust scaler...'
+            print '    Standardizing data by pre-computed RobustScaler...'
             # load scaler
-            scaler = np.load(scaler_path+'.robust_scaler.npy').item()
+            try:
+                scaler = np.load(scaler_path).item()
+            except IOError:
+                print 'The scaler: ', scaler_path, ' doesn\'t exist!'
             data = scaler.transform(raw_data)
         elif scaler_path==None and output_path==None:
             print 'Please specify the scaler path or path to restore the scaler.'
-
 
     return data
 
@@ -300,7 +305,7 @@ def parser():
     return args
 
 def main(args):
-    
+
     class MidpointNormalize(Normalize):
         def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
             self.midpoint = midpoint
@@ -413,7 +418,7 @@ def main(args):
                 
                 print("The model is trained on the full development set.")
                 print("The scores are computed on the full evaluation set.")
-                X_test = data_preprocessing(X_test, data_preprocessing_method=data_preprocessing_method, scaler_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m)
+                X_test = data_preprocessing(X_test, data_preprocessing_method=data_preprocessing_method, scaler_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+'.'+data_preprocessing_method[0]+'.scaler.npy')
                 y_true, y_pred = y_test, clf.predict(X_test)
 
                 # Compute confusion matrix        

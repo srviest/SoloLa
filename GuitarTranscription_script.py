@@ -136,8 +136,8 @@ def main(args):
                            '/Users/Frank/Documents/Code/Python/GPT_experiment/Pre-train_model/S5.Classification_bend_pull_normal_hamm_slide/bend_1169_hamm_1169_normal_1169_pull_1169_slide_1169.iter1.fold1.all.metric.f1.model.npy',
                            args.output_dir+os.sep+name+os.sep+'S4.ExpressionStyle', 
                            '-scaler_path', 
-                           '/Users/Frank/Documents/Code/Python/GPT_experiment/Pre-train_model/S5.Classification_bend_pull_normal_hamm_slide/bend_1169_hamm_1169_normal_1169_pull_1169_slide_1169.iter1.fold1.all.metric.f1', 
-                           '-debug'])
+                           '/Users/Frank/Documents/Code/Python/GPT_experiment/Pre-train_model/S5.Classification_bend_pull_normal_hamm_slide/bend_1169_hamm_1169_normal_1169_pull_1169_slide_1169.iter1.fold1.all.metric.f1.RobustScaler.scaler.npy'])
+                           # '-debug'
 
         # S5. Fingering arramgement
         if args.fa: call(['python', 'Fingering_arrangement.py', 

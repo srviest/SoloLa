@@ -43,8 +43,8 @@ selected_features = ['hfc', 'pitch', 'pitch_instantaneous_confidence',
             'oddtoevenharmonicenergyratio']
 
 # data preprocessing
-# data_preprocessing_method = ['z-score']
-# data_preprocessing_method = ['robust z-score']
+# data_preprocessing_method = ['scale']
+# data_preprocessing_method = ['robust_scale']
 # data_preprocessing_method = ['StandardScaler']
 data_preprocessing_method = ['RobustScaler']
 
