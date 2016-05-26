@@ -155,11 +155,13 @@ def main(args):
         melody_contour, pitchConfidence = pcm(audio)
         # save result: raw melody contour
         np.savetxt(args.output_dir+os.sep+name+'.raw.melody',melody_contour, fmt='%s')
-        # S1.2 convert Hz to MIDI scale
+        # save result: raw melody contour
+        np.savetxt(args.output_dir+os.sep+name+'.pitch_confidence',pitchConfidence, fmt='%s')
+        # convert Hz to MIDI scale
         melody_contour = hertz2midi(melody_contour)
         # save result: MIDI-scale melody contour
         np.savetxt(args.output_dir+os.sep+name+'.MIDI.melody',melody_contour, fmt='%s')
-        # S1.3 moving averaging filtering
+        # moving averaging filtering
         melody_contour = mean_filter(melody_contour,kernel_size=mean_filter_size)
         # save result: MIDI-scaled smoothed melody contour
         np.savetxt(args.output_dir+os.sep+name+'.MIDI.smooth.melody',melody_contour, fmt='%s')
