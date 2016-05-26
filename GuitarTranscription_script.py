@@ -114,13 +114,17 @@ def main(args):
                            args.output_dir+os.sep+name+os.sep+'S0.Beat'])
 
         # S1. Monaural source separation
-        if args.mse: call(['python', 'Monaural_source_separation.py',
-                           f,
-                           args.output_dir+os.sep+name+os.sep+'S1.IsolatedGuitar'])
+        if args.mse: 
+            input_audio=args.output_dir+os.sep+name+os.sep+'S1.IsolatedGuitar'
+            call(['python', 'Monaural_source_separation.py',
+                  f,input_audio])
+        else:
+            input_audio=f
+
 
         # S2. Melody extraction
         if args.me: call(['python', 'Melody_extraction.py',
-                          args.output_dir+os.sep+name+os.sep+'S1.IsolatedGuitar',
+                          input_audio,
                           args.output_dir+os.sep+name+os.sep+'S2.Melody']) 
 
         # S3. Note tracking
@@ -130,13 +134,16 @@ def main(args):
 
         # S4. Expression style recognition
         if args.esr: call(['python', 'Expression_style_recognition.py',
-                           args.output_dir+os.sep+name+os.sep+'S1.IsolatedGuitar',
+                           input_audio,
                            args.output_dir+os.sep+name+os.sep+'S2.Melody',
                            args.output_dir+os.sep+name+os.sep+'S3.Note',
-                           '/Users/Frank/Documents/Code/Python/GPT_experiment/Pre-train_model/S5.Classification_bend_pull_normal_hamm_slide/bend_1169_hamm_1169_normal_1169_pull_1169_slide_1169.iter1.fold1.all.metric.f1.model.npy',
+                           '/Users/Frank/Documents/Code/Python/GPT_experiment/Pre-train_model/S5.Classification_bend_normal_hamm_slide/bend_588_hamm_588_normal_588_slide_588.iter1.fold1.all.metric.f1.model.npy',
+                           '/Users/Frank/Documents/Code/Python/GPT_experiment/Pre-train_model/S5.Classification_bend_pull_normal_slide/bend_691_normal_691_pull_691_slide_691.iter1.fold1.all.metric.f1.model.npy', 
                            args.output_dir+os.sep+name+os.sep+'S4.ExpressionStyle', 
                            '-scaler_path', 
-                           '/Users/Frank/Documents/Code/Python/GPT_experiment/Pre-train_model/S5.Classification_bend_pull_normal_hamm_slide/bend_1169_hamm_1169_normal_1169_pull_1169_slide_1169.iter1.fold1.all.metric.f1.RobustScaler.scaler.npy'])
+                           '/Users/Frank/Documents/Code/Python/GPT_experiment/Pre-train_model/S5.Classification_bend_normal_hamm_slide/bend_588_hamm_588_normal_588_slide_588.iter1.fold1.all.metric.f1.RobustScaler.scaler.npy',
+                           '/Users/Frank/Documents/Code/Python/GPT_experiment/Pre-train_model/S5.Classification_bend_pull_normal_slide/bend_691_normal_691_pull_691_slide_691.iter1.fold1.all.metric.f1.RobustScaler.scaler.npy',
+                           '-debug'])
                            # '-debug'
 
         # S5. Fingering arramgement
