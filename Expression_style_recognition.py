@@ -627,8 +627,8 @@ def merge_and_update_prebend_bend_release(expression_style_note, result_ref):
                    candi_result[1] < expression_style_note[index_note+1,1]+expression_style_note[index_note+1,2]:
                     current_index_candi = index_candi
                     current_index_note = index_note+1
-                    while current_index_note+1 <= expression_style_note.shape[0] and \
-                          current_index_candi+1 <= result.shape[0] and \
+                    while current_index_note+1 < expression_style_note.shape[0] and \
+                          current_index_candi+1 < result.shape[0] and \
                           result[current_index_candi+1,2] == 0 and \
                           result[current_index_candi+1,0] > expression_style_note[current_index_note,1] and \
                           result[current_index_candi+1,0] < expression_style_note[current_index_note,1]+expression_style_note[current_index_note,2] and \
@@ -1368,7 +1368,15 @@ def main(args):
 
         """
         ==================================================================================
-        S.7 Write final expression style note into file
+        S.7 Note prunning
+        ==================================================================================
+        """
+        print 'Punning notes...'
+        expression_style_note = note_pruning(expression_style_note, threshold=0.1)
+
+        """
+        ==================================================================================
+        S.8 Write final expression style note into file
         ==================================================================================
         """
         np.savetxt(args.output_dir+os.sep+name+'.esn', expression_style_note, fmt='%s')
