@@ -49,7 +49,7 @@ def note_pruning(note_pseudo, threshold=0.1):
 
     """
     note = note_pseudo.copy()
-    pruned_notes = np.empty([0,3])
+    pruned_notes = np.empty([0,note.shape[1]])
     for n in range(note.shape[0]):
         if note[n,2]>threshold:
             pruned_notes = np.append(pruned_notes,[note[n,:]],axis=0)
