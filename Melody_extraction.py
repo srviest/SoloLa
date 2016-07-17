@@ -113,8 +113,8 @@ def parser():
     p.add_argument('-fs',   '--frameSize', type=int, dest='fs',  help="the frame size for computing pitch saliecnce",            default=2048)
     p.add_argument('-hs',   '--hopSize',    type=int, dest='hs',  help="the hop size with which the pitch salience function was computed.",    default=256)
     p.add_argument('-sr',   '--sampleRate', type=int, dest='sr',  help="the sampling rate of the audio signal [Hz].",              default=44100)
-    p.add_argument('-maxf0','--maxf0',      type=int, dest='maxf0',   help="the maximum allowed frequency for salience function peaks (ignore contours with peaks above) [Hz].",     default=1400)
-    p.add_argument('-minf0','--minf0',      type=int, dest='minf0',   help="the minimum allowed frequency for salience function peaks (ignore contours with peaks above) [Hz].",     default=77)
+    p.add_argument('-maxf0','--maxf0',      type=int, dest='maxf0',   help="the maximum allowed frequency for salience function peaks (ignore contours with peaks above) [Hz].",     default=20000)
+    p.add_argument('-minf0','--minf0',      type=int, dest='minf0',   help="the minimum allowed frequency for salience function peaks (ignore contours with peaks above) [Hz].",     default=82)
     p.add_argument('-ks','--kernelSize',    type=int, dest='ks',   help="the kernel size of median filter for smoothing the estimtated melody contour.",     default=5)
     p.add_argument('-gu', '--guessUnvoiced', action = 'store_true', dest = 'gu', help="estimate pitch for non-voiced segments by using non-salient contours when no salient ones are present in a frame.", default=True)
     p.add_argument('-no-gu', '--no-guessUnvoiced', action = 'store_false', dest = 'gu', help="turn off the guessUnvoiced.")
@@ -145,7 +145,6 @@ def main(args):
         ext = os.path.basename(f).split('.')[-1]
         name = os.path.basename(f).split('.')[0]
 
-        
         # S1.1 initiate MELODIA
         pcm = PitchMelodia(harmonicWeight=harmonicWeight, minDuration=minDuration, 
             binResolution=binResolution, guessUnvoiced=args.gu, frameSize=args.fs, 

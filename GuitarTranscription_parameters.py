@@ -20,9 +20,8 @@ contour_hop = 256
 contour_sr = 44100
 mean_filter_size = 5
 guessUnvoiced = True
-voiceVibrato = True
 voicingTolerance = 0.2
-binResolution = 10
+binResolution = 15
 minDuration = 100
 harmonicWeight = 0.8
 

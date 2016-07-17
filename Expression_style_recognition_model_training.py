@@ -60,6 +60,8 @@ def main(args):
     # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect'
     # input_audio = '/Users/Frank/Desktop/Guitar_Score/Beatles - Let It Be Solo.wav'
     input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single'
+    # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect'
+    # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect_TSM'
     # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/Clean_Room'
     output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/Clean_Tone_newly_extracted_feature'
     # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/All_Effects'

@@ -143,7 +143,12 @@ def main(args):
                            '-scaler_path', 
                            '/Users/Frank/Documents/Code/Python/GPT_experiment/Pre-train_model/S5.Classification_bend_normal_hamm_slide/bend_588_hamm_588_normal_588_slide_588.iter1.fold1.all.metric.f1.RobustScaler.scaler.npy',
                            '/Users/Frank/Documents/Code/Python/GPT_experiment/Pre-train_model/S5.Classification_bend_pull_normal_slide/bend_691_normal_691_pull_691_slide_691.iter1.fold1.all.metric.f1.RobustScaler.scaler.npy',
-                           '-debug'])
+                           '-debug', 
+                           '-eval_note',  '/Users/Frank/Documents/Code/Database/ground_truth/rock_lead_guitar/New_Note_original', 
+                           '-eval_esn',  '/Users/Frank/Documents/Code/Python/SoloLa!_TMM/Dataset/Answer/Expression_style/licks_esn',
+                           '-eval_ts',  '/Users/Frank/Documents/Code/Python/SoloLa!_TMM/Dataset/Answer/Expression_style/licks_ts',
+                           '-eval_cls',  '/Users/Frank/Documents/Code/Python/SoloLa!_TMM/Dataset/Answer/Expression_style/licks_ts'
+                           ])
                            # '-debug'
 
         # S5. Fingering arramgement

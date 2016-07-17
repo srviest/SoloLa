@@ -483,27 +483,28 @@ def evaluation_candidate_cls(annotation_ts, candidate_result, output_dir, filena
     fh.close()
 
 
-def evaluation_note(annotation, note, output_dir, filename, onset_tolerance=0.05, offset_ratio=0.2, string=None, mode='a'):    
+def evaluation_note(annotation, note, output_dir, filename, onset_tolerance=0.05, offset_ratio=0.2, string=None, mode='a', verbose=True, separator=' ', extension=''):    
     # convert format to fit mir_eval
     ref_intervals, ref_pitches, est_intervals, est_pitches = fit_mir_eval_transcription(annotation, note)
     save_stdout = sys.stdout
-    fh = open(output_dir+os.sep+filename+'.note.eval',mode)
+    fh = open(output_dir+os.sep+filename+'.note.eval'+extension, mode)
     sys.stdout = fh
     if string:
         print string
-    print '======================================================================'
-    print 'Note event evaluation for song '+filename
-    print '======================================================================'
+    if verbose:
+        print '======================================================================'
+        print 'Note event evaluation for song '+filename
+        print '======================================================================'
 
-    print '                                 Note                                 '
-    print '----------------------------------------------------------------------'
-    print '                             Precision          Recall       F-measure'
+        print '                                 Note                                 '
+        print '----------------------------------------------------------------------'
+        print '                              Precision           Recall        F-measure'
     onset_tolerance=[0.05, 0.75, 0.1]
     offset_ratio=[0.20, 0.35, None]
     for on in onset_tolerance:
         for off in offset_ratio:
             note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=on, offset_ratio=off)
-            print ('%14s%16.4f%16.4f%16.4f' % ('CorPOn(%4ss)Off(%4s)', note_p, note_r, note_f) % (on, off))
+            print ('%14s%s%16.4f%s%16.4f%s%16.4f' % ('CorPOn(%4ss)Off(%4s)', separator, note_p, separator, note_r, separator, note_f) % (on, off))
     print '\n'
 
     sys.stdout = save_stdout
