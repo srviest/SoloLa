@@ -20,10 +20,12 @@ contour_hop = 256
 contour_sr = 44100
 mean_filter_size = 5
 guessUnvoiced = True
-voicingTolerance = 0.2
 binResolution = 15
 minDuration = 100
-harmonicWeight = 0.8
+harmonicWeight = 0.85
+filterIterations = 2
+magnitudeThreshold = 20
+peakDistributionThreshold = 0.89
 
 # long slide detection
 max_transition_note_duration = 0.09

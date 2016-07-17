@@ -94,7 +94,7 @@ def parser():
     p.add_argument('output_dir', type=str, metavar='output_dir',
                    help='output directory.')
     p.add_argument('-nrp',   '--NoteRecognizerPath', type=str, dest='nrp',
-                   help="the path of c++ based Note tracker.", default='./NoteRecognizer')
+                   help="the path of c++ based Note tracker.", default='./NoteRecognizer_low_contnuity')
     p.add_argument('-p',   '--prunning_note', dest='p',  help="the minimum duration of note event.",  default=0.1)
     p.add_argument('-v', dest='verbose', action='store_true',
                    help='be verbose')

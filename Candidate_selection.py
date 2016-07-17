@@ -327,10 +327,14 @@ def main(args):
                                 MaxPitchDifference = 3.8, MinPitchDifference=0.8,hop=contour_hop,sr=contour_sr)
 
         # save result: CAD F0 sequence pattern
-        np.savetxt(args.output_dir+os.sep+name+'.ascending.pattern',ascending_pattern, fmt='%s')
-        np.savetxt(args.output_dir+os.sep+name+'.ascending.pitch_contour',ascending_pitch_contour, fmt='%s')
-        np.savetxt(args.output_dir+os.sep+name+'.descending.pattern',descending_pattern, fmt='%s')
-        np.savetxt(args.output_dir+os.sep+name+'.descending.pitch_contour',descending_pitch_contour, fmt='%s')
+        if ascending_pattern.size!=0:
+            np.savetxt(args.output_dir+os.sep+name+'.ascending.pattern',ascending_pattern, fmt='%s')
+        if ascending_pitch_contour.size!=0:
+            np.savetxt(args.output_dir+os.sep+name+'.ascending.pitch_contour',ascending_pitch_contour, fmt='%s')
+        if descending_pattern.size!=0:
+            np.savetxt(args.output_dir+os.sep+name+'.descending.pattern', descending_pattern, fmt='%s')
+        if descending_pitch_contour.size!=0:
+            np.savetxt(args.output_dir+os.sep+name+'.descending.pitch_contour',descending_pitch_contour, fmt='%s')
 
         """
         Find intersection of note and pattern of {bend,slide,pull-off,hammer-on,normal})
@@ -339,8 +343,10 @@ def main(args):
         ascending_candidate, ascending_candidate_note, non_candidate_ascending_note = candidate_selection(note, ascending_pattern)
         descending_candidate, descending_candidate_note, non_candidate_descending_note = candidate_selection(note, descending_pattern)
         # save result: candidate
-        np.savetxt(args.output_dir+os.sep+name+'.ascending.candidate',ascending_candidate, fmt='%s')
-        np.savetxt(args.output_dir+os.sep+name+'.descending.candidate',descending_candidate, fmt='%s')
+        if ascending_candidate.size!=0:
+            np.savetxt(args.output_dir+os.sep+name+'.ascending.candidate',ascending_candidate, fmt='%s')
+        if descending_candidate.size!=0:
+            np.savetxt(args.output_dir+os.sep+name+'.descending.candidate',descending_candidate, fmt='%s')
 
 if __name__ == '__main__':
     args = parser()

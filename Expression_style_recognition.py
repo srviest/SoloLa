@@ -1084,6 +1084,7 @@ def main(args):
         print '    Extracting features...'
         # load audio
         audio = EasyLoader(filename = f)()
+        audio = audio/np.max(audio)
         # extract features of ascending candidate
         feature_vec_all = extract_feature_of_audio_clip(audio, ascending_candidate, sr=contour_sr) 
         # write to text file

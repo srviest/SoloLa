@@ -114,6 +114,9 @@ def parser():
     p.add_argument('-hs',   '--hopSize',    type=int, dest='hs',  help="the hop size with which the pitch salience function was computed.",    default=256)
     p.add_argument('-sr',   '--sampleRate', type=int, dest='sr',  help="the sampling rate of the audio signal [Hz].",              default=44100)
     p.add_argument('-maxf0','--maxf0',      type=int, dest='maxf0',   help="the maximum allowed frequency for salience function peaks (ignore contours with peaks above) [Hz].",     default=20000)
+
+    p.add_argument('-fi','--filterIteration',      type=int, dest='fi',   help="number of iterations for the octave errors / pitch outlier filtering process",     default=2)
+
     p.add_argument('-minf0','--minf0',      type=int, dest='minf0',   help="the minimum allowed frequency for salience function peaks (ignore contours with peaks above) [Hz].",     default=82)
     p.add_argument('-ks','--kernelSize',    type=int, dest='ks',   help="the kernel size of median filter for smoothing the estimtated melody contour.",     default=5)
     p.add_argument('-gu', '--guessUnvoiced', action = 'store_true', dest = 'gu', help="estimate pitch for non-voiced segments by using non-salient contours when no salient ones are present in a frame.", default=True)
@@ -148,7 +151,9 @@ def main(args):
         # S1.1 initiate MELODIA
         pcm = PitchMelodia(harmonicWeight=harmonicWeight, minDuration=minDuration, 
             binResolution=binResolution, guessUnvoiced=args.gu, frameSize=args.fs, 
-            hopSize=contour_hop, maxFrequency=args.maxf0, minFrequency=args.minf0, sampleRate=contour_sr)
+            hopSize=contour_hop, maxFrequency=args.maxf0, minFrequency=args.minf0, 
+            filterIterations=filterIterations, magnitudeThreshold=magnitudeThreshold, 
+            sampleRate=contour_sr, peakDistributionThreshold=peakDistributionThreshold)
         audio = MonoLoader(filename = f)()
         # run MELODIA
         melody_contour, pitchConfidence = pcm(audio)

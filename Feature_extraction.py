@@ -140,10 +140,8 @@ def parser():
                    help='candidate time segements of audio files to be processed')
     p.add_argument('output_dir', type=str, metavar='output_dir',
                    help='output directory.')
-    p.add_argument('-m','--mfcc', nargs='*',dest = 'm', help="extrac mfcc, arguments: delta = {0,1,2}, \
-                    pool_methods = {max,min,median,mean,skew,kurt,dmean,dvar,dmean2,dvar2}", default=None)
-    p.add_argument('-s','--spectral', nargs='*',dest = 's', help="extrac spectral, arguments: delta = {0,1,2}, \
-                    pool_methods = {max,min,median,mean,skew,kurt,dmean,dvar,dmean2,dvar2}", default=None)
+    p.add_argument('-m','--mfcc', nargs='*',dest = 'm', help="extrac mfcc, arguments: delta = {0,1,2}, pool_methods = {max,min,median,mean,skew,kurt,dmean,dvar,dmean2,dvar2}", default=None)
+    p.add_argument('-s','--spectral', nargs='*',dest = 's', help="extrac spectral, arguments: delta = {0,1,2}, pool_methods = {max,min,median,mean,skew,kurt,dmean,dvar,dmean2,dvar2}", default=None)
     # version
     p.add_argument('--version', action='version',
                    version='%(prog)spec 1.03 (2016-03-08)')
@@ -157,50 +155,46 @@ def main(args):
     print 'Running feature extraction...'
     print '============================='    
     # parse and list files to be processed
-    audio_files = parse_input_files(args.input_audios, ext='.wav')
+    candidate_files = parse_input_files(args.input_candidates, ext='.candidate')
         
     # create result directory
     if not os.path.exists(args.output_dir): os.makedirs(args.output_dir)
     print '  Output directory: ', '\n', '    ', args.output_dir
 
     # processing
-    for f in audio_files:
+    for c in candidate_files:
+        print '     Processing file: ', c
+        candidate = np.loadtxt(c)
         # parse file name and extension
-        ext = os.path.basename(f).split('.')[-1]
-        name = os.path.basename(f).split('.')[0]
+        ext = os.path.basename(c).split('.')[-1]
+        ct = os.path.basename(c).split('.')[-2]
+        name = os.path.basename(c).split('.')[0]
         # load audio into 
-        audio = EasyLoader(filename = f)()
-        # processing
-        print '     Processing file: ', f
-        candidate_type = ['ascending','descending']
-        # loop in ascending and descending candidate list
-        for ct in candidate_type:
-            print '         Extracting features of', ct, 'candadites...'
-            # candidate file path
-            candidate_path = args.input_candidates+os.sep+name+'.'+ct+'.candidate'
-            # inspect if candidate file exist and load it
-            try:
-                candidate = np.loadtxt(candidate_path)
-            except IOError:
-                print 'The candidate of', name, 'doesn\'t exist!'
-            # reshape candidate if it is in one dimension
-            if candidate.shape==(2,): candidate = candidate.reshape(1,2)
-            # convert seconds into samples
-            candidate_sample = candidate*contour_sr
-            # create feature matrix
-            feature_vec_all = np.array([])
-            # loop in candidates
-            for c in candidate_sample:
-                # clipping audio signal
-                audio_clip = audio[int(c[0]):int(c[1])]
-                # extract features
-                feature_vec = feature_extractor(audio=audio_clip, features=selected_features)
-                feature_vec_all = np.concatenate((feature_vec_all,feature_vec), axis = 0)          
-            # reshpe feature vector and save result
-            if feature_vec_all.size!=0:
-                feature_vec_all = feature_vec_all.reshape(len(candidate_sample),len(feature_vec_all)/len(candidate_sample))
-                np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature', feature_vec_all, fmt='%s')
-                
+        audio_path = os.path.join(args.input_audios, name+'.wav')
+        try:
+            audio = EasyLoader(filename = audio_path)()
+            audio = audio/np.max(audio)
+        except IOError:
+            print 'The wav file of', name, 'doesn\'t exist!'
+        
+        # reshape candidate if it is in one dimension
+        if candidate.shape==(2,): candidate = candidate.reshape(1,2)
+        # convert seconds into samples
+        candidate_sample = candidate*contour_sr
+        # create feature matrix
+        feature_vec_all = np.array([])
+        # loop in candidates
+        for cs in candidate_sample:
+            # clipping audio signal
+            audio_clip = audio[int(cs[0]):int(cs[1])]
+            # extract features
+            feature_vec = feature_extractor(audio=audio_clip, features=selected_features)
+            feature_vec_all = np.concatenate((feature_vec_all,feature_vec), axis = 0)          
+        # reshpe feature vector and save result
+        if feature_vec_all.size!=0:
+            feature_vec_all = feature_vec_all.reshape(len(candidate_sample),len(feature_vec_all)/len(candidate_sample))
+            np.savetxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature', feature_vec_all, fmt='%s')
+            
 
 
 if __name__ == '__main__':
