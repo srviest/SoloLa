@@ -925,7 +925,9 @@ def main(args):
 
         if args.eval_esn:
             annotation_note = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
-            GTEval.evaluation_note(annotation_note, raw_note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, mode='w')
+            GTEval.evaluation_note(annotation_note, raw_note, args.output_dir, name, 
+                onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, mode='w', 
+                extensoin='.csv')
 
         """
         =====================================================================================
@@ -1255,8 +1257,10 @@ def main(args):
                 annotation = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
                 note = expression_style_note[:,0:3]
                 # pruned_note = note_pruning(note, threshold=args.p)
-                GTEval.evaluation_note(annotation, note, args.output_dir, name, onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, 
-                    string='Result after pull-off, hammer-on and slide notes updated.', mode='a')
+                GTEval.evaluation_note(annotation, note, args.output_dir, name, 
+                    onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, 
+                    string='Result after pull-off, hammer-on and slide notes updated.', mode='a', 
+                    extension='.csv')
                 
             
         """

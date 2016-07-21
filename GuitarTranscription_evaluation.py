@@ -483,11 +483,11 @@ def evaluation_candidate_cls(annotation_ts, candidate_result, output_dir, filena
     fh.close()
 
 
-def evaluation_note(annotation, note, output_dir, filename, onset_tolerance=0.05, offset_ratio=0.2, string=None, mode='a', verbose=True, separator=' ', extension=''):    
+def evaluation_note(annotation, note, output_dir, filename, onset_tolerance=0.05, offset_ratio=0.2, string=None, mode='a', verbose=False, separator=' ', extension=''):    
     # convert format to fit mir_eval
     ref_intervals, ref_pitches, est_intervals, est_pitches = fit_mir_eval_transcription(annotation, note)
     save_stdout = sys.stdout
-    fh = open(output_dir+os.sep+filename+'.note.eval'+extension, mode)
+    fh = open(output_dir+os.sep+filename+'.ontol_'+str(on)+'_offra_'+str(off)+'.note.eval'+extension, mode)
     sys.stdout = fh
     if string:
         print string
@@ -499,12 +499,12 @@ def evaluation_note(annotation, note, output_dir, filename, onset_tolerance=0.05
         print '                                 Note                                 '
         print '----------------------------------------------------------------------'
         print '                              Precision           Recall        F-measure'
-    onset_tolerance=[0.05, 0.75, 0.1]
-    offset_ratio=[0.20, 0.35, None]
+    onset_tolerance=[0.05, 0.1]
+    offset_ratio=[0.20,  None]
     for on in onset_tolerance:
         for off in offset_ratio:
             note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=on, offset_ratio=off)
-            print ('%14s%s%16.4f%s%16.4f%s%16.4f' % ('CorPOn(%4ss)Off(%4s)', separator, note_p, separator, note_r, separator, note_f) % (on, off))
+            print ('%16.4f %s %16.4f %s %16.4f' % (note_p, separator, note_r, separator, note_f))
     print '\n'
 
     sys.stdout = save_stdout
@@ -538,7 +538,7 @@ def evaluation_esn(annotation_esn, prediction_esn, output_dir, filename, onset_t
     print '\n'
 
     onset_tolerance=[0.05, 0.1]
-    offset_ratio=[0.20, 0.35, None]
+    offset_ratio=[0.20, None]
     correct_pitch = [True, False]
     print '                       Expression style (note)                      '
     print '--------------------------------------------------------------------'
