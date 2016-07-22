@@ -83,7 +83,7 @@ def extract_feature_of_audio_clip(audio, time_segment, sr):
         # clipping audio signal
         audio_clip = audio[int(c[0]):int(c[1])]
         with np.errstate(divide='ignore', invalid='ignore'):
-            audio_clip = audio_clip/np.max(audio_clip)
+            audio_clip = audio_clip/np.max(np.abs(audio_clip))
         # extract features
         feature_vec = feature_extractor(audio=audio_clip, features=selected_features)
         feature_vec_all = np.concatenate((feature_vec_all,feature_vec), axis = 0)            
@@ -189,7 +189,7 @@ def main(args):
             # clipping audio signal
             audio_clip = audio[int(cs[0]):int(cs[1])]
             with np.errstate(divide='ignore', invalid='ignore'):
-                audio_clip = audio_clip/np.max(audio_clip)
+                audio_clip = audio_clip/np.max(np.abs(audio_clip))
             # extract features
             feature_vec = feature_extractor(audio=audio_clip, features=selected_features)
             feature_vec_all = np.concatenate((feature_vec_all,feature_vec), axis = 0)          
