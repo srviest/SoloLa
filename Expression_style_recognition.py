@@ -864,7 +864,8 @@ def parser():
     eval_note = p.add_argument_group('Note evulation arguments')
     eval_note.add_argument('-eval_note', '--evaluation_note', type=str, default=None, dest='eval_note', 
                     help='Conduct note evaluation. The followed argument is parent directory of annotation.')
-
+    eval_note.add_argument('-poly_mask', '--polyphony_mask', type=str, default=None, dest='poly_mask', 
+                    help='Path of polyphonic notes mask.')
     eval_note.add_argument('-onset_tol', '--onset_tolerance_window', type=float, dest='onset_tol', default=0.05, 
                     help='Window lenght of onset tolerance. (default: %(default)s)')
 
@@ -923,11 +924,11 @@ def main(args):
             print 'The note event of ', name, ' doesn\'t exist!'  
 
 
-        if args.eval_esn:
+        if args.eval_note:
             annotation_note = np.loadtxt(args.eval_note+os.sep+name+'.note.answer')
             GTEval.evaluation_note(annotation_note, raw_note, args.output_dir, name, 
                 onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, mode='w', 
-                extensoin='.csv')
+                poly_mask=args.poly_mask, extension='.csv')
 
         """
         =====================================================================================
@@ -1086,7 +1087,6 @@ def main(args):
         print '    Extracting features...'
         # load audio
         audio = EasyLoader(filename = f)()
-        audio = audio/np.max(audio)
         # extract features of ascending candidate
         feature_vec_all = extract_feature_of_audio_clip(audio, ascending_candidate, sr=contour_sr) 
         # write to text file
@@ -1260,7 +1260,7 @@ def main(args):
                 GTEval.evaluation_note(annotation, note, args.output_dir, name, 
                     onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, 
                     string='Result after pull-off, hammer-on and slide notes updated.', mode='a', 
-                    extension='.csv')
+                    poly_mask=args.poly_mask, extension='.csv')
                 
             
         """

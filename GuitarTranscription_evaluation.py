@@ -61,7 +61,7 @@ expression_style_note:  Text file of array, storing the onset, offset
 
 from mir_eval.transcription import precision_recall_f1
 import numpy as np
-import os, sys
+import os, sys, csv
 
 def long_pattern_evaluate(pattern,bend_answer_path,slide_answer_path):
     if type(bend_answer_path).__name__=='ndarray':
@@ -482,32 +482,53 @@ def evaluation_candidate_cls(annotation_ts, candidate_result, output_dir, filena
     sys.stdout = save_stdout
     fh.close()
 
+def remove_poly_notes(notes, poly_mask):
+    notes_poly_removed = notes.copy()
+    note_to_be_deleted = []
+    for index_n, note in enumerate(notes):
+        onset = note[1]
+        offset = note[1]+note[2]
+        for index_p, poly_note in enumerate(poly_mask):
+            onset_in = onset > poly_note[0] and onset < poly_note[1]
+            offset_in = offset > poly_note[0] and offset < poly_note[1]
+            if onset_in or offset_in:
+                note_to_be_deleted.append(index_n)
+    notes_poly_removed = np.delete(notes_poly_removed, note_to_be_deleted, axis=0)
+    return notes_poly_removed
 
-def evaluation_note(annotation, note, output_dir, filename, onset_tolerance=0.05, offset_ratio=0.2, string=None, mode='a', verbose=False, separator=' ', extension=''):    
+
+def evaluation_note(annotation, note, output_dir, filename, onset_tolerance=0.05, offset_ratio=0.2, string=None, mode='a', verbose=False, separator=' ', poly_mask=None, extension=''):
+    if poly_mask:
+        poly_mask = np.loadtxt(poly_mask)
+        annotation_poly_removed = remove_poly_notes(annotation, poly_mask)
+        notes_poly_removed = remove_poly_notes(note, poly_mask)
+        ref_intervals, ref_pitches, est_intervals, est_pitches = fit_mir_eval_transcription(annotation_poly_removed, notes_poly_removed)
     # convert format to fit mir_eval
-    ref_intervals, ref_pitches, est_intervals, est_pitches = fit_mir_eval_transcription(annotation, note)
-    save_stdout = sys.stdout
-    fh = open(output_dir+os.sep+filename+'.ontol_'+str(on)+'_offra_'+str(off)+'.note.eval'+extension, mode)
-    sys.stdout = fh
-    if string:
-        print string
-    if verbose:
-        print '======================================================================'
-        print 'Note event evaluation for song '+filename
-        print '======================================================================'
+    else:
+        ref_intervals, ref_pitches, est_intervals, est_pitches = fit_mir_eval_transcription(annotation, note)
 
-        print '                                 Note                                 '
-        print '----------------------------------------------------------------------'
-        print '                              Precision           Recall        F-measure'
+
     onset_tolerance=[0.05, 0.1]
     offset_ratio=[0.20,  None]
+    metric=[]
+    result=[]
     for on in onset_tolerance:
         for off in offset_ratio:
+            if mode=='w':
+                metric.append('Onset tolerence: '+str(on)+', '+'Offset ratio: '+str(off))
+                space_count = len(onset_tolerance)*len(offset_ratio)-1
+                metric+=[' ']*space_count
             note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=on, offset_ratio=off)
-            print ('%16.4f %s %16.4f %s %16.4f' % (note_p, separator, note_r, separator, note_f))
-    print '\n'
+            result+=[note_p]+[note_r]+[note_f]+[' ']
+            
+    if string:
+        result+=[string]
 
-    sys.stdout = save_stdout
+    fh = open(output_dir+os.sep+filename+'.note.eval'+extension, mode)
+    w = csv.writer(fh, delimiter = ',')
+    if metric:
+        w.writerow(metric)
+    w.writerow(result)
     fh.close()
 
 def evaluation_esn(annotation_esn, prediction_esn, output_dir, filename, onset_tolerance=0.05, offset_ratio=0.2, string=None, mode='a'):

@@ -25,7 +25,7 @@ minDuration = 100
 harmonicWeight = 0.85
 filterIterations = 2
 magnitudeThreshold = 20
-peakDistributionThreshold = 0.89
+peakDistributionThreshold = 0.86
 
 # long slide detection
 max_transition_note_duration = 0.09
