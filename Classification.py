@@ -67,8 +67,9 @@ def collect_same_technique_feature_files(feature_dir, technique_type = ['bend', 
     technique_file_dict = collections.OrderedDict(sorted(technique_file_dict.items()))
     return technique_file_dict
 
-def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method, scaler_path=None, output_path=None):
+def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_method, scaler_path=None, PCA_path=None, output_path=None):
     from sklearn.preprocessing import Imputer, scale, robust_scale, StandardScaler, RobustScaler
+    from sklearn.decomposition import PCA
     try:
         raw_data.shape[1]
     except IndexError:
@@ -132,6 +133,27 @@ def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_me
             data = scaler.transform(raw_data)
         elif scaler_path==None and output_path==None:
             print 'Please specify the scaler path or path to restore the scaler.'
+
+    # Principal component analysis
+    if 'PCA' in data_preprocessing_method or 'pca' in data_preprocessing_method:
+        if PCA_path==None and output_path!=None:
+            print '    Performing PCA to transform the data onto a 3-dimensional feature subspace...'
+            pca = PCA(n_components=3).fit(data)
+            # save PCA
+            np.save(output_path+'.PCA', pca)
+            data = pca.transform(data)
+
+        elif PCA_path!=None and output_path==None:
+            print '    Performing PCA by pre-computed PCA transformer...'
+            # load PCA
+            try:
+                pca = np.load(PCA_path).item()
+            except IOError:
+                print 'The PCA: ', PCA_path, ' doesn\'t exist!'
+            data = pca.transform(data)
+
+        elif PCA_path==None and output_path==None:
+            print 'Please specify the PCA path or path to restore the PCA.'
 
     return data
 
@@ -351,10 +373,10 @@ def main(args):
 
 
         # Set the parameters tuneed by grid searching
-        C_range = np.logspace(-5, 10, 15, base=2)
+        C_range = np.logspace(-5, 10, 16, base=2)
         # np.logspace(-5, 5, 10, base=2)
         # np.logspace(-3, 4, 7, base=2)
-        g_range = np.logspace(-14, -2, 12, base=2)
+        g_range = np.logspace(-14, -2, 13, base=2)
         # np.logspace(-8, -3, 5, base=2)
         # np.logspace(-10, -2, 8, base=2)
 
@@ -421,7 +443,9 @@ def main(args):
                 
                 print("The model is trained on the full development set.")
                 print("The scores are computed on the full evaluation set.")
-                X_test = data_preprocessing(X_test, data_preprocessing_method=data_preprocessing_method, scaler_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+'.'+data_preprocessing_method[0]+'.scaler.npy')
+                X_test = data_preprocessing(X_test, data_preprocessing_method=data_preprocessing_method, 
+                    scaler_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+'.'+data_preprocessing_method[0]+'.scaler.npy',
+                    PCA_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+'.'+'PCA.npy')
                 y_true, y_pred = y_test, clf.predict(X_test)
 
                 # Compute confusion matrix        

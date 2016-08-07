@@ -847,6 +847,9 @@ def parser():
     # set the scaler path
     p.add_argument('-scaler_path', '--scaler_path', nargs='+', type=str, metavar='scaler_path',  
                    help="path of pre-trained scaler path.",  default=None)
+    # set the PCA path
+    p.add_argument('-PCA_path', '--PCA_path', nargs='+', type=str, metavar='PCA_path',  
+                   help="path of pre-trained PCA.",  default=None)
     # debug
     p.add_argument('-debug', dest='debug', default=None, action='store_true',
                     help='result data to file for debugging.')
@@ -1144,6 +1147,7 @@ def main(args):
             cls_mode = 'single_model'
             model_path_list=[args.input_model[0], args.input_model[0]]
             scaler_path_list=[args.scaler_path[0], args.scaler_path[0]]
+            PCA_path_list=[args.PCA_path[0], args.PCA_path[0]]
             tech_index_dic_list = [{'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}, 
                                    {'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}, 
                                    {'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}]
@@ -1153,6 +1157,7 @@ def main(args):
             cls_mode ='double_model'
             model_path_list=[args.input_model[0], args.input_model[1]]
             scaler_path_list=[args.scaler_path[0], args.scaler_path[1]]
+            PCA_path_list=[args.PCA_path[0], args.PCA_path[1]]
             tech_index_dic_list = [{'bend':0, 'hamm':1, 'normal':2, 'slide':3}, 
                                    {'bend':0, 'normal':1, 'pull':2, 'slide':3}, 
                                    {'bend':0, 'hamm':1, 'normal':2, 'pull':3, 'slide':4}]
@@ -1173,7 +1178,8 @@ def main(args):
                 # load raw features    
                 raw_feature = np.loadtxt(args.output_dir+os.sep+name+'.'+ct+'.candidate'+'.raw.feature')
                 # data preprocessing
-                data = data_preprocessing(raw_feature, data_preprocessing_method=data_preprocessing_method, scaler_path=scaler_path_list[index])
+                data = data_preprocessing(raw_feature, data_preprocessing_method=data_preprocessing_method, 
+                    scaler_path=scaler_path_list[index], PCA_path=PCA_path_list[index])
                 # classfication
                 y_pred = clf.predict(data)
                 result = np.hstack((candidate, np.asarray(y_pred).reshape(len(y_pred), 1)))

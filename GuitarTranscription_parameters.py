@@ -33,7 +33,8 @@ min_transition_note_duration = 0.015
 
 
 # feature extraction
-selected_features = ['hfc', 'pitch', 'pitch_instantaneous_confidence', 
+selected_features = ['barkbands', 'mfcc',
+            'hfc', 'pitch', 'pitch_instantaneous_confidence', 
             'pitch_salience', 'silence_rate_20dB', 'silence_rate_30dB', 
             'silence_rate_60dB', 'spectral_complexity', 'spectral_crest', 
             'spectral_decrease', 'spectral_energy', 'spectral_energyband_low', 
