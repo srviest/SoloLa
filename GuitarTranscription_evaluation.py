@@ -517,9 +517,12 @@ def evaluation_note(annotation, note, output_dir, filename, onset_tolerance=0.05
             if mode=='w':
                 metric.append('Onset tolerence: '+str(on)+', '+'Offset ratio: '+str(off))
                 space_count = len(onset_tolerance)*len(offset_ratio)-1
-                metric+=[' ']*space_count
+                metric+=['']*space_count
             note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=on, offset_ratio=off)
-            result+=[note_p]+[note_r]+[note_f]+[' ']
+            note_p = round(note_p, 5)
+            note_r = round(note_r, 5)
+            note_f = round(note_f, 5)
+            result+=[note_p]+[note_r]+[note_f]+['']
             
     if string:
         result+=[string]
@@ -550,8 +553,8 @@ def evaluation_esn(annotation_esn, prediction_esn, output_dir, filename, onset_t
     print '                                 Note                                 '
     print '----------------------------------------------------------------------'
     print '                             Precision          Recall       F-measure'
-    onset_tolerance=[0.05, 0.75, 0.1]
-    offset_ratio=[0.20, 0.35, None]
+    onset_tolerance=[0.05, 0.1]
+    offset_ratio=[0.20, None]
     for on in onset_tolerance:
         for off in offset_ratio:
             note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=on, offset_ratio=off)
@@ -593,62 +596,85 @@ def evaluation_esn(annotation_esn, prediction_esn, output_dir, filename, onset_t
     fh.close()
 
 
-def evaluation_ts(annotation_ts, prediction_ts, output_dir, filename, string=None, mode='a'):
+def evaluation_ts(annotation_ts, prediction_ts, output_dir, filename, string=None, mode='a', extension=''):
 
-    save_stdout = sys.stdout
-    fh = open(output_dir+os.sep+filename+'.ts.eval',mode)
-    sys.stdout = fh
+    data = []
     if string:
-        print string
-    print '============================================================================'
-    print 'Evaluation on song '+filename
-    print '============================================================================'
-    # 
-    print '                    Expression style (time segment)                 '
-    print '--------------------------------------------------------------------'
-    print '               Precision                Recall             F-measure'
-    
+        data.append([string])
+
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=[3,4,5])
-    print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Bend', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Bend', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    data.append(['Bend', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+ 
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=6)
-    print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Pull-off', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Pull-off', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    data.append(['Pull-off', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+ 
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=7)
-    print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Hammer-on', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Hammer-on', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    data.append(['Hammer-on', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=[8,9,10])
-    print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Slide', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Slide', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    data.append(['Slide', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=11)
-    print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Vibrato', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-    print '                                                                            '
+    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Vibrato', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    data.append(['Vibrato', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
+    data.append(['', '', 'Techniques sub-divided'])
 
 
-
-    print '--------------------------------------------------------------------'
-    print '                     Techniques sub-divided                         '
-    print '--------------------------------------------------------------------'
-    print '               Precision                Recall             F-measure'
+    # print '--------------------------------------------------------------------'
+    # print '                     Techniques sub-divided                         '
+    # print '--------------------------------------------------------------------'
+    # print '               Precision                Recall             F-measure'
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=3)
-    print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Pre-bend', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Pre-bend', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    data.append(['Pre-bend', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=4)
-    print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Bend', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Bend', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    data.append(['Bend', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=5)
-    print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Release', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Release', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    data.append(['Release', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=6)
-    print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Pull-off', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Pull-off', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    data.append(['Pull-off', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=7)
-    print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Hammer-on', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Hammer-on', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    data.append(['Hammer-on', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=8)
-    print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Slide', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Slide', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    data.append(['Slide', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=9)
-    print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Slide in', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Slide in', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    data.append(['Slide in', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=10)
-    print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Slide out', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Slide out', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    data.append(['Slide out', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=11)
-    print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Vibrato', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-    print '                                                            '
-
-
-    # return to normal:
-    sys.stdout = save_stdout
+    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Vibrato', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+    data.append(['Vibrato', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+    data.append([''])
+    
+    fh = open(output_dir+os.sep+filename+'.ts.eval'+extension,mode)
+    w = csv.writer(fh, delimiter = ',')
+    # for r in a:
+    # print metric
+    if mode=='w':
+        metric = ['', 'Precision', '', 'Recall', '',  'F-measure']
+        w.writerow(metric)
+    for r in data:
+        w.writerow(r)
     fh.close()
 
 
