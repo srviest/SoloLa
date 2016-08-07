@@ -596,39 +596,72 @@ def evaluation_esn(annotation_esn, prediction_esn, output_dir, filename, onset_t
     fh.close()
 
 
-def evaluation_ts(annotation_ts, prediction_ts, output_dir, filename, string=None, mode='a', extension=''):
+def remove_poly_ts(ts, poly_mask):
+    
+    ts_poly_removed = ts.copy()
+    # check the ts dimension
+    try:
+        ts_poly_removed.shape[1]
+    except IndexError:
+        ts_poly_removed = ts_poly_removed.reshape(1, ts_poly_removed.shape[0])
+    
+    ts_to_be_deleted = []
+    # remove predicted techniques
+    if ts_poly_removed.shape[1]==3:
+        for index_ts, ts in enumerate(ts_poly_removed):
+            start_time = ts[0]
+            end_time = ts[1]
+            for index_p, poly_note in enumerate(poly_mask):
+                start_time_in = start_time > poly_note[0] and start_time < poly_note[1]
+                end_time_in = end_time > poly_note[0] and end_time < poly_note[1]
+                if start_time_in or end_time_in:
+                    ts_to_be_deleted.append(index_ts)
+        
+    # remove annotated techniques
+    elif ts_poly_removed.shape[1]==2:
+        for index_ts, ts in enumerate(ts_poly_removed):
+            start_time = ts[0]
+            for index_p, poly_note in enumerate(poly_mask):
+                start_time_in = start_time > poly_note[0] and start_time < poly_note[1]
+                if start_time_in:
+                    ts_to_be_deleted.append(index_ts)
+
+    ts_poly_removed = np.delete(ts_poly_removed, ts_to_be_deleted, axis=0)
+
+    return ts_poly_removed
+
+
+def evaluation_ts(annotation_ts_orig, prediction_ts_orig, output_dir, filename, string=None, mode='a', poly_mask=None, extension=''):
+    if poly_mask:
+        poly_mask = np.loadtxt(poly_mask)
+        annotation_ts = remove_poly_ts(annotation_ts_orig, poly_mask)
+        prediction_ts = remove_poly_ts(prediction_ts_orig, poly_mask)
+    else:
+        annotation_ts = annotation_ts_orig
+        prediction_ts = prediction_ts_orig
 
     data = []
     if string:
         data.append([string])
 
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=[3,4,5])
-    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Bend', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
     data.append(['Bend', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
  
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=6)
-    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Pull-off', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
     data.append(['Pull-off', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
- 
-    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=7)
-    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Hammer-on', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
+   
+    P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=7) 
     data.append(['Hammer-on', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
 
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=[8,9,10])
-    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Slide', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
     data.append(['Slide', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
 
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=11)
-    # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Vibrato', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
     data.append(['Vibrato', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
 
     data.append(['', '', 'Techniques sub-divided'])
 
 
-    # print '--------------------------------------------------------------------'
-    # print '                     Techniques sub-divided                         '
-    # print '--------------------------------------------------------------------'
-    # print '               Precision                Recall             F-measure'
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=3)
     # print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Pre-bend', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
     data.append(['Pre-bend', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])

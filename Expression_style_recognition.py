@@ -963,7 +963,8 @@ def main(args):
             print '  Evaluating time segment-level expression style...'
             annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
             GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name, 
-                string='After wild vibrato detection', mode='w', extension='.csv')
+                string='After wild vibrato detection', mode='w', 
+                poly_mask=args.poly_mask, extension='.csv')
 
         if args.eval_note:
             print '  Evaluating note accuracy...'
@@ -1015,7 +1016,7 @@ def main(args):
             annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
             GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
                 string='After slide in / slide out detection', mode='a', 
-                extension='.csv')
+                poly_mask=args.poly_mask, extension='.csv')
 
         if args.eval_note:
             print '  Evaluating note accuracy...'
@@ -1081,7 +1082,7 @@ def main(args):
             annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
             GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
                 string='After slow bend detection', mode='a',
-                extension='.csv')
+                poly_mask=args.poly_mask, extension='.csv')
 
         if args.eval_note:
             print '  Evaluating note accuracy...'
@@ -1202,7 +1203,7 @@ def main(args):
                     annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
                     GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
                         string='After '+ct+' candidate classification', mode='a', 
-                        extension='.csv')
+                        poly_mask=args.poly_mask, extension='.csv')
 
         try:
             ascending_cls_result = np.loadtxt(args.output_dir+os.sep+name+'.'+candidate_type[0]+'.candidate.'+cls_mode+'.cls_result')
@@ -1417,7 +1418,7 @@ def main(args):
             annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
             GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
                 string='After vibrato detection', mode='a', 
-                extension='.csv')     
+                poly_mask=args.poly_mask, extension='.csv')     
 
         if args.eval_note:
             print '  Evaluating note accuracy...'
