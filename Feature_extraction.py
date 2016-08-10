@@ -54,13 +54,16 @@ def feature_extractor(audio, features,
     for f in feature:
         num_feature+=1
         for ff in f:
-            if feature_name_list[num_feature-1] in selected_features:
+            if feature_name_list[num_feature-1] in features:
                 pool.add(feature_name_list[num_feature-1], ff)
     # feature aggregation
     aggrPool = PoolAggregator(defaultStats=pool_methods)(pool)
-    
     # concatenate features
     feature_vec = [] 
+
+    if 'duration' in features:
+        feature_vec.append(len(audio))
+
     featureList = aggrPool.descriptorNames()
     for name in featureList:
         feature = aggrPool[name]
@@ -82,8 +85,8 @@ def extract_feature_of_audio_clip(audio, time_segment, sr):
     for c in time_segment_sample:
         # clipping audio signal
         audio_clip = audio[int(c[0]):int(c[1])]
-        # with np.errstate(divide='ignore', invalid='ignore'):
-            # audio_clip = audio_clip/np.max(np.abs(audio_clip))
+        with np.errstate(divide='ignore', invalid='ignore'):
+            audio_clip = audio_clip/np.max(np.abs(audio_clip))
         # extract features
         feature_vec = feature_extractor(audio=audio_clip, features=selected_features)
         feature_vec_all = np.concatenate((feature_vec_all,feature_vec), axis = 0)            
@@ -174,7 +177,7 @@ def main(args):
         # load audio into 
         audio_path = os.path.join(args.input_audios, name+'.wav')
         try:
-            audio = EasyLoader(filename = audio_path)()
+            audio = MonoLoader(filename = audio_path)()
         except IOError:
             print 'The wav file of', name, 'doesn\'t exist!'
         

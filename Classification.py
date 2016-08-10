@@ -137,8 +137,8 @@ def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_me
     # Principal component analysis
     if 'PCA' in data_preprocessing_method or 'pca' in data_preprocessing_method:
         if PCA_path==None and output_path!=None:
-            print '    Performing PCA to transform the data onto a 3-dimensional feature subspace...'
-            pca = PCA(n_components=3).fit(data)
+            print '    Performing PCA to reduce feature space...'
+            pca = PCA(n_components=100).fit(data)
             # save PCA
             np.save(output_path+'.PCA', pca)
             data = pca.transform(data)
@@ -379,6 +379,10 @@ def main(args):
         # np.logspace(-5, 5, 10, base=2)
         # np.logspace(-3, 4, 7, base=2)
         g_range = np.logspace(-10, -2, 9, base=2)
+        
+        # np.logspace(-5, 5, 10, base=2)
+        # np.logspace(-3, 4, 7, base=2)
+        
         # np.logspace(-8, -3, 5, base=2)
         # np.logspace(-10, -2, 8, base=2)
 
