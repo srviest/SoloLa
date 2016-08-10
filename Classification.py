@@ -319,10 +319,12 @@ def parser():
     p.add_argument('classes',  nargs='+',  type=str, metavar='classes',  help="the types to which data belong")
     p.add_argument('-GridSearchCV', dest='GridSearchCV', default=False, action='store_true',
                     help='Exhaustive search over specified parameter values for an estimator.')
-    p.add_argument('-TrainingAll', dest='TrainingAll', default=False, action='store_true',
+    p.add_argument('-TrainAll', dest='TrainAll', default=False, action='store_true',
                     help='Training with all data.')
     p.add_argument('-downsample', dest='downsample', default=False, action='store_true',
                     help='Downsample to balance the number of data points of each class.')
+    p.add_argument('-exhaustive', dest='exhaustive', default=False, action='store_true',
+                    help='Exhaustive search over specified parameter range around best parameter found by GridSearch.')
     p.add_argument('-C','--C', type=float, dest='C',action='store',  help="penalty parmeter.", default=1)
     p.add_argument('-gamma','--gamma', type=float, dest='gamma',action='store',  help="gamma for RBF kernel SVM.", default=None)
     p.add_argument('-f','--fold', type=int, dest='f',action='store',  help="the number of fold in which data to be partitioned.", default=5)
@@ -373,10 +375,10 @@ def main(args):
 
 
         # Set the parameters tuneed by grid searching
-        C_range = np.logspace(-5, 10, 16, base=2)
+        C_range = np.logspace(-5, 5, 11, base=2)
         # np.logspace(-5, 5, 10, base=2)
         # np.logspace(-3, 4, 7, base=2)
-        g_range = np.logspace(-14, -2, 13, base=2)
+        g_range = np.logspace(-10, -2, 9, base=2)
         # np.logspace(-8, -3, 5, base=2)
         # np.logspace(-10, -2, 8, base=2)
 
@@ -404,6 +406,8 @@ def main(args):
         print '    %s' % (args.downsample)
         # train, test and evaluation
         fold=1
+        C_final=0
+        gamma_final=0
         for train_index, test_index in CVfold:
             print '============================================================' 
             print 'Classification on fold %s...' % fold
@@ -424,8 +428,8 @@ def main(args):
                 print("Best parameters set found on development set:")
                 # print '\n'
                 print(clf.best_params_)
-                # C_final+= clf.best_params_['C']
-                # gamma_final+= clf.best_params_['gamma']
+                C_final+= clf.best_params_['C']
+                gamma_final+= clf.best_params_['gamma']
                 print '------------------------------------------------------------' 
                 print("Grid scores on development set:")
                 
@@ -477,26 +481,26 @@ def main(args):
         print '\n'
      
 
-    if args.TrainingAll:
-        # calculate sample weight and class weight
-        wt=[]
-        num_list = []
-        weight_list = []
-        class_weight={}
-        for w in range(max(y)+1):
-            num=np.where(y==w)[0].size
-            num_list.append(num)
-            weight_list.append(1/float(num))
-            wt = wt+[1/float(num)]*num
-        min_num = min(num_list)
-        for index, w in enumerate(weight_list):
-            class_weight[index]=w/(1/float(min_num))
-        print 'sample_weight: ', wt
-        # training
-        clf_final = SVC(C=C_final , gamma=gamma_final, class_weight='balanced')
-        clf_final.fit(X, y)
-        # save model
-        np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.model', clf_final)
+        if args.TrainAll:
+            clf_final = clf_final/float(fold)
+            gamma_final = gamma_final/float(gamma_final)
+            X_final = data_preprocessing(X, data_preprocessing_method=data_preprocessing_method, output_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.final'+'.metric.'+m)
+            if exhaustive:
+            
+                C_final_range = np.logspace(np.log2(C_final)-2, np.log2(C_final)+2, 5, base=2)
+                g_final_range = np.logspace(np.log2(gamma_final)-2, np.log2(gamma_final)+2, 5, base=2)
+
+                for C in C_final_range: 
+                    for g in g_final_range: 
+                        clf_final = SVC(C=C , gamma=g, class_weight='balanced')
+                        clf_final.fit(X_final, y)
+                        # save model
+                        np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.final'+'.metric.'+m+'C_'+clf_final+'.g_'+gamma_final+'.model', clf_final)
+            else:
+                clf_final = SVC(C=C_final , gamma=gamma_final, class_weight='balanced')
+                clf_final.fit(X_final, y)
+                # save model
+                np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.final'+'.metric.'+m+'C_'+clf_final+'.g_'+gamma_final+'.model', clf_final)
 
 if __name__ == '__main__':
     args = parser()

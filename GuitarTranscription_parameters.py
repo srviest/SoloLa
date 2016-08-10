@@ -31,10 +31,10 @@ peakDistributionThreshold = 0.86
 max_transition_note_duration = 0.09
 min_transition_note_duration = 0.015
 
-
+# 'barkbands', 'mfcc', 'pitch',
 # feature extraction
-selected_features = ['barkbands', 'mfcc',
-            'hfc', 'pitch', 'pitch_instantaneous_confidence', 
+selected_features = [
+            'hfc', 'pitch_instantaneous_confidence', 
             'pitch_salience', 'silence_rate_20dB', 'silence_rate_30dB', 
             'silence_rate_60dB', 'spectral_complexity', 'spectral_crest', 
             'spectral_decrease', 'spectral_energy', 'spectral_energyband_low', 
@@ -48,5 +48,5 @@ selected_features = ['barkbands', 'mfcc',
 # data_preprocessing_method = ['scale']
 # data_preprocessing_method = ['robust_scale']
 # data_preprocessing_method = ['StandardScaler']
-data_preprocessing_method = ['RobustScaler']
+data_preprocessing_method = ['StandardScaler']
 
