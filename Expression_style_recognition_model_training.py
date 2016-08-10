@@ -59,21 +59,20 @@ def main(args):
     # input_audio = '/Users/Frank/Documents/Code/Database/test/Guitar_Licks_51_10.wav'
     # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect'
     # input_audio = '/Users/Frank/Desktop/Guitar_Score/Beatles - Let It Be Solo.wav'
-    input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single'
+    # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single'
     # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect'
     # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect_TSM'
-    # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/Clean_Room'
+    # '/Users/Frank/Documents/Code/Database/clean_tone_single_effect_TSM'
+    input_audio_list = ['/Users/Frank/Documents/Code/Database/clean_tone_single_effect_TSM']
 
-    output_paren_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/downsample(0807)'
-    output_dir = os.path.join(output_paren_dir, os.path.basename(input_audio))
+    output_paren_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/downsample(8-08)'
     # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/All_Effects'
     # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/All_Effects_fine_tuned'
     # output_dir = '/Users/Frank/Documents/Code/Python/Guitar_solo_MIDI2wav'
 
+    for input_audio in input_audio_list:        
+        output_dir = os.path.join(output_paren_dir, os.path.basename(input_audio))
 
-    if bend_pull_normal_hamm_slide is True:
-      
-    
         print '===================================================='
         print 'Training guitar expressin style recognition model...'
         print '===================================================='
@@ -100,76 +99,30 @@ def main(args):
                           output_dir+os.sep+'S3.Candidate', 
                           output_dir+os.sep+'S4.Feature'])
 
-        # S5.Classification
-        if args.cl: call(['python', 'Classification.py', 
-                          output_dir+os.sep+'S4.Feature', 
-                          output_dir+os.sep+'S5.Classification_bend_pull_normal_hamm_slide',
-                          'bend', 'hamm', 'slide', 'pull', 'normal', '-f', '5', 
-                          '-GridSearchCV', 
-                          '-downsample'])
 
-    if bend_normal_hamm_slide is True:
+        if bend_pull_normal_hamm_slide is True:
+            # S5.Classification
+            if args.cl: call(['python', 'Classification.py', 
+                              output_dir+os.sep+'S4.Feature', 
+                              output_dir+os.sep+'S5.Classification_bend_pull_normal_hamm_slide',
+                              'bend', 'hamm', 'slide', 'pull', 'normal', '-f', '5', 
+                              '-GridSearchCV','-downsample'])
 
-        # S1.Melody extraction
-        if args.me: call(['python', 'Melody_extraction.py', 
-                          input_audio, 
-                          output_dir+os.sep+'S1.Melody'])
+        if bend_normal_hamm_slide is True:
+            # S5.Classification
+            if args.cl: call(['python', 'Classification.py', 
+                              output_dir+os.sep+'S4.Feature', 
+                              output_dir+os.sep+'S5.Classification_bend_normal_hamm_slide',
+                              'bend', 'hamm', 'slide', 'normal', '-f', '5', 
+                              '-GridSearchCV', '-downsample'])
 
-        # S2.Note tracking
-        if args.nt: call(['python', 'Note_tracking.py', 
-                          output_dir+os.sep+'S1.Melody',
-                          output_dir+os.sep+'S2.Note'])
-
-        # S3.Candidate selection
-        if args.cs: call(['python', 'Candidate_selection.py', 
-                          output_dir+os.sep+'S1.Melody', 
-                          output_dir+os.sep+'S2.Note', 
-                          output_dir+os.sep+'S3.Candidate'])
-
-        # S4.Feature extraction
-        if args.fe: call(['python', 'Feature_extraction.py', 
-                          input_audio, 
-                          output_dir+os.sep+'S3.Candidate', 
-                          output_dir+os.sep+'S4.Feature'])
-
-        # S5.Classification
-        if args.cl: call(['python', 'Classification.py', 
-                          output_dir+os.sep+'S4.Feature', 
-                          output_dir+os.sep+'S5.Classification_bend_normal_hamm_slide',
-                          'bend', 'hamm', 'slide', 'normal', '-f', '5', 
-                          '-GridSearchCV', 
-                          '-downsample'])
-
-    if bend_pull_normal_slide is True:
-        
-        # S1.Melody extraction
-        if args.me: call(['python', 'Melody_extraction.py', 
-                          input_audio, 
-                          output_dir+os.sep+'S1.Melody'])
-
-        # S2.Note tracking
-        if args.nt: call(['python', 'Note_tracking.py', 
-                          output_dir+os.sep+'S1.Melody',
-                          output_dir+os.sep+'S2.Note'])
-
-        # S3.Candidate selection
-        if args.cs: call(['python', 'Candidate_selection.py', 
-                          output_dir+os.sep+'S1.Melody', 
-                          output_dir+os.sep+'S2.Note', 
-                          output_dir+os.sep+'S3.Candidate'])
-
-        # S4.Feature extraction
-        if args.fe: call(['python', 'Feature_extraction.py', 
-                          input_audio, 
-                          output_dir+os.sep+'S3.Candidate', 
-                          output_dir+os.sep+'S4.Feature'])
-
-        # S5.Classification
-        if args.cl: call(['python', 'Classification.py', 
-                          output_dir+os.sep+'S4.Feature', 
-                          output_dir+os.sep+'S5.Classification_bend_pull_normal_slide',
-                          'bend', 'slide', 'pull', 'normal', '-f', '5', 
-                          '-GridSearchCV'])
+        if bend_pull_normal_slide is True:
+            # S5.Classification
+            if args.cl: call(['python', 'Classification.py', 
+                              output_dir+os.sep+'S4.Feature', 
+                              output_dir+os.sep+'S5.Classification_bend_pull_normal_slide',
+                              'bend', 'slide', 'pull', 'normal', '-f', '5', 
+                              '-GridSearchCV', '-downsample'])
 
 
 if __name__ == '__main__':

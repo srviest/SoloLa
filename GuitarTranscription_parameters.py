@@ -33,7 +33,7 @@ min_transition_note_duration = 0.015
 
 
 # feature extraction
-selected_features = ['barkbands', 'mfcc',
+selected_features = ['barkbands', 'mfcc', 'duration',
             'hfc', 'pitch', 'pitch_instantaneous_confidence', 
             'pitch_salience', 'silence_rate_20dB', 'silence_rate_30dB', 
             'silence_rate_60dB', 'spectral_complexity', 'spectral_crest', 
@@ -48,5 +48,6 @@ selected_features = ['barkbands', 'mfcc',
 # data_preprocessing_method = ['scale']
 # data_preprocessing_method = ['robust_scale']
 # data_preprocessing_method = ['StandardScaler']
-data_preprocessing_method = ['RobustScaler']
+# data_preprocessing_method = ['RobustScaler']
+data_preprocessing_method = ['StandardScaler', 'PCA']
 
