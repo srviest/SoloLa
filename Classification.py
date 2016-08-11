@@ -136,9 +136,14 @@ def data_preprocessing(raw_data, data_preprocessing_method=data_preprocessing_me
 
     # Principal component analysis
     if 'PCA' in data_preprocessing_method or 'pca' in data_preprocessing_method:
+        # n_samples > n_features    
         if PCA_path==None and output_path!=None:
             print '    Performing PCA to reduce feature space...'
-            pca = PCA(n_components=100).fit(data)
+            if data.shape[0]<100:
+                n_components=data.shape[0]
+            else:
+                n_components=100
+            pca = PCA(n_components=n_components).fit(data)
             # save PCA
             np.save(output_path+'.PCA', pca)
             data = pca.transform(data)
@@ -486,25 +491,28 @@ def main(args):
      
 
         if args.TrainAll:
-            clf_final = clf_final/float(fold)
+            C_final = C_final/float(fold)
             gamma_final = gamma_final/float(gamma_final)
-            X_final = data_preprocessing(X, data_preprocessing_method=data_preprocessing_method, output_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.final'+'.metric.'+m)
-            if exhaustive:
-            
-                C_final_range = np.logspace(np.log2(C_final)-2, np.log2(C_final)+2, 5, base=2)
-                g_final_range = np.logspace(np.log2(gamma_final)-2, np.log2(gamma_final)+2, 5, base=2)
+            print 'C_final: ', C_final
+            print 'gamma_final: ', gamma_final
 
+            X_final = data_preprocessing(X, data_preprocessing_method=data_preprocessing_method, output_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.final'+'.metric.'+m)
+            if args.exhaustive:
+                C_final_range = np.logspace(np.log2(C_final)-1, np.log2(C_final)+1, 3, base=2)
+                g_final_range = np.logspace(np.log2(gamma_final)-1, np.log2(gamma_final)+1, 3, base=2)
+                print 'C_final_range: ', C_final_range
+                print 'g_final_range: ', g_final_range
                 for C in C_final_range: 
                     for g in g_final_range: 
                         clf_final = SVC(C=C , gamma=g, class_weight='balanced')
                         clf_final.fit(X_final, y)
                         # save model
-                        np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.final'+'.metric.'+m+'C_'+clf_final+'.g_'+gamma_final+'.model', clf_final)
+                        np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.final'+'.metric.'+m+'.C_'+str(C)+'.g_'+str(g)+'.model', clf_final)
             else:
                 clf_final = SVC(C=C_final , gamma=gamma_final, class_weight='balanced')
                 clf_final.fit(X_final, y)
                 # save model
-                np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.final'+'.metric.'+m+'C_'+clf_final+'.g_'+gamma_final+'.model', clf_final)
+                np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.final'+'.metric.'+m+'.C_'+str(C_final)+'.g_'+str(gamma_final)+'.model', clf_final)
 
 if __name__ == '__main__':
     args = parser()
