@@ -1202,7 +1202,7 @@ def main(args):
                     # load time-stamp answer
                     annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
                     GTEval.evaluation_candidate_cls(annotation_ts, result, args.output_dir, name+'.'+ct+'.candidate.'+cls_mode,
-                        tech_index_dic=tech_index_dic, string='Result of '+ct+' candidates classifiaction', mode='w')
+                        tech_index_dic=tech_index_dic, poly_mask=args.poly_mask, string='Result of '+ct+' candidates classifiaction', mode='w')
 
                 if args.eval_ts:
                     print '  Evaluating time segment-level expression style after candidate classification...'
@@ -1239,7 +1239,7 @@ def main(args):
             # load time-stamp answer
             annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
             GTEval.evaluation_candidate_cls(annotation_ts, result_all, args.output_dir, name+'.all.candidate.'+cls_mode, 
-                tech_index_dic=tech_index_dic_list[2], string='Result of all candidates classifiaction', mode='w')
+                tech_index_dic=tech_index_dic_list[2], poly_mask=args.poly_mask, string='Result of all candidates classifiaction', mode='w')
 
 
         """

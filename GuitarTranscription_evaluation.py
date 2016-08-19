@@ -60,6 +60,7 @@ expression_style_note:  Text file of array, storing the onset, offset
 """
 
 from mir_eval.transcription import precision_recall_f1
+from mir_eval.onset import f_measure
 import numpy as np
 import os, sys, csv
 
@@ -407,7 +408,15 @@ def calculate_esn_f_measure(annotation_esn, prediction_esn, tech, onset_toleranc
 
     return P, R, F, TP, FP, FN
 
-def evaluation_candidate_cls(annotation_ts, candidate_result, output_dir, filename, tech_index_dic, string=None, mode='a', plot=True):
+def evaluation_candidate_cls(annotation_ts_orig, candidate_result_orig, output_dir, filename, tech_index_dic, string=None, poly_mask=None, mode='a', plot=True):
+
+    if poly_mask:
+        poly_mask = np.loadtxt(poly_mask)
+        annotation_ts = remove_poly_ts(annotation_ts_orig, poly_mask)
+        candidate_result = remove_poly_ts(candidate_result_orig, poly_mask)
+    else:
+        annotation_ts = annotation_ts_orig
+        candidate_result = candidate_result_orig
 
     # evaluation
     (cls_accuracy, cls_report, confusion_table, 
@@ -508,31 +517,76 @@ def evaluation_note(annotation, note, output_dir, filename, onset_tolerance=0.05
         ref_intervals, ref_pitches, est_intervals, est_pitches = fit_mir_eval_transcription(annotation, note)
 
 
-    onset_tolerance=[0.05, 0.1]
-    offset_ratio=[0.20,  None]
-    metric=[]
-    result=[]
-    for on in onset_tolerance:
-        for off in offset_ratio:
-            if mode=='w':
-                metric.append('Onset tolerence: '+str(on)+', '+'Offset ratio: '+str(off))
-                space_count = len(onset_tolerance)*len(offset_ratio)-1
-                metric+=['']*space_count
-            note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=on, offset_ratio=off)
-            note_p = round(note_p, 5)
-            note_r = round(note_r, 5)
-            note_f = round(note_f, 5)
-            result+=[note_p]+[note_r]+[note_f]+['']
+#     onset_tolerance=[0.05, 0.1]
+#     offset_ratio=[0.20,  None]
+#     metric=[]
+#     result=[]
+#     for on in onset_tolerance:
+#         for off in offset_ratio:
+#             if mode=='w':
+#                 metric.append('Onset tolerence: '+str(on)+', '+'Offset ratio: '+str(off))
+#                 space_count = len(onset_tolerance)*len(offset_ratio)-1
+#                 metric+=['']*space_count
+#             note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=on, offset_ratio=off)
+#             note_p = round(note_p, 5)
+#             note_r = round(note_r, 5)
+#             note_f = round(note_f, 5)
+#             result+=[note_p]+[note_r]+[note_f]+['']
             
+#     if string:
+#         result+=[string]
+
+#     fh = open(output_dir+os.sep+filename+'.note.eval'+extension, mode)
+#     w = csv.writer(fh, delimiter = ',')
+#     if metric:
+#         w.writerow(metric)
+#     w.writerow(result)
+#     fh.close()
+
+# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+    metric=['COnPOff','','','','COnP','','','','COn','','','','Stage']
+    result=[]
+
+    onset_tolerance=0.05
+    offset_ratio=0.20
+    
+    note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=onset_tolerance, offset_ratio=offset_ratio)
+    note_p = round(note_p, 5)
+    note_r = round(note_r, 5)
+    note_f = round(note_f, 5)
+    result+=[note_p]+[note_r]+[note_f]+['']
+
+    onset_tolerance=0.05
+    offset_ratio=None
+    note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=onset_tolerance, offset_ratio=offset_ratio)
+    note_p = round(note_p, 5)
+    note_r = round(note_r, 5)
+    note_f = round(note_f, 5)
+    result+=[note_p]+[note_r]+[note_f]+['']
+
+    
+    onset_p, onset_r, onset_f = f_measure(ref_intervals[:,0], est_intervals[:,0])
+    onset_p = round(onset_p, 5)
+    onset_r = round(onset_r, 5)
+    onset_f = round(onset_f, 5)
+    result+=[onset_p]+[onset_r]+[onset_f]+['']
+
     if string:
         result+=[string]
 
+    if os.path.exists(output_dir+os.sep+filename+'.note.eval'+extension)==False:
+        fh = open(output_dir+os.sep+filename+'.note.eval'+extension, mode)      
+        w = csv.writer(fh, delimiter = ',') 
+        w.writerow(metric)
+        fh.close()
+
     fh = open(output_dir+os.sep+filename+'.note.eval'+extension, mode)
     w = csv.writer(fh, delimiter = ',')
-    if metric:
-        w.writerow(metric)
     w.writerow(result)
     fh.close()
+
+
 
 def evaluation_esn(annotation_esn, prediction_esn, output_dir, filename, onset_tolerance=0.05, offset_ratio=0.2, string=None, mode='a'):
 
