@@ -289,7 +289,7 @@ def calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list):
 
     return P, R, F, TP, FP, FN
 
-def calculate_esn_f_measure(annotation_esn, prediction_esn, tech, onset_tolerance=0.05, offset_ratio=0.2, correct_pitch=None):
+def calculate_esn_f_measure(annotation_esn, prediction_esn, tech, onset_tolerance=0.05, offset_ratio=0.2, correct_pitch=True):
     annotation_esn_mask = annotation_esn.copy()
     prediction_esn_mask = prediction_esn.copy()
     if tech == 'Pre-bend':
@@ -311,6 +311,74 @@ def calculate_esn_f_measure(annotation_esn, prediction_esn, tech, onset_toleranc
     elif tech == 'Vibrato':
         tech_index = 11
 
+
+    if tech == 'All':
+        for index_ann, note_ann in enumerate(annotation_esn_mask):
+            
+            # loop in predicted expression style note
+            for index_pre, note_pre in enumerate(prediction_esn_mask):
+            
+                # check if two esn are matched
+                if note_ann[1]-onset_tolerance < note_pre[1] and note_ann[1]+onset_tolerance > note_pre[1] and \
+                    note_ann[3::]==note_pre[3::]:
+                    if correct_pitch is True and offset_ratio!=None:
+                        if note_ann[0] == note_pre[0] and \
+                            note_ann[1]+note_ann[2]-note_ann[2]*offset_ratio < note_pre[1]+note_pre[2] and \
+                            note_ann[1]+note_ann[2]+note_ann[2]*offset_ratio > note_pre[1]+note_pre[2]:
+                            TP+=1
+                    elif correct_pitch is False and offset_ratio!=None:
+                        if note_ann[1]+note_ann[2]-note_ann[2]*offset_ratio < note_pre[1]+note_pre[2] and \
+                            note_ann[1]+note_ann[2]+note_ann[2]*offset_ratio > note_pre[1]+note_pre[2]:
+                            TP+=1
+                    elif correct_pitch is True and offset_ratio==None:
+                        if note_ann[0] == note_pre[0]:
+                            TP+=1
+                    elif correct_pitch is False and offset_ratio==None:
+                        TP+=1
+
+        FP = prediction_esn_mask.shape[0]-TP
+        FN = annotation_esn_mask.shape[0]-TP
+
+    if tech == 'Normal':
+        (TP, FP, FN)=0,0,0
+        for index_ann, note_ann in enumerate(annotation_esn_mask):
+            # if no technique is employed in annotated esn
+            if np.count_nonzero(note_ann[3::])==0:
+                # loop in predicted expression style note
+                for index_pre, note_pre in enumerate(prediction_esn_mask):
+                    # if no technique is employed in predicted esn
+                    if np.count_nonzero(note_pre[3::])==0:
+                        # check if two esn are matched
+                        if note_ann[1]-onset_tolerance < note_pre[1] and note_ann[1]+onset_tolerance > note_pre[1]:
+                            if correct_pitch is True and offset_ratio!=None:
+                                if note_ann[0] == note_pre[0] and \
+                                    note_ann[1]+note_ann[2]-note_ann[2]*offset_ratio < note_pre[1]+note_pre[2] and \
+                                    note_ann[1]+note_ann[2]+note_ann[2]*offset_ratio > note_pre[1]+note_pre[2]:
+                                    TP+=1
+                                    # note_ann[tech_index] = -1
+                                    # note_pre[tech_index] = -1
+                            elif correct_pitch is False and offset_ratio!=None:
+                                if note_ann[1]+note_ann[2]-note_ann[2]*offset_ratio < note_pre[1]+note_pre[2] and \
+                                    note_ann[1]+note_ann[2]+note_ann[2]*offset_ratio > note_pre[1]+note_pre[2]:
+                                    TP+=1
+                                    # note_ann[tech_index] = -1
+                                    # note_pre[tech_index] = -1
+                            elif correct_pitch is True and offset_ratio==None:
+                                if note_ann[0] == note_pre[0]:
+                                    TP+=1
+                                    # note_ann[tech_index] = -1
+                                    # note_pre[tech_index] = -1
+                            elif correct_pitch is False and offset_ratio==None:
+                                TP+=1
+                                # note_ann[tech_index] = -1
+                                # note_pre[tech_index] = -1
+
+        # TP = np.extract(annotation_esn_mask[:,tech_index]==-1, annotation_esn_mask[:,tech_index]).size
+        # FP = np.extract(prediction_esn_mask[:,tech_index]>0, prediction_esn_mask[:,tech_index]).size
+        # FN = np.extract(annotation_esn_mask[:,tech_index]>0, annotation_esn_mask[:,tech_index]).size
+        FP = prediction_esn_mask.shape[0]-TP
+        FN = annotation_esn_mask.shape[0]-TP
+
     if tech=='Pre-bend' or tech=='Bend' or tech=='Release' or tech=='Slide in' or tech=='Slide out' or tech=='Vibrato':
         # loop in annotated expression style note
         for index_ann, note_ann in enumerate(annotation_esn_mask):
@@ -321,7 +389,7 @@ def calculate_esn_f_measure(annotation_esn, prediction_esn, tech, onset_toleranc
                     # if technique is identified in predicted esn
                     if note_pre[tech_index]!=0:
                         # check if two esn are matched
-                        if note_ann[1]-onset_tolerance < note_pre[1] and note_ann[1]+onset_tolerance > note_pre[1]:
+                        if note_ann[1]-onset_tolerance < note_pre[1] and note_ann[1]+onset_tolerance > note_pre[1] and note_ann[tech_index]==note_pre[tech_index]:
                             if correct_pitch is True and offset_ratio!=None:
                                 if note_ann[0] == note_pre[0] and \
                                     note_ann[1]+note_ann[2]-note_ann[2]*offset_ratio < note_pre[1]+note_pre[2] and \
@@ -347,6 +415,8 @@ def calculate_esn_f_measure(annotation_esn, prediction_esn, tech, onset_toleranc
         FN = np.extract(annotation_esn_mask[:,tech_index]>0, annotation_esn_mask[:,tech_index]).size
 
     elif tech=='Pull-off' or tech=='Hammer-on' or tech=='Slide':
+    # The ground truth of above three techs are annotated in both starting and ending notes so the evaluation
+    # of theses three techniques has to be different from the evaluation of Bend and the others.
         (TP, FP, FN)=0,0,0
         # loop in annotated expression style note
         for index_ann, note_ann in enumerate(annotation_esn_mask[:-1]):
@@ -407,6 +477,7 @@ def calculate_esn_f_measure(annotation_esn, prediction_esn, tech, onset_toleranc
         F=0
 
     return P, R, F, TP, FP, FN
+
 
 def evaluation_candidate_cls(annotation_ts_orig, candidate_result_orig, output_dir, filename, tech_index_dic, string=None, poly_mask=None, mode='a', plot=True):
 
@@ -516,61 +587,21 @@ def evaluation_note(annotation, note, output_dir, filename, onset_tolerance=0.05
     else:
         ref_intervals, ref_pitches, est_intervals, est_pitches = fit_mir_eval_transcription(annotation, note)
 
-
-#     onset_tolerance=[0.05, 0.1]
-#     offset_ratio=[0.20,  None]
-#     metric=[]
-#     result=[]
-#     for on in onset_tolerance:
-#         for off in offset_ratio:
-#             if mode=='w':
-#                 metric.append('Onset tolerence: '+str(on)+', '+'Offset ratio: '+str(off))
-#                 space_count = len(onset_tolerance)*len(offset_ratio)-1
-#                 metric+=['']*space_count
-#             note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=on, offset_ratio=off)
-#             note_p = round(note_p, 5)
-#             note_r = round(note_r, 5)
-#             note_f = round(note_f, 5)
-#             result+=[note_p]+[note_r]+[note_f]+['']
-            
-#     if string:
-#         result+=[string]
-
-#     fh = open(output_dir+os.sep+filename+'.note.eval'+extension, mode)
-#     w = csv.writer(fh, delimiter = ',')
-#     if metric:
-#         w.writerow(metric)
-#     w.writerow(result)
-#     fh.close()
-
-# \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-
     metric=['COnPOff','','','','COnP','','','','COn','','','','Stage']
     result=[]
 
     onset_tolerance=0.05
     offset_ratio=0.20
-    
     note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=onset_tolerance, offset_ratio=offset_ratio)
-    note_p = round(note_p, 5)
-    note_r = round(note_r, 5)
-    note_f = round(note_f, 5)
-    result+=[note_p]+[note_r]+[note_f]+['']
+    result+=[round(note_p, 5)]+[round(note_r, 5)]+[round(note_f, 5)]+['']
 
     onset_tolerance=0.05
     offset_ratio=None
     note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=onset_tolerance, offset_ratio=offset_ratio)
-    note_p = round(note_p, 5)
-    note_r = round(note_r, 5)
-    note_f = round(note_f, 5)
-    result+=[note_p]+[note_r]+[note_f]+['']
+    result+=[round(note_p, 5)]+[round(note_r, 5)]+[round(note_f, 5)]+['']
 
-    
     onset_p, onset_r, onset_f = f_measure(ref_intervals[:,0], est_intervals[:,0])
-    onset_p = round(onset_p, 5)
-    onset_r = round(onset_r, 5)
-    onset_f = round(onset_f, 5)
-    result+=[onset_p]+[onset_r]+[onset_f]+['']
+    result+=[round(onset_p, 5)]+[round(onset_r, 5)]+[round(onset_f, 5)]+['']
 
     if string:
         result+=[string]
@@ -586,10 +617,24 @@ def evaluation_note(annotation, note, output_dir, filename, onset_tolerance=0.05
     w.writerow(result)
     fh.close()
 
+def remove_poly_esn(esn, poly_mask):
+    esn_poly_removed = esn.copy()
+    esn_to_be_deleted = []
+    for index_n, note in enumerate(esn):
+        onset = note[1]
+        offset = note[1]+note[2]
+        for index_p, poly_note in enumerate(poly_mask):
+            onset_in = onset > poly_note[0] and onset < poly_note[1]
+            offset_in = offset > poly_note[0] and offset < poly_note[1]
+            if onset_in or offset_in:
+                esn_to_be_deleted.append(index_n)
+    esn_poly_removed = np.delete(esn_poly_removed, esn_to_be_deleted, axis=0)
+    return esn_poly_removed
 
 
-def evaluation_esn(annotation_esn, prediction_esn, output_dir, filename, onset_tolerance=0.05, offset_ratio=0.2, string=None, mode='a'):
+def evaluation_esn(annotation_esn_orig, prediction_esn_orig, output_dir, filename, onset_tolerance=0.05, offset_ratio=0.2, poly_mask=None, string=None, mode='a'):
 
+"""
     # convert format to fit mir_eval
     ref_intervals, ref_pitches, est_intervals, est_pitches = fit_mir_eval_transcription(annotation_esn[:,0:3], prediction_esn[:,0:3])
     # write result to file
@@ -600,26 +645,11 @@ def evaluation_esn(annotation_esn, prediction_esn, output_dir, filename, onset_t
     if string:
         print string
 
-    print '======================================================================'
-    print 'Evaluation on song '+filename
-    print '======================================================================'
-
-    print '                                 Note                                 '
-    print '----------------------------------------------------------------------'
-    print '                             Precision          Recall       F-measure'
-    onset_tolerance=[0.05, 0.1]
-    offset_ratio=[0.20, None]
-    for on in onset_tolerance:
-        for off in offset_ratio:
-            note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=on, offset_ratio=off)
-            print ('%14s%16.4f%16.4f%16.4f' % ('CorPOn(%4ss)Off(%4s)', note_p, note_r, note_f) % (on, off))
-    print '\n'
-
-    onset_tolerance=[0.05, 0.1]
-    offset_ratio=[0.20, None]
-    correct_pitch = [True, False]
-    print '                       Expression style (note)                      '
-    print '--------------------------------------------------------------------'
+    onset_tolerance=[0.05]
+    offset_ratio=[0.20]
+    correct_pitch = [True]
+    # print '                       Expression style (note)                      '
+    # print '--------------------------------------------------------------------'
     for on in onset_tolerance:
         for off in offset_ratio:
             for cp in correct_pitch:
@@ -647,6 +677,103 @@ def evaluation_esn(annotation_esn, prediction_esn, output_dir, filename, onset_t
                 print '                                                            '
     # return to normal:
     sys.stdout = save_stdout
+    fh.close()
+"""
+    if poly_mask:
+        poly_mask = np.loadtxt(poly_mask)
+        annotation_esn = remove_poly_esn(annotation_esn_orig, poly_mask)
+        prediction_esn = remove_poly_esn(prediction_esn_orig, poly_mask)
+    else:
+        annotation_esn = annotation_esn_orig
+        prediction_esn = prediction_esn_orig
+
+    data = []
+    if string:
+        data.append([string])
+
+
+    ref_intervals, ref_pitches, est_intervals, est_pitches = fit_mir_eval_transcription(annotation_esn[:,0:3], prediction_esn[:,0:3])
+
+
+    onset_tolerance=0.05
+    offset_ratio=0.20
+    
+    note_p, note_r, note_f = precision_recall_f1(ref_intervals, ref_pitches, est_intervals, est_pitches, onset_tolerance=onset_tolerance, offset_ratio=offset_ratio)
+    data.append(['COnPOff', round(note_p, 4) ,'', round(note_r, 4), '', round(note_f, 4)])
+
+    P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Normal')
+    data.append(['Normal', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+    
+    P, R, F, TP_pb, FP_pb, FN_pb = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Pre-bend')
+    data.append(['Pre-bend', round(P, 4) ,' ('+str(TP_pb)+'/'+str(TP_pb+FP_pb)+')', round(R, 4), ' ('+str(TP_pb)+'/'+str(TP_pb+FN_pb)+')', round(F, 4)])
+
+    P, R, F, TP_b, FP_b, FN_b = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Bend')
+    data.append(['Bend', round(P, 4) ,' ('+str(TP_b)+'/'+str(TP_b+FP_b)+')', round(R, 4), ' ('+str(TP_b)+'/'+str(TP_b+FN_b)+')', round(F, 4)])
+
+    P, R, F, TP_r, FP_r, FN_r = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Release')
+    data.append(['Release', round(P, 4) ,' ('+str(TP_r)+'/'+str(TP_r+FP_r)+')', round(R, 4), ' ('+str(TP_r)+'/'+str(TP_r+FN_r)+')', round(F, 4)])
+
+    P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Pull-off')
+    data.append(['Pull-off', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
+    P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Hammer-on')
+    data.append(['Hammer-on', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
+    P, R, F, TP_s, FP_s, FN_s = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Slide')
+    data.append(['Slide', round(P, 4) ,' ('+str(TP_s)+'/'+str(TP_s+FP_s)+')', round(R, 4), ' ('+str(TP_s)+'/'+str(TP_s+FN_s)+')', round(F, 4)])
+
+    P, R, F, TP_si, FP_si, FN_si = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Slide in')
+    data.append(['Slide in', round(P, 4) ,' ('+str(TP)+'/'+str(TP_si+FP_si)+')', round(R, 4), ' ('+str(TP_si)+'/'+str(TP_si+FN_si)+')', round(F, 4)])
+
+    P, R, F, TP_so, FP_so, FN_so = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Slide out')
+    data.append(['Slide out', round(P, 4) ,' ('+str(TP_so)+'/'+str(TP_so+FP_so)+')', round(R, 4), ' ('+str(TP_so)+'/'+str(TP_so+FN_so)+')', round(F, 4)])
+
+    P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Vibrato')
+    data.append(['Vibrato', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
+    P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='All')
+    data.append(['All', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
+    data.append(['---------------------------------------'])
+
+    TP_B = TP_pb+TP_b+TP_r
+    FP_B = FP_pb+FP_b+FP_r
+    FN_B = FN_pb+FN_b+FN_r
+    P_B = TP_B/float(TP_B+FP_B) 
+    R_B = TP_B/float(TP_B+FN_B)
+    F_B = 2*P_B*R_B/float(P_B+R_B)
+
+    data.append(['Bend', round(P_B, 4) ,' ('+str(TP_B)+'/'+str(TP_B+FP_B)+')', round(R_B, 4), ' ('+str(TP_B)+'/'+str(TP_B+FN_B)+')', round(F_B, 4)])
+
+    P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Pull-off')
+    data.append(['Pull-off', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
+    P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Hammer-on')
+    data.append(['Hammer-on', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+
+    TP_S = TP_s+TP_si+TP_so
+    FP_S = FP_s+FP_si+FP_so
+    FN_S = FN_s+FN_si+FN_so
+    P_S = TP_S/float(TP_S+FP_S) 
+    R_S = TP_S/float(TP_S+FN_S)
+    F_S = 2*P_S*R_S/float(P_S+R_S)
+
+    data.append(['Slide', round(P_S, 4) ,' ('+str(TP_S)+'/'+str(TP_S+FP_S)+')', round(R_S, 4), ' ('+str(TP_S)+'/'+str(TP_S+FN_S)+')', round(F_S, 4)])
+    
+    P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Vibrato')
+    data.append(['Vibrato', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
+    data.append([''])
+
+
+    # write results
+    fh = open(output_dir+os.sep+filename+'.ts.eval'+extension,mode)
+    w = csv.writer(fh, delimiter = ',')
+    
+    if mode=='w':
+        metric = ['', 'Precision', '', 'Recall', '',  'F-measure']
+        w.writerow(metric)
+    for r in data:
+        w.writerow(r)
     fh.close()
 
 
@@ -697,6 +824,7 @@ def evaluation_ts(annotation_ts_orig, prediction_ts_orig, output_dir, filename, 
     data = []
     if string:
         data.append([string])
+
 
     P, R, F, TP, FP, FN = calculate_ts_f_measure(annotation_ts, prediction_ts, tech_index_list=[3,4,5])
     data.append(['Bend', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
@@ -753,10 +881,11 @@ def evaluation_ts(annotation_ts_orig, prediction_ts_orig, output_dir, filename, 
     data.append(['Vibrato', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
     data.append([''])
     
+
+    # write results
     fh = open(output_dir+os.sep+filename+'.ts.eval'+extension,mode)
     w = csv.writer(fh, delimiter = ',')
-    # for r in a:
-    # print metric
+    
     if mode=='w':
         metric = ['', 'Precision', '', 'Recall', '',  'F-measure']
         w.writerow(metric)
