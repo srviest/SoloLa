@@ -50,7 +50,16 @@ selected_features = [
 '''
 
 selected_features = [
-            'mfcc']
+            'mfcc',
+            'pitch', 'pitch_instantaneous_confidence', 'pitch_salience', 'duration',
+            'barkbands', 'hfc', 'silence_rate_20dB', 'silence_rate_30dB', 
+            'silence_rate_60dB', 'spectral_complexity', 'spectral_crest', 
+            'spectral_decrease', 'spectral_energy', 'spectral_energyband_low', 
+            'spectral_energyband_middle_low', 'spectral_energyband_middle_high', 
+            'spectral_energyband_high', 'spectral_flatness_db', 'spectral_flux', 
+            'spectral_rms', 'spectral_rolloff', 'spectral_strongpeak', 
+            'zerocrossingrate', 'inharmonicity', 'tristimulus',
+            'oddtoevenharmonicenergyratio']
 
 # data preprocessing
 # data_preprocessing_method = ['scale']

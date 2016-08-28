@@ -313,14 +313,14 @@ def calculate_esn_f_measure(annotation_esn, prediction_esn, tech, onset_toleranc
 
 
     if tech == 'All':
+        (TP, FP, FN)=0,0,0
         for index_ann, note_ann in enumerate(annotation_esn_mask):
-            
             # loop in predicted expression style note
             for index_pre, note_pre in enumerate(prediction_esn_mask):
             
                 # check if two esn are matched
                 if note_ann[1]-onset_tolerance < note_pre[1] and note_ann[1]+onset_tolerance > note_pre[1] and \
-                    note_ann[3::]==note_pre[3::]:
+                    np.all(note_ann[3::]==note_pre[3::]):
                     if correct_pitch is True and offset_ratio!=None:
                         if note_ann[0] == note_pre[0] and \
                             note_ann[1]+note_ann[2]-note_ann[2]*offset_ratio < note_pre[1]+note_pre[2] and \
@@ -632,53 +632,8 @@ def remove_poly_esn(esn, poly_mask):
     return esn_poly_removed
 
 
-def evaluation_esn(annotation_esn_orig, prediction_esn_orig, output_dir, filename, onset_tolerance=0.05, offset_ratio=0.2, poly_mask=None, string=None, mode='a'):
+def evaluation_esn(annotation_esn_orig, prediction_esn_orig, output_dir, filename, onset_tolerance=0.05, offset_ratio=0.2, poly_mask=None, string=None, mode='a', extension=''):
 
-"""
-    # convert format to fit mir_eval
-    ref_intervals, ref_pitches, est_intervals, est_pitches = fit_mir_eval_transcription(annotation_esn[:,0:3], prediction_esn[:,0:3])
-    # write result to file
-    # sys.stdout = open(output_dir+os.sep+filename+'.esn.eval', 'a')
-    save_stdout = sys.stdout
-    fh = open(output_dir+os.sep+filename+'.esn.eval',mode)
-    sys.stdout = fh
-    if string:
-        print string
-
-    onset_tolerance=[0.05]
-    offset_ratio=[0.20]
-    correct_pitch = [True]
-    # print '                       Expression style (note)                      '
-    # print '--------------------------------------------------------------------'
-    for on in onset_tolerance:
-        for off in offset_ratio:
-            for cp in correct_pitch:
-                print ('                Correct P(%s)On(%s)Off(%s)      ' % (cp, on, off))
-                print '--------------------------------------------------------------------'
-                print '               Precision                Recall             F-measure'
-                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Pre-bend', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
-                print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Pre-bend', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Bend', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
-                print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Bend', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Release', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
-                print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Release', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Pull-off', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
-                print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Pull-off', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Hammer-on', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
-                print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Hammer-on', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Slide', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
-                print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Slide', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Slide in', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
-                print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Slide in', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Slide out', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
-                print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Slide out', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                P, R, F, TP, FP, FN = calculate_esn_f_measure(annotation_esn, prediction_esn, tech='Vibrato', onset_tolerance=on, offset_ratio=off, correct_pitch=cp)
-                print ('%12s%12.4f%10s%12.4f%10s%12.4s' % ('Vibrato', P ,' ('+str(TP)+'/'+str(TP+FP)+')', R, ' ('+str(TP)+'/'+str(TP+FN)+')', str(F)))
-                print '                                                            '
-    # return to normal:
-    sys.stdout = save_stdout
-    fh.close()
-"""
     if poly_mask:
         poly_mask = np.loadtxt(poly_mask)
         annotation_esn = remove_poly_esn(annotation_esn_orig, poly_mask)
@@ -739,9 +694,21 @@ def evaluation_esn(annotation_esn_orig, prediction_esn_orig, output_dir, filenam
     TP_B = TP_pb+TP_b+TP_r
     FP_B = FP_pb+FP_b+FP_r
     FN_B = FN_pb+FN_b+FN_r
-    P_B = TP_B/float(TP_B+FP_B) 
-    R_B = TP_B/float(TP_B+FN_B)
-    F_B = 2*P_B*R_B/float(P_B+R_B)
+
+    if TP_B !=0 or FP_B!=0:
+        P_B = TP_B/float(TP_B+FP_B)
+    else:
+        P_B = 0
+
+    if TP_B !=0 or FN_B!=0:
+        R_B = TP_B/float(TP_B+FN_B)
+    else:
+        R_B = 0
+
+    if P_B !=0 or R_B!=0:
+        F_B = 2*P_B*R_B/float(P_B+R_B)
+    else:
+        F_B=0
 
     data.append(['Bend', round(P_B, 4) ,' ('+str(TP_B)+'/'+str(TP_B+FP_B)+')', round(R_B, 4), ' ('+str(TP_B)+'/'+str(TP_B+FN_B)+')', round(F_B, 4)])
 
@@ -754,9 +721,21 @@ def evaluation_esn(annotation_esn_orig, prediction_esn_orig, output_dir, filenam
     TP_S = TP_s+TP_si+TP_so
     FP_S = FP_s+FP_si+FP_so
     FN_S = FN_s+FN_si+FN_so
-    P_S = TP_S/float(TP_S+FP_S) 
-    R_S = TP_S/float(TP_S+FN_S)
-    F_S = 2*P_S*R_S/float(P_S+R_S)
+
+    if TP_S !=0 or FP_S!=0:
+        P_S = TP_S/float(TP_S+FP_S) 
+    else:
+        P_S = 0
+
+    if TP_S !=0 or FN_S!=0:
+        R_S = TP_S/float(TP_S+FN_S)
+    else:
+        R_S = 0
+
+    if P_S !=0 or R_S!=0:
+        F_S = 2*P_S*R_S/float(P_S+R_S)
+    else:
+        F_S = 0
 
     data.append(['Slide', round(P_S, 4) ,' ('+str(TP_S)+'/'+str(TP_S+FP_S)+')', round(R_S, 4), ' ('+str(TP_S)+'/'+str(TP_S+FN_S)+')', round(F_S, 4)])
     
@@ -764,9 +743,8 @@ def evaluation_esn(annotation_esn_orig, prediction_esn_orig, output_dir, filenam
     data.append(['Vibrato', round(P, 4) ,' ('+str(TP)+'/'+str(TP+FP)+')', round(R, 4), ' ('+str(TP)+'/'+str(TP+FN)+')', round(F, 4)])
     data.append([''])
 
-
     # write results
-    fh = open(output_dir+os.sep+filename+'.ts.eval'+extension,mode)
+    fh = open(output_dir+os.sep+filename+'.esn.eval'+extension,mode)
     w = csv.writer(fh, delimiter = ',')
     
     if mode=='w':
