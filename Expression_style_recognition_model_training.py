@@ -52,9 +52,9 @@ def parser():
 def main(args):
     from subprocess import call
     import glob, os, sys
-    bend_pull_normal_slide=True
-    bend_normal_hamm_slide=True
-    bend_pull_normal_hamm_slide=False
+    bend_pull_normal_slide=False
+    bend_normal_hamm_slide=False
+    bend_pull_normal_hamm_slide=True
 
     # input_audio = '/Users/Frank/Documents/Code/Database/test/Guitar_Licks_51_10.wav'
     # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect'
@@ -62,12 +62,13 @@ def main(args):
     # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single'
     # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect'
     # input_audio = '/Users/Frank/Documents/Code/Database/clean_tone_single_effect_TSM'
-    # '/Users/Frank/Documents/Code/Database/clean_tone_single_effect_TSM'
+    
     # '/Users/Frank/Documents/Code/Database/clean_tone_single',
-    input_audio_list = ['/Users/Frank/Documents/Code/Database/clean_tone_single_effect',
-                        '/Users/Frank/Documents/Code/Database/clean_tone_single_effect_TSM']
+    # '/Users/Frank/Documents/Code/Database/clean_tone_single_effect'
+    # '/Users/Frank/Documents/Code/Database/clean_tone_single_effect_TSM'
+    input_audio_list = ['/Users/Frank/Documents/Code/Database/clean_tone_single']
 
-    output_paren_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/downsample(8-10)'
+    output_paren_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/wo_downsample(8-17)/F{M}'
     # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/All_Effects'
     # output_dir = '/Users/Frank/Documents/Code/Python/GPT_experiment/All_Effects_fine_tuned'
     # output_dir = '/Users/Frank/Documents/Code/Python/Guitar_solo_MIDI2wav'
@@ -109,7 +110,7 @@ def main(args):
                               output_dir+os.sep+'S5.Classification_bend_pull_normal_hamm_slide',
                               'bend', 'hamm', 'slide', 'pull', 'normal', '-f', '5', 
                               '-GridSearchCV','-downsample'])
-
+                              
         if bend_normal_hamm_slide is True:
             # S5.Classification
             if args.cl: call(['python', 'Classification.py', 

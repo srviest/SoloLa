@@ -960,7 +960,8 @@ def main(args):
             print '  Evaluating note-level expression style...' 
             annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
             GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
-                string='Result after wild vibrato detection', mode='w')
+                string='After wild vibrato detection', mode='w',
+                poly_mask=args.poly_mask, extension='.csv')
 
         if args.eval_ts:
             print '  Evaluating time segment-level expression style...'
@@ -1011,10 +1012,10 @@ def main(args):
             print '  Evaluating note-level expression style...' 
             annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
             GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
-                string='Result after slide in / slide out detection', mode='a')
+                string='After slide in / slide out detection', mode='a',
+                poly_mask=args.poly_mask, extension='.csv')
 
         if args.eval_ts:
-            
             print '  Evaluating time segment-level expression style...'
             annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
             GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
@@ -1078,7 +1079,8 @@ def main(args):
             print '  Evaluating note-level expression style...' 
             annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
             GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
-                string='Result after slow bend detection', mode='a')
+                string='After slow bend detection', mode='a',
+                poly_mask=args.poly_mask, extension='.csv')
 
         if args.eval_ts:
             print '  Evaluating time segment-level expression style...'
@@ -1202,7 +1204,7 @@ def main(args):
                     # load time-stamp answer
                     annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
                     GTEval.evaluation_candidate_cls(annotation_ts, result, args.output_dir, name+'.'+ct+'.candidate.'+cls_mode,
-                        tech_index_dic=tech_index_dic, string='Result of '+ct+' candidates classifiaction', mode='w')
+                        tech_index_dic=tech_index_dic, poly_mask=args.poly_mask, string='Result of '+ct+' candidates classifiaction', mode='w')
 
                 if args.eval_ts:
                     print '  Evaluating time segment-level expression style after candidate classification...'
@@ -1239,7 +1241,7 @@ def main(args):
             # load time-stamp answer
             annotation_ts = np.loadtxt(args.eval_cls+os.sep+name+'.ts.answer')
             GTEval.evaluation_candidate_cls(annotation_ts, result_all, args.output_dir, name+'.all.candidate.'+cls_mode, 
-                tech_index_dic=tech_index_dic_list[2], string='Result of all candidates classifiaction', mode='w')
+                tech_index_dic=tech_index_dic_list[2], poly_mask=args.poly_mask, string='Result of all candidates classifiaction', mode='w')
 
 
         """
@@ -1267,7 +1269,8 @@ def main(args):
                 # load esn answer
                 annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
                 GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
-                    string='Result after bended notes merged.', mode='a')
+                    string='After bended notes merged', mode='a',
+                    poly_mask=args.poly_mask, extension='.csv')
 
 
             if args.eval_note:
@@ -1278,7 +1281,7 @@ def main(args):
                 # pruned_note = note_pruning(note, threshold=args.p)
                 GTEval.evaluation_note(annotation, note, args.output_dir, name, 
                     onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, 
-                    string='After bended notes merged.', mode='a', 
+                    string='After bended notes merged', mode='a', 
                     poly_mask=args.poly_mask, extension='.csv')
         """
         ---------------------------------------------------------------------------------------------------
@@ -1305,7 +1308,8 @@ def main(args):
                 # load esn answer
                 annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
                 GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
-                    string='Result after pull-off, hammer-on and slide notes updated.', mode='a')
+                    string='After pull-off, hammer-on and slide notes updated', mode='a',
+                    poly_mask=args.poly_mask, extension='.csv')
             if args.eval_note:
                 print '  Evaluating note accuracy...'
                 # load note answer
@@ -1314,7 +1318,7 @@ def main(args):
                 # pruned_note = note_pruning(note, threshold=args.p)
                 GTEval.evaluation_note(annotation, note, args.output_dir, name, 
                     onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, 
-                    string='Result after pull-off, hammer-on and slide notes updated.', mode='a', 
+                    string='Result after pull-off, hammer-on and slide notes updated', mode='a', 
                     poly_mask=args.poly_mask, extension='.csv')
                 
             
@@ -1417,13 +1421,14 @@ def main(args):
             print '  Evaluating note-level expression style...' 
             annotation_esn = np.loadtxt(args.eval_esn+os.sep+name+'.esn.answer')
             GTEval.evaluation_esn(annotation_esn, expression_style_note, args.output_dir, name, onset_tolerance=0.05, offset_ratio=0.2, 
-                string='Result after vibrato detection', mode='a')
+                string='After soft vibrato detection', mode='a',
+                poly_mask=args.poly_mask, extension='.csv')
 
         if args.eval_ts:
             print '  Evaluating time segment-level expression style...'
             annotation_ts = np.loadtxt(args.eval_ts+os.sep+name+'.ts.answer')
             GTEval.evaluation_ts(annotation_ts, expression_style_ts, args.output_dir, name,
-                string='After vibrato detection', mode='a', 
+                string='After soft vibrato detection', mode='a', 
                 poly_mask=args.poly_mask, extension='.csv')     
 
         if args.eval_note:
@@ -1434,7 +1439,7 @@ def main(args):
             # pruned_note = note_pruning(note, threshold=args.p)
             GTEval.evaluation_note(annotation, note, args.output_dir, name, 
                 onset_tolerance=args.onset_tol, offset_ratio=args.offset_rat, 
-                string='After soft vibrato detection.', mode='a', 
+                string='After soft vibrato detection', mode='a', 
                 poly_mask=args.poly_mask, extension='.csv')
 
         """
