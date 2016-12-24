@@ -36,7 +36,9 @@ Yuan-Ping Chen
 
 Basic Usage
 ------
-python GuitarTranscription_script.py
+
+Example: 
+python GuitarTranscrption_script.py ./Input_audio.wav ./Result
 
 (the detail is in python GuitarTranscription_script.py -h.)
 
