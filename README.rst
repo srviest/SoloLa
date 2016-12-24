@@ -34,6 +34,11 @@ Author
 Yuan-Ping Chen
 
 
+Basic Usage
+------
+python GuitarTranscription_script.py
+
+(the detail is in python GuitarTranscription_script.py -h.)
 
 License
 -------
