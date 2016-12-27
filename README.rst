@@ -13,6 +13,7 @@ The system comprises of the following algorithms:
 	4. Expression style recognition
 	5. Fingering arrangement
 
+..image:: System_overview.jpeg
 
 Requirements
 ------------
