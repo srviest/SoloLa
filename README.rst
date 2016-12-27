@@ -13,7 +13,7 @@ The system comprises of the following algorithms:
 	4. Expression style recognition
 	5. Fingering arrangement
 
-..image:: http://yp-chen.com/images/System_overview.jpeg
+..image:: http://yp-chen.com/images/SoloLa_logo.png
 
 Requirements
 ------------
