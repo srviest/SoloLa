@@ -34,6 +34,13 @@ Author
 Yuan-Ping Chen
 
 
+Basic Usage
+------
+
+Example: 
+python GuitarTranscrption_script.py ./Input_audio.wav ./Result
+
+(the detail is in python GuitarTranscription_script.py -h.)
 
 License
 -------

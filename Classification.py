@@ -330,6 +330,10 @@ def parser():
                     help='Downsample to balance the number of data points of each class.')
     p.add_argument('-exhaustive', dest='exhaustive', default=False, action='store_true',
                     help='Exhaustive search over specified parameter range around best parameter found by GridSearch.')
+
+    p.add_argument('-proba', dest='proba', default=True, action='store_true',
+                    help='Whether to enable probability estimates. This must be enabled prior to calling fit, and will slow down that method.')
+
     p.add_argument('-C','--C', type=float, dest='C',action='store',  help="penalty parmeter.", default=1)
     p.add_argument('-gamma','--gamma', type=float, dest='gamma',action='store',  help="gamma for RBF kernel SVM.", default=None)
     p.add_argument('-f','--fold', type=int, dest='f',action='store',  help="the number of fold in which data to be partitioned.", default=5)
@@ -427,7 +431,7 @@ def main(args):
                 print("# Tuning hyper-parameters for %s" % m)
                 # print '\n'
 
-                clf = GridSearchCV(SVC(class_weight='balanced'), tuned_parameters, cv=4,
+                clf = GridSearchCV(SVC(class_weight='balanced'), tuned_parameters, cv=4, probability=args.proba,
                                    scoring='%s_weighted' % m)
         
                 X_train = data_preprocessing(X_train, data_preprocessing_method=data_preprocessing_method, output_path=args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m)
@@ -477,9 +481,9 @@ def main(args):
                 # save model
                 np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.fold'+str(fold)+'.metric.'+m+'.model', clf)
                 if clf.best_params_['kernel']=='linear':
-                    clf_all = SVC(kernel=clf.best_params_['kernel'], C=clf.best_params_['C'], class_weight='balanced')
+                    clf_all = SVC(kernel=clf.best_params_['kernel'], C=clf.best_params_['C'], class_weight='balanced', probability=args.proba)
                 elif clf.best_params_['kernel']=='rbf':
-                    clf_all = SVC(kernel=clf.best_params_['kernel'], C=clf.best_params_['C'], gamma=clf.best_params_['gamma'], class_weight='balanced')
+                    clf_all = SVC(kernel=clf.best_params_['kernel'], C=clf.best_params_['C'], gamma=clf.best_params_['gamma'], class_weight='balanced', probability=args.proba)
   
                 # train model using fine-tuned paramter with whole datasets
                 # data preprocessing
@@ -509,7 +513,7 @@ def main(args):
                         # save model
                         np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.final'+'.metric.'+m+'.C_'+str(C)+'.g_'+str(g)+'.model', clf_final)
             else:
-                clf_final = SVC(C=C_final , gamma=gamma_final, class_weight='balanced')
+                clf_final = SVC(C=C_final , gamma=gamma_final, class_weight='balanced', probability=args.proba)
                 clf_final.fit(X_final, y)
                 # save model
                 np.save(args.output_dir+os.sep+class_data_num_str+'.iter'+str(args.i)+'.final'+'.metric.'+m+'.C_'+str(C_final)+'.g_'+str(gamma_final)+'.model', clf_final)
