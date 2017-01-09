@@ -16,7 +16,7 @@ The system comprises of the following processing bloakcs:
 	4. Expression Style Recognition - the detection of applied lead guitar playing techniques such as string bend, slide and vibrato
 	5. Fingering Arrangement - maps the sequence of notes to a set of guitar fretboard positions
 
-.. image:: https://github.com/srviest/SoloLa-/blob/master/System_overview.jpeg
+.. image:: https://github.com/srviest/SoloLa-/blob/master/solola_workflow.jpg
 
 Requirements
 ------------
