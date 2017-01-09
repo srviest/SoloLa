@@ -1,12 +1,7 @@
 .. image:: http://yp-chen.com/images/SoloLa_logo.png
 ================================================================================
-SoloLa!
-================================================================================
-
 SoloLa! is an automatic system for transforiming lead guitar audio signal in music 
 recording into sheet music, which features automatic guitar expression style recognition.
-
-SoloLa! applies a number of music signal processing and machine learning algorithms to achieve our goal — transcribing lead guitar in mixed recording into sheet music with just a click of the mouse. The figure shows the workflow of SoloLa!. The audio signal of lead guitar is isolated from the music mixture by the process of Monaural source separation. For the isolated lead guitar audio signal, Melody extraction aims at automatically estimating the fundamental frequency corresponding to the pitch of the lead guitar to generate a series of consecutive pitch values which are continuous in both time and frequency, a.k.a. melody contour. Expression style recognition refers to the detection of applied lead guitar playing techniques such as string bend, slide or vibrato. Note tracking is the task of recognizing the note event from the estimated frame-level melody contour estimated in the melody extraction stage. The purpose of the task is to transform the mid-level melody contour into high-level symbolic notation. Finally, Automatic fingering arrangement maps the sequence of notes to a set of guitar fretboard positions.
 
 The system comprises of the following processing bloakcs:
 	0. Downbeat Tracking - estimate downbeat time instants
