@@ -4,15 +4,17 @@ SoloLa!
 ================================================================================
 
 SoloLa! is an automatic system for transforiming lead guitar audio signal in music 
-recording into sheet music, which features the guitar expression style recognition.
+recording into sheet music, which features automatic guitar expression style recognition.
 
-The system comprises of the following algorithms:
-	0. Downbeat tracking
-	1. Monaural source separation
-	2. Melody extraction
-	3. Note tracking 
-	4. Expression style recognition
-	5. Fingering arrangement
+SoloLa! applies a number of music signal processing and machine learning algorithms to achieve our goal — transcribing lead guitar in mixed recording into sheet music with just a click of the mouse. The figure shows the workflow of SoloLa!. The audio signal of lead guitar is isolated from the music mixture by the process of Monaural source separation. For the isolated lead guitar audio signal, Melody extraction aims at automatically estimating the fundamental frequency corresponding to the pitch of the lead guitar to generate a series of consecutive pitch values which are continuous in both time and frequency, a.k.a. melody contour. Expression style recognition refers to the detection of applied lead guitar playing techniques such as string bend, slide or vibrato. Note tracking is the task of recognizing the note event from the estimated frame-level melody contour estimated in the melody extraction stage. The purpose of the task is to transform the mid-level melody contour into high-level symbolic notation. Finally, Automatic fingering arrangement maps the sequence of notes to a set of guitar fretboard positions.
+
+The system comprises of the following processing bloakcs:
+	0. Downbeat tracking - estimate downbeat time instants
+	1. Monaural source separation - isolate the audio signal of guitar solo from mixture
+	2. Melody extraction - estimate the fundamental frequency corresponding to the pitch of the lead guitar to generate a series of consecutive pitch values which are continuous in both time and frequency, a.k.a. melody contour
+	3. Note tracking - track the estimated melody contour to recognize discrete musical note events 
+	4. Expression style recognition - the detection of applied lead guitar playing techniques such as string bend, slide and vibrato
+	5. Fingering arrangement - maps the sequence of notes to a set of guitar fretboard positions
 
 .. image:: https://github.com/srviest/SoloLa-/blob/master/System_overview.jpeg
 
@@ -44,8 +46,6 @@ python GuitarTranscrption_script.py ./Input_audio.wav ./Result
 
 (the detail is in python GuitarTranscription_script.py -h.)
 
-License
--------
 
 References
 ----------
@@ -93,11 +93,3 @@ References
 .. [11] Florian Krebs, Sebastian Böck and Gerhard Widmer, 
     *Rhythmic Pattern Modeling for Beat and Downbeat Tracking in Musical Audio*,
     in Proc. of the 14th International Society for Music Information Retrieval Conference (ISMIR), 2013.
-
-
-
-
-Acknowledgements
-----------------
-
-
