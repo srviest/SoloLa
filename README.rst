@@ -23,7 +23,7 @@ Requirements
 - `cython <http://www.cython.org>`_
 - `scipy <http://www.scipy.org>`_
 - `nose <https://github.com/nose-devs/nose>`_
-- `madmom <https://github.com/CPJKU/madmom>`_
+.. - `madmom <https://github.com/CPJKU/madmom>`_
 - `scikit-learn (0.17.0) <http://scikit-learn.org/stable/>`_
 - `networkx <https://networkx.github.io/>`_
 - `ESSENTIA (2.1-dev) <http://essentia.upf.edu/>`_
@@ -36,12 +36,12 @@ Author
 Yuan-Ping Chen
 
 
-Basic Usage
-------
+.. Basic Usage
+.. ------
 
-``$ python GuitarTranscrption_script.py ./Input_audio.wav ./Result``
+.. ``$ python GuitarTranscrption_script.py ./Input_audio.wav ./Result``
 
-(the detail is in python GuitarTranscription_script.py -h.)
+.. (the detail is in python GuitarTranscription_script.py -h.)
 
 
 References
