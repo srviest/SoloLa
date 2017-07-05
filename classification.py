@@ -12,8 +12,8 @@ import theano
 import theano.tensor as T
 import lasagne
 import pprint
-import models
-import parameters as pm
+from guitar_trans import models
+from guitar_trans import parameters as pm
 from lasagne import layers
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
 

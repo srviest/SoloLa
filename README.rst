@@ -7,7 +7,6 @@ SoloLa! is an automatic system for transforming lead guitar audio signal in musi
 recording into sheet music, which features automatic guitar expression style recognition.
 
 The system comprises of the following processing bloakcs:
-	0. Downbeat Tracking - estimate downbeat time instants
 	1. Source Separation - isolate the audio signal of guitar solo from mixture
 	2. Melody Extraction - estimate the fundamental frequency corresponding to the pitch of the lead guitar to generate a series of consecutive pitch values which are continuous in both time and frequency, a.k.a. melody contour
 	3. Note Tracking - track the estimated melody contour to recognize discrete musical note events 
@@ -19,21 +18,24 @@ The system comprises of the following processing bloakcs:
 Requirements
 ------------
 - `numpy <http://www.numpy.org>`_
-- `mir_eval <https://github.com/craffel/mir_eval>`_
-- `cython <http://www.cython.org>`_
 - `scipy <http://www.scipy.org>`_
-- `nose <https://github.com/nose-devs/nose>`_
+- `ESSENTIA <http://essentia.upf.edu/>`_
+- `librosa <http://librosa.github.io/librosa/index.html>`_
+- `theano <http://deeplearning.net/software/theano/>`_
+- `Lasagne <http://lasagne.readthedocs.io/en/latest/>`_
+- `scikit-learn <http://scikit-learn.org/stable/>`_
+- `mir_eval <https://github.com/craffel/mir_eval>`_
+.. - `cython <http://www.cython.org>`_
+.. - `nose <https://github.com/nose-devs/nose>`_
+.. - `networkx <https://networkx.github.io/>`_
 .. - `madmom <https://github.com/CPJKU/madmom>`_
-- `scikit-learn (0.17.0) <http://scikit-learn.org/stable/>`_
-- `networkx <https://networkx.github.io/>`_
-- `ESSENTIA (2.1-dev) <http://essentia.upf.edu/>`_
 
 
 
 Author
 ------
 
-Yuan-Ping Chen
+Yuan-Ping Chen, Ting-Wei Su
 
 
 .. Basic Usage
