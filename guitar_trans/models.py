@@ -297,7 +297,7 @@ class MFCCDNNModel(DNNModel, MFCCFeature):
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(self.net_opts)
 
-        mfcc_network = layers.InputLayer((None, 39, MC_LENGTH), mfcc_input_var)
+        mfcc_network = layers.InputLayer((None, 41, MC_LENGTH), mfcc_input_var)
         mfcc_network = layers.BatchNormLayer(mfcc_network)
         for n in self.net_opts['layer_list']:
             mfcc_network = layers.DenseLayer(layers.dropout(mfcc_network, p=self.net_opts['dropout_p']), 
@@ -338,9 +338,9 @@ class MFCCCNNModel(DNNModel, MFCCFeature):
 
         mfcc_network = layers.InputLayer((None, 41, MC_LENGTH), mfcc_input_var)
         # mfcc_network = layers.BatchNormLayer(mfcc_network)
-        mfcc_network = self.set_conv_layer(mfcc_network, 'conv_1', bnorm=True)
+        mfcc_network = self.set_conv_layer(mfcc_network, 'conv_1', bnorm=False)
         mfcc_network = self.set_pool_layer(mfcc_network, 'pool_1')
-        mfcc_network = self.set_conv_layer(mfcc_network, 'conv_2', bnorm=True)
+        mfcc_network = self.set_conv_layer(mfcc_network, 'conv_2', bnorm=False)
         mfcc_network = self.set_pool_layer(mfcc_network, 'pool_2')
         for n in self.net_opts['layer_list']:
             mfcc_network = layers.DenseLayer(layers.dropout(mfcc_network, p=self.net_opts['dropout_p']), 
@@ -350,7 +350,7 @@ class MFCCCNNModel(DNNModel, MFCCFeature):
             # mfcc_network = layers.DenseLayer(layers.dropout(mfcc_network, p=self.net_opts['dropout_p']), 
             #                                 n, 
             #                                 nonlinearity=lasagne.nonlinearities.rectify)
-            mfcc_network = layers.BatchNormLayer(mfcc_network)
+            # mfcc_network = layers.BatchNormLayer(mfcc_network)
         mfcc_network = layers.DenseLayer(layers.dropout(mfcc_network, p=self.net_opts['dropout_p']), 
                                         self.net_opts['num_class'], 
                                         nonlinearity=lasagne.nonlinearities.softmax)

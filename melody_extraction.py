@@ -72,6 +72,7 @@ def parse_input_files(input_files, ext='.wav'):
     return files
 
 def extract_melody(audio_file, save_dir=None):
+    if not os.path.exists(save_dir): os.makedirs(save_dir)
     ###  initiate MELODIA
     pcm = PitchMelodia(harmonicWeight=harmonicWeight, minDuration=minDuration, 
         binResolution=binResolution, guessUnvoiced=guessUnvoiced, frameSize=frameSize, 
