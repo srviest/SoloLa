@@ -143,7 +143,7 @@ Script for transcribing a song.
                     help='The filepath of melody contour.')
     p.add_argument('-e', '--evaluate', type=str, default=None, 
                     help='The filepath of answer file.')
-
+    return p.parse_args()
 
 if __name__ == '__main__':
     args = parser()
