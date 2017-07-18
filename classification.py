@@ -134,52 +134,14 @@ def get_train_test_feat(feature_bank, idx, balance=False):
     np.random.shuffle(train_list)
     return train_list, test_list
 
-#=====EVALUATION=====#
+#=====CLASSIFICATION=====#
 
-def eval_scores(cm, direction_type, print_scores=True):
-    t, p = [], []
-    for i in range(len(cm)):
-        for j in range(len(cm[i])):
-            for _ in range(cm[i][j]):
-                t.append(i)
-                p.append(j)
-    each_p = precision_score(t, p, average=None)
-    each_r = recall_score(t, p, average=None)
-    each_f = f1_score(t, p, average=None)
-    all_p = precision_score(t, p, average='weighted')
-    all_r = recall_score(t, p, average='weighted')
-    all_f = f1_score(t, p, average='weighted')
-
-    dt = pm.inv_tech_dict[direction_type]
-    score_list = ["Precision", "Recall", "F1"]
-    row_format_1 = "{:>8}" + "{:>12}" * len(score_list)
-    row_format_2 = "{:>8}" + "{:>12.4f}" * len(score_list)
-    if print_scores: print row_format_1.format("", *score_list)
-    scores = [[""] + score_list]
-    for idx, _p, _r, _f in zip(range(len(each_p)), each_p, each_r, each_f):
-        if print_scores: print row_format_2.format(dt[idx], _p, _r, _f)
-        scores.append([dt[idx], "{:.4f}".format(_p), "{:.4f}".format(_r), "{:.4f}".format(_f)])
-    if print_scores: print row_format_2.format("All", all_p, all_r, all_f)
-    scores.append(["All", "{:.4f}".format(all_p), "{:.4f}".format(all_r), "{:.4f}".format(all_f)])
-    return scores
-
-#=====MAIN FUNCTION=====#
-
-def main(model_name, model_type, model_opts, data_dir, sep_direction=True, test_aug=False, description=None):
-    if description is not None:
-        print('Description: {}'.format(description))
-    audio_dir = os.path.join(data_dir, 'audio')
-    mc_dir = os.path.join(data_dir, 'melody')
-    model_class = getattr(models, model_type)
-    param_set = getattr(pm, model_opts)
-    ### load and pre-process input features
-    # feature_bank = load_n_preprocess_input_feature(audio_dir, mc_dir, model_class, sep_direction)
-    # np.save('feature_bank_014_44100_mfcc_5c_sep.npy', feature_bank)
-    feature_bank = np.load('feature_bank_014_44100_mfcc_5c_sep.npy').item()
+def classify(feature_bank, model_name, model_class, param_set, sep_direction=True, test_aug=False):
     if not os.path.isdir(os.path.join(model_dir, model_name)):
         os.mkdir(os.path.join(model_dir, model_name))
     if not os.path.isdir(os.path.join(output_dir, model_name)):
         os.mkdir(os.path.join(output_dir, model_name))
+    all_results = {}
     for key in feature_bank:
         direction_type = key if sep_direction else pm.D_MIXED
         print('Training {}s...'.format(direction_type))
@@ -208,25 +170,79 @@ def main(model_name, model_type, model_opts, data_dir, sep_direction=True, test_
                         origin_test_list.append(t)
                 cm = model.test(origin_test_list)
             cm_all += cm
-        final_acc = float(np.sum(np.diagonal(cm_all))) * 100 / float(np.sum(cm_all))
-        print('Final accuracy: {:.2f} %'.format(final_acc))
-        print('Final Confusion Matrix:')
-        print(cm_all)
-        print('')
-        print('Final Scores:')
-        scores = eval_scores(cm_all, key, print_scores=True)
+        
+        
+        csv_fn = 'evaluation.' + direction_type + '.csv'
+        save_fp = os.path.join(output_dir, model_name, csv_fn)
+        eval_scores(cm_all, key, print_scores=True, save_fp=save_fp)
+        all_results[key] = cm_all
+    return all_results
 
+#=====EVALUATION=====#
+
+def eval_scores(cm, direction_type, print_scores=True, save_fp=None):
+    t, p = [], []
+    for i in range(len(cm)):
+        for j in range(len(cm[i])):
+            for _ in range(cm[i][j]):
+                t.append(i)
+                p.append(j)
+    each_p = precision_score(t, p, average=None)
+    each_r = recall_score(t, p, average=None)
+    each_f = f1_score(t, p, average=None)
+    all_p = precision_score(t, p, average='weighted')
+    all_r = recall_score(t, p, average='weighted')
+    all_f = f1_score(t, p, average='weighted')
+
+    final_acc = float(np.sum(np.diagonal(cm))) * 100 / float(np.sum(cm))
+
+    dt = pm.inv_tech_dict[direction_type]
+    score_list = ["Precision", "Recall", "F1"]
+    row_format_1 = "{:>8}" + "{:>12}" * len(score_list)
+    row_format_2 = "{:>8}" + "{:>12.4f}" * len(score_list)
+
+    if print_scores: 
+        print('Accuracy: {:.2f} %'.format(final_acc))
+        print('Confusion Matrix:')
+        print(cm)
+        print('')
+        print('Scores:')
+        print(row_format_1.format("", *score_list))
+    scores = [[""] + score_list]
+    for idx, _p, _r, _f in zip(range(len(each_p)), each_p, each_r, each_f):
+        if print_scores: print row_format_2.format(dt[idx], _p, _r, _f)
+        scores.append([dt[idx], "{:.4f}".format(_p), "{:.4f}".format(_r), "{:.4f}".format(_f)])
+    if print_scores: print row_format_2.format("All", all_p, all_r, all_f)
+    scores.append(["All", "{:.4f}".format(all_p), "{:.4f}".format(all_r), "{:.4f}".format(all_f)])
+    if save_fp is not None:
         ### Save as a csv file
-        dt = pm.inv_tech_dict[key]
-        cm_table = np.hstack(([[dt[i]] for i in range(pm.NUM_CLASS)], cm_all))
+        cm_table = np.hstack(([[dt[i]] for i in range(pm.NUM_CLASS)], cm))
         cm_table = np.vstack(([[''] + [dt[i] for i in range(pm.NUM_CLASS)]], cm_table))
         data = cm_table.tolist() + [['Accuracy', '{:.2f} %'.format(final_acc)], ['---']] + scores
-        csv_fn = 'evaluation.' + direction_type + '.csv'
-        csv_fi = open(os.path.join(output_dir, model_name, csv_fn), 'w')
+        
+        csv_fi = open(save_fp, 'w')
         w = csv.writer(csv_fi, delimiter = ',')
         for r in data:
             w.writerow(r)
         csv_fi.close()
+    return scores
+
+#=====MAIN FUNCTION=====#
+
+def main(model_name, model_type, model_opts, data_dir, sep_direction=True, test_aug=False, description=None):
+    if description is not None:
+        print('Description: {}'.format(description))
+    audio_dir = os.path.join(data_dir, 'audio')
+    mc_dir = os.path.join(data_dir, 'melody')
+    model_class = getattr(models, model_type)
+    param_set = getattr(pm, model_opts)
+    ### load and pre-process input features
+    # feature_bank = load_n_preprocess_input_feature(audio_dir, mc_dir, model_class, sep_direction)
+    # np.save('feature_bank_mfcc.npy', feature_bank)
+    feature_bank = np.load('feature_bank_mfcc.npy').item()
+    all_results = classify(feature_bank, model_name, model_class, param_set, sep_direction=True, test_aug=False)
+    return all_results
+
 
 def parser():
     import argparse

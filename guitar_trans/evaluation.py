@@ -49,6 +49,7 @@ expression_style_note:  Text file of array, storing the onset, offset
 from mir_eval.transcription import precision_recall_f1_overlap
 from mir_eval.onset import f_measure
 from technique import *
+from note import Note
 import numpy as np
 import os, sys, csv
 
@@ -331,9 +332,21 @@ def remove_poly_notes(notes, poly_mask):
     notes_poly_removed = np.delete(notes_poly_removed, note_to_be_deleted, axis=0)
     return notes_poly_removed
 
+def eval_note_from_files(ans_fp, pred_fp, output_dir, filename, 
+                    onset_tolerance=0.1, offset_ratio=0.2, 
+                    string=None, mode='w', verbose=False, 
+                    separator=' ', poly_mask=None, extension=''):
+    ans = np.loadtxt(ans_fp)
+    ans_list = np.array([Note(nt[0], nt[1], nt[2]) for nt in ans])
+    pred = np.loadtxt(pred_fp)
+    pred_list = np.array([Note(nt[0], nt[1], nt[2]) for nt in pred])
+    evaluation_note(ans_list, pred_list, output_dir, filename, 
+                    onset_tolerance, offset_ratio, 
+                    string, mode, verbose, 
+                    separator, poly_mask, extension)
 
 def evaluation_note(ans_list, pred_list, output_dir, filename, 
-                    onset_tolerance=0.05, offset_ratio=0.2, 
+                    onset_tolerance=0.1, offset_ratio=0.2, 
                     string=None, mode='w', verbose=False, 
                     separator=' ', poly_mask=None, extension=''):
     if poly_mask:
@@ -344,8 +357,6 @@ def evaluation_note(ans_list, pred_list, output_dir, filename,
     result = []
 
     # result with onset, pitch, offset on
-    onset_tolerance=0.05
-    offset_ratio=0.20
     note_p, note_r, note_f, avg_or = precision_recall_f1_overlap(ref_intervals, ref_pitches, 
                                                                  est_intervals, est_pitches, 
                                                                  onset_tolerance=onset_tolerance, 
@@ -353,12 +364,10 @@ def evaluation_note(ans_list, pred_list, output_dir, filename,
     result += [round(note_p, 5)]+[round(note_r, 5)]+[round(note_f, 5)]+['']
 
     # result with onset, pitch on
-    onset_tolerance=0.05
-    offset_ratio=None
     note_p, note_r, note_f, avg_or = precision_recall_f1_overlap(ref_intervals, ref_pitches, 
                                                                  est_intervals, est_pitches, 
                                                                  onset_tolerance=onset_tolerance, 
-                                                                 offset_ratio=offset_ratio)
+                                                                 offset_ratio=None)
     result += [round(note_p, 5)]+[round(note_r, 5)]+[round(note_f, 5)]+['']
 
     # result with onset on
@@ -366,6 +375,7 @@ def evaluation_note(ans_list, pred_list, output_dir, filename,
     result += [round(onset_p, 5)]+[round(onset_r, 5)]+[round(onset_f, 5)]+['']
 
     if string: result += [string]
+    if not os.path.exists(output_dir): os.makedirs(output_dir)
     fh = open(output_dir+os.sep+filename+'.note.eval'+extension, mode)
     w = csv.writer(fh, delimiter = ',')
     if mode == 'w': 
@@ -388,9 +398,21 @@ def remove_poly_esn(esn_list, poly_mask):
     esn_poly_removed = np.delete(esn_poly_removed, esn_to_be_deleted, axis=0)
     return esn_poly_removed
 
+def eval_esn_from_files(ans_fp, pred_fp, output_dir, filename, 
+                    onset_tolerance=0.1, offset_ratio=None, 
+                    string=None, mode='w', verbose=False, 
+                    separator=' ', poly_mask=None, extension=''):
+    ans = np.loadtxt(ans_fp)
+    ans_list = np.array([Note(nt[0], nt[1], nt[2]) for nt in ans])
+    pred = np.loadtxt(pred_fp)
+    pred_list = np.array([Note(nt[0], nt[1], nt[2]) for nt in pred])
+    evaluation_esn(ans_list, pred_list, output_dir, filename, 
+                    onset_tolerance, offset_ratio, 
+                    string, mode, verbose, 
+                    separator, poly_mask, extension)
 
 def evaluation_esn( ans_list, pred_list, output_dir, filename, 
-                    onset_tolerance=0.05, offset_ratio=0.2, 
+                    onset_tolerance=0.1, offset_ratio=None, 
                     poly_mask=None, string=None, mode='w', 
                     extension=''):
     def append_result(data, type_str, P, R, F, TP, FP, FN):
@@ -416,8 +438,6 @@ def evaluation_esn( ans_list, pred_list, output_dir, filename,
     if string: data.append([string])
 
     ref_intervals, ref_pitches, est_intervals, est_pitches = fit_mir_eval_transcription(ans_list, pred_list)
-    onset_tolerance=0.05
-    offset_ratio=None
     note_p, note_r, note_f, avg_or = precision_recall_f1_overlap(ref_intervals, ref_pitches, 
                                                                  est_intervals, est_pitches, 
                                                                  onset_tolerance=onset_tolerance, 
@@ -428,10 +448,10 @@ def evaluation_esn( ans_list, pred_list, output_dir, filename,
                  T_RELEASE:[], T_PULL:[], T_HAMMER:[], 
                  T_SLIDE:[], T_SLIDE_IN:[], T_SLIDE_OUT:[], T_VIBRATO:[]}
     for tech in eval_dict:
-        eval_dict[tech] = list(calculate_esn_f_measure(ans_list, pred_list, tech=tech, onset_tolerance=0.05))
+        eval_dict[tech] = list(calculate_esn_f_measure(ans_list, pred_list, tech=tech, onset_tolerance=onset_tolerance))
         append_result(data, T_STR_DICT[tech], *(eval_dict[tech]))
 
-    P, R, F, TP, FP, FN = calculate_esn_f_measure(ans_list, pred_list, tech=None, onset_tolerance=0.05)
+    P, R, F, TP, FP, FN = calculate_esn_f_measure(ans_list, pred_list, tech=None, onset_tolerance=onset_tolerance)
     append_result(data, 'All', P, R, F, TP, FP, FN)
 
     data.append(['---------------------------------------'])
