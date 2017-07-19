@@ -133,11 +133,11 @@ Script for transcribing a song.
     """)
     p.add_argument('audio_fp', type=str, metavar='audio_fp',
                     help='The filepath of the audio to be transcribed.')
-    p.add_argument('asc_model_fp', type=str, metavar='asc_model_fp',
+    p.add_argument('-a', '--asc_model_fp', type=str, metavar='asc_model_fp', default='models/cnn_normmc/ascending.npz',
                     help='The name of the ascending model.')
-    p.add_argument('desc_model_fp', type=str, metavar='desc_model_fp',
+    p.add_argument('-d', '--desc_model_fp', type=str, metavar='desc_model_fp', default='models/cnn_normmc/descending.npz',
                     help='The name of the descending model.')
-    p.add_argument('output_dir', type=str, metavar='output_dir', default='outputs',
+    p.add_argument('-o', '--output_dir', type=str, metavar='output_dir', default='outputs',
                     help='The output directory.')
     p.add_argument('-m', '--melody_contour', type=str, default=None, 
                     help='The filepath of melody contour.')

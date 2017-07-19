@@ -8,11 +8,21 @@ from note import *
 from scipy.stats import norm
 from os import sep
 
+#=====Parameters=====#
+min_pitch=30.0
+min_melo_len=18
+min_pattern_length=8
+min_vib_amp=0.4
+min_cs_amp=0.8
+max_cont_diff=0.8
+max_cand_diff=3.5
+max_cs_amp=3.0
+max_cs_length=33
 
 nf_weights = np.array([norm.pdf(i, scale=2) for i in range(-5, 6)])
 nf_weights /= nf_weights.sum()
 
-def conditioned_norm_filter(data, max_cont_diff=0.8, min_pitch=30.0):
+def conditioned_norm_filter(data):
     new_data = np.zeros(data.shape)
     h_fil = len(nf_weights) / 2
     for i in range(len(data)):
@@ -26,7 +36,7 @@ def conditioned_norm_filter(data, max_cont_diff=0.8, min_pitch=30.0):
         new_data[i] = (v * nf_weights).sum() / w_sum
     return new_data
 
-def conditioned_mean_filter(data, filter_size=5, min_pitch=30.0):
+def conditioned_mean_filter(data, filter_size=5):
     if filter_size % 2 == 0:
         filter_size += 1
         print('Filter size should be odd. Set filer size to {}.'.format(filter_size))
@@ -43,12 +53,13 @@ def conditioned_mean_filter(data, filter_size=5, min_pitch=30.0):
     return new_data
 
 ### Technique Embedded Note Tracking
-def tent(melody, min_pitch=30.0, max_cont_diff=0.8, max_cand_diff=3.5, min_melo_len=18, min_pattern_length=8, debug=None):
+def tent(melody, debug=None):
     if melody.length == 0:
         print 'Nothing in melody. (Length of melody is 0.)'
         return
     melody = Contour(melody.start_idx, 
-                     conditioned_norm_filter(melody.seq, max_cont_diff))
+                     conditioned_norm_filter(melody.seq)
+                    )
     submelo_list = []
     sub_idx = 0
     submelo = []
@@ -83,9 +94,9 @@ def tent(melody, min_pitch=30.0, max_cont_diff=0.8, max_cand_diff=3.5, min_melo_
     # n_melo = melody.sub_contour(range(melody.length))
     notes = []
     for idx, subm in enumerate(submelo_list):
-        tr = melody_2_trend(subm, min_pattern_length=min_pattern_length)
+        tr = melody_2_trend(subm)
         if debug is not None: mid_trend[subm.start_idx:subm.start_idx+len(tr)] = list(tr)
-        nt = get_notes(subm, tr, min_pattern_length=min_pattern_length)
+        nt = get_notes(subm, tr)
         ### Add candidate between submelodies
         if idx in melody_cand_dict.keys():
             sign, sub_idx = melody_cand_dict[idx]
@@ -104,11 +115,7 @@ def tent(melody, min_pitch=30.0, max_cont_diff=0.8, max_cand_diff=3.5, min_melo_
         np.savetxt(debug+sep+'MidTrend.txt', mid_trend)
     return trend, melody, notes
 
-def SelectAsCandidate():
-    return
-
-
-def melody_2_trend(melody, min_vib_amp=0.4, min_pattern_length=8, min_cs_amp=0.8, max_cs_amp=3.0, max_cs_length=33):
+def melody_2_trend(melody):
     extrema = get_extrema(melody.seq)
     ### If the difference in this melody is smaller than min_vib_amp, 
     ### return a single, nontechnical note.
@@ -122,11 +129,11 @@ def melody_2_trend(melody, min_vib_amp=0.4, min_pattern_length=8, min_cs_amp=0.8
         k, k_val, _ = extrema[i+1]
         j, k = int(j), int(k)
         pattern = Contour(j, melody[j:k])
-        trend[j:k] = scan_pattern_trend(pattern, melody[int(k)], min_vib_amp, min_pattern_length, min_cs_amp)
+        trend[j:k] = scan_pattern_trend(pattern, melody[int(k)])
     trend[-1] = trend[-2] 
     return trend
 
-def scan_pattern_trend(pattern, next_extreme, min_vib_amp, min_pattern_length, min_cs_amp, alpha=0.5):
+def scan_pattern_trend(pattern, next_extreme, alpha=0.5):
     pattern_diff = next_extreme - pattern[0]
     trend = [0] * pattern.length
     ### Trace the pattern that is possible to find techs and highlight the part of slope
@@ -167,7 +174,7 @@ def scan_pattern_trend(pattern, next_extreme, min_vib_amp, min_pattern_length, m
             trend[start_m:end_m] = [trend_type] * (end_m  - start_m)
     return trend
 
-def get_notes(melody, trend, min_pattern_length):
+def get_notes(melody, trend):
     ### Merge segments
     seg_melo = SegmentedContour(melody.start_idx, melody.seq, trend)
     if seg_melo.n_segs > 0:

@@ -1,6 +1,6 @@
 *.pyc
 *.npy
 *datasets/
-*models/
+*models/cnn/
 *model/
 *outputs/

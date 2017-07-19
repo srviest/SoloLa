@@ -23,7 +23,7 @@ def main(model_name, model_type, model_opts, data_dir, iteration, sep_direction=
         os.mkdir(clf.output_dir)
     ### load and pre-process input features
     feature_bank = clf.load_n_preprocess_input_feature(audio_dir, mc_dir, model_class, sep_direction)
-    # np.save('feature_bank_mfcc.npy', feature_bank)
+    np.save('feature_bank_spec+mc.npy', feature_bank)
     # feature_bank = np.load('feature_bank_mfcc.npy').item()
     print('Run {} iterations.'.format(iteration))
     for i in range(iteration):
