@@ -1,9 +1,8 @@
 import numpy as np
 import operator
 import parameters as pm
-from contour import Contour
+from contour import *
 from technique import *
-from itertools import groupby
 from note import *
 from scipy.stats import norm
 from os import sep
@@ -12,14 +11,14 @@ from os import sep
 min_pitch=30.0
 min_melo_len=18
 min_pattern_length=8
-min_vib_amp=0.4
+min_vib_amp=0.3
 min_cs_amp=0.8
 max_cont_diff=0.8
 max_cand_diff=3.5
 max_cs_amp=3.0
 max_cs_length=33
 
-nf_weights = np.array([norm.pdf(i, scale=2) for i in range(-5, 6)])
+nf_weights = np.array([norm.pdf(i, scale=2) for i in range(-9, 10)])
 nf_weights /= nf_weights.sum()
 
 def conditioned_norm_filter(data):
@@ -102,10 +101,8 @@ def tent(melody, debug=None):
             sign, sub_idx = melody_cand_dict[idx]
             seg_pos = max(0, sub_idx - pm.MC_LENGTH/2 - notes[-1].onset)
             seg = Segment(sign, seg_pos, pm.MC_LENGTH, melody)
-            if isinstance(notes[-1], CandidateNote):
-                notes[-1].segs.append(seg)
-            else:
-                notes[-1] = CandidateNote(segs=[seg], note=notes[-1], next_note=nt[0])
+            notes[-1].segs.append(seg)
+            notes[-1].next_note = nt[0]
 
         trend[subm.start_idx:subm.start_idx+len(tr)] = tr
         # n_melo.seq[subm.start_idx:subm.start_idx+mm.length] = mm[:]
@@ -269,6 +266,28 @@ def estimate_notes(melo, cands, slide_in, slide_out):
         seg.val *= T_VIBRATO
         return create_vibrato_note(melo, seg, slide_in, slide_out)
 
+def merge_notes(notes):
+    for i in range(len(notes)-1, 0, -1):
+        nt = notes[i-1]
+        ### Merge notes if there is bend or release
+        if (nt.tech(T_BEND).value > 0 and \
+            nt.offset == notes[i].onset and \
+            nt.pitch + nt.tech(T_BEND).value == notes[i].pitch) or \
+           (nt.tech(T_RELEASE).value > 0 and \
+            nt.offset == notes[i].onset and \
+            nt.pitch == notes[i].pitch):
+            notes[i-1] = CandidateNote.merge(nt, notes[i])
+            notes.remove(notes[i])
+        elif nt.tech(T_SLIDE).value == 1:
+            t_val = 3 if notes[i].tech(T_SLIDE).value in (1, 3) else 2
+            notes[i].add_tech(Tech(T_SLIDE, t_val))
+        elif nt.tech(T_HAMMER).value == 1:
+            t_val = 3 if notes[i].tech(T_HAMMER).value in (1, 3) else 2
+            notes[i].add_tech(Tech(T_HAMMER, t_val))
+        elif nt.tech(T_PULL).value == 1:
+            t_val = 3 if notes[i].tech(T_PULL).value in (1, 3) else 2
+            notes[i].add_tech(Tech(T_PULL, t_val))
+
 def has_slide_in(melo, slide_in):
     """
     Get the object of SLIDE_IN in the melody and its ending point.
@@ -318,7 +337,7 @@ def create_note_0(melo, slide_in, slide_out):
     out_tech, ed = has_slide_out(melo, slide_out)
     if out_tech is not None: techs.append(out_tech)
     pitch = melo.estimated_pitch(range(st, ed))
-    return [DiscreteNote(pitch, melo.start_idx, melo.length, techs=techs)]
+    return [CandidateNote(pitch, melo.start_idx, melo.length, techs=techs)]
 
 def create_note_1(melo, seg, slide_in, slide_out):
     notes = []
@@ -337,7 +356,7 @@ def create_note_1(melo, seg, slide_in, slide_out):
         if out_tech is not None: techs2.append(out_tech)
         # if note.tech(T_SLIDE).value == 1: techs2.append(Tech(T_SLIDE, 2))
         pitch2 = melo.estimated_pitch(range(seg.end, ed))
-        note2 = DiscreteNote(pitch2, melo.start_idx + seg.end, melo.length - seg.end, techs=techs2)
+        note2 = CandidateNote(pitch2, melo.start_idx + seg.end, melo.length - seg.end, techs=techs2)
         if isinstance(note, CandidateNote):
             ### Adjust onset and offset of two notes to the middle of seg
             note.duration = seg.mid
@@ -359,11 +378,11 @@ def create_note_1(melo, seg, slide_in, slide_out):
     #         techs.append(Tech(T_PREBEND, tval))
     #     techs.append(Tech(ttype, tval))
     #     if out_tech is not None: techs.append(out_tech)
-    #     return [DiscreteNote(pitch, melo.start_idx, melo.length, techs=techs)]
+    #     return [CandidateNote(pitch, melo.start_idx, melo.length, techs=techs)]
     # elif abs(seg.val) == T_SLIDE:
     #     ### First Note
     #     techs.append(Tech(T_SLIDE, 1))
-    #     note1 = DiscreteNote(pitch, melo.start_idx, seg.end, techs=techs)
+    #     note1 = CandidateNote(pitch, melo.start_idx, seg.end, techs=techs)
     # else:
     #     ### First Note
     #     note1 = CandidateNote(pitch, melo.start_idx, seg.end, techs=techs, segs=[seg])
@@ -402,7 +421,7 @@ def create_note_2(melo, seg1, seg2, slide_in, slide_out):
         if out_tech is not None: techs3.append(out_tech)
         # if note2.tech(T_SLIDE).value == 1: techs3.append(Tech(T_SLIDE, 2))
         pitch3 = melo.estimated_pitch(range(seg2.end, ed))
-        note3 = DiscreteNote(pitch3, melo.start_idx + seg2.end, melo.length - seg2.end, techs=techs3)
+        note3 = CandidateNote(pitch3, melo.start_idx + seg2.end, melo.length - seg2.end, techs=techs3)
         if isinstance(note2, CandidateNote):
             note2.duration = new_seg2.mid
             nn_offset = note3.offset
@@ -421,7 +440,7 @@ def create_vibrato_note(melo, seg, slide_in, slide_out):
     tval = max(int(round(seg.diff())), 1)
     techs.append(Tech(T_VIBRATO, tval))
     pitch = melo.estimated_pitch(range(st, seg.pos))
-    return [DiscreteNote(pitch, melo.start_idx, melo.length, techs=techs)]
+    return [CandidateNote(pitch, melo.start_idx, melo.length, techs=techs)]
 
 
 def get_note_with_seg(pitch, start_idx, length, techs, seg):
@@ -434,101 +453,15 @@ def get_note_with_seg(pitch, start_idx, length, techs, seg):
             pitch = int(round(seg.contour().min))
             techs.append(Tech(T_PREBEND, tval))
         techs.append(Tech(ttype, tval))
-        return DiscreteNote(pitch, start_idx, length, techs=techs)
+        return CandidateNote(pitch, start_idx, length, techs=techs)
     elif abs(seg.val) == T_SLIDE:
         techs.append(Tech(T_SLIDE, 1))
-        return DiscreteNote(pitch, start_idx, length, techs=techs)
+        return CandidateNote(pitch, start_idx, length, techs=techs)
     else:
         return CandidateNote(pitch, start_idx, length, techs=techs, segs=[seg])
 
 
-class SegmentedContour(Contour):
-    def __init__(self, start_idx, seq, trend=[]):
-        super(SegmentedContour, self).__init__(start_idx, seq)
-        self.__seg_dict = {}
-        if len(trend) > 0:
-            p = 0
-            for val, _s in groupby(trend[:len(self.seq)]):
-                length = len(list(_s))
-                if val != 0:
-                    self.__seg_dict[p] = Segment(val, p, length, self)
-                p += length
 
-    def seg(self, key):
-        return self.__seg_dict[key]
-
-    def all_segs(self, sort=False):
-        if sort:
-            return sorted(self.__seg_dict.values(), key=lambda x: x.pos)
-        else:
-            return self.__seg_dict.values()
-    
-    def seg_keys(self):
-        return self.__seg_dict.keys()
-
-    @property
-    def n_segs(self):
-        return len(self.__seg_dict)
-
-    def merge_segs(self, keys):
-        if len(keys) > 1:
-            keys.sort()
-            s = self.seg(keys[0])
-            s.length = self.seg(keys[-1]).end - s.pos
-            for i in keys[1:]:
-                self.delete_seg(i)
-
-    def delete_seg(self, key):
-        if isinstance(key, Segment):
-            self.__seg_dict.pop(key.pos)
-        else:
-            self.__seg_dict.pop(key)
-
-    def get_trend(self):
-        trend = np.zeros(self.length)
-        for s in self.all_segs():
-            trend[s.pos:s.pos+s.length] = s.val
-        return trend
-
-    def sub_contour(self, indices):
-        if len(indices) == 0: return None
-        idx = self.start_idx + indices[0]
-        return type(self)(idx, self.seq[indices], self.get_trend()[indices])
-
-class Segment(object):
-    def __init__(self, val=0, pos=0, length=0, ref_con=None, seg=None):
-        if seg is not None:
-            self.val = seg.val # value
-            self.pos = seg.pos # position
-            self.length = seg.length # length
-            self.__ref_con = seg.__ref_con # referenced contour
-        else:
-            self.val = val # value
-            self.pos = pos # position
-            self.length = length # length
-            self.__ref_con = ref_con # referenced contour
-
-    def __repr__(self):
-        return '(val: ' + str(self.val) + ', pos: ' + str(self.pos) + ', length: ' + str(self.length) + ')'
-
-    def __str__(self):
-        return '(val: ' + str(self.val) + ', pos: ' + str(self.pos) + ', length: ' + str(self.length) + ')'
-
-    @property 
-    def end(self):
-        return self.pos + self.length
-    @property
-    def mid(self):
-        return self.pos + int((self.length + 1) / 2)
-
-    def diff(self):
-        ct = Contour(self.__ref_con.start_idx+self.pos, 
-                     self.__ref_con.seq[self.pos:self.pos+self.length+1])
-        return ct.max - ct.min
-
-    def contour(self):
-        return Contour(self.__ref_con.start_idx+self.pos, 
-                       self.__ref_con.seq[self.pos:self.pos+self.length])
 
 def _generate_extrema(y, y_cond, etype):
     ### Extract extrema from pruned matrix and add the extrema type to the matrix

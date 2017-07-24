@@ -1,5 +1,6 @@
 import numpy as np
 from technique import *
+from contour import Segment
 
 class Note(object):
     def __init__(self, pitch=0, onset=0.0, duration=0.0, 
@@ -158,7 +159,7 @@ class DiscreteNote(Note):
 
 class CandidateNote(DiscreteNote):
     def __init__(self, pitch=0, onset=0, duration=0, next_note=None,
-                 techs=[], segs=[], array=None, note=None):
+                 techs=[], segs=None, array=None, note=None):
         self.next_note = next_note
         if array is not None:
             self.arr = array.astype(int)
@@ -171,29 +172,21 @@ class CandidateNote(DiscreteNote):
             self.arr[2] = int(round(duration))
             for t in techs:
                 self.arr[t.t_type] = t.value
-        self.segs = segs
+        self.segs = segs if segs is not None else []
 
-def merge_notes(notes):
-    for i in range(len(notes)-1, 0, -1):
-        nt = notes[i-1]
-        ### Merge notes if there is bend or release
-        if (nt.tech(T_BEND).value > 0 and \
-            nt.offset == notes[i].onset and \
-            nt.pitch + nt.tech(T_BEND).value == notes[i].pitch) or \
-           (nt.tech(T_RELEASE).value > 0 and \
-            nt.offset == notes[i].onset and \
-            nt.pitch == notes[i].pitch):
-            notes[i-1] = Note.merge(nt, notes[i])
-            notes.remove(notes[i])
-        elif nt.tech(T_SLIDE).value == 1:
-            t_val = 3 if notes[i].tech(T_SLIDE).value in (1, 3) else 2
-            notes[i].add_tech(Tech(T_SLIDE, t_val))
-        elif nt.tech(T_HAMMER).value == 1:
-            t_val = 3 if notes[i].tech(T_HAMMER).value in (1, 3) else 2
-            notes[i].add_tech(Tech(T_HAMMER, t_val))
-        elif nt.tech(T_PULL).value == 1:
-            t_val = 3 if notes[i].tech(T_PULL).value in (1, 3) else 2
-            notes[i].add_tech(Tech(T_PULL, t_val))
-        if isinstance(nt, CandidateNote) and nt.next_note is None:
-            nt.next_note = notes[i]
+    def __repr__(self):
+        return 'CandidateNote(' + repr(self.array_repr()) + ')'
 
+    def __str__(self):
+        return 'CandidateNote(' + str(self.array_repr()) + ')'
+
+    @staticmethod
+    def merge(first, second):
+        note = Note.merge(first, second)
+        if note.onset == first.onset and len(second.segs) > 0:
+            note.segs += [Segment(seg.val, seg.pos + second.onset - first.onset, seg.length, ref_con=seg.ref_con) for seg in second.segs]
+            note.next_note = second.next_note
+        elif note.onset == second.onset and len(first.segs) > 0:
+            note.segs += [Segment(seg.val, seg.pos + first.onset - second.onset, seg.length, ref_con=seg.ref_con) for seg in first.segs]
+            note.next_note = first.next_note
+        return note

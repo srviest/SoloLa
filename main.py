@@ -23,24 +23,34 @@ def transcribe(audio, melody, asc_model_fp, desc_model_fp, save_dir, audio_fn):
     cand_dict = {pm.D_ASCENDING: [], pm.D_DESCENDING: []}
     cand_ranges = []
     rate = float(pm.HOP_LENGTH) / float(pm.SAMPLING_RATE)
-    for nt in notes:
-        if isinstance(nt, CandidateNote):
-            for seg in nt.segs:
-                mid_frame = nt.onset + seg.mid
-                mid_bin = int(float(mid_frame) / rate)
-                start_i, end_i = mid_frame - N_FRAME/2, mid_frame + N_FRAME - N_FRAME/2
-                start_bin = start_i * pm.HOP_LENGTH
-                sub_audio = audio[start_bin: start_bin + N_BIN]
-                sub_mc = melody[start_i: end_i]
-                assert(len(sub_audio) == N_BIN)
-                assert(len(sub_mc) == N_FRAME)
-                sub_fn = audio_fn + '_' + str(mid_frame)
-                direction = pm.D_ASCENDING if seg.val >= 0 else pm.D_DESCENDING
-                cand_dict[direction].append((sub_audio, sub_mc, sub_fn, nt, seg, start_i, end_i))
-                # rosa.output.write_wav('trans/audio/clip_'+sub_fn+'.wav', sub_audio, sr=pm.SAMPLING_RATE, norm=False)
     cand_results = []
+    for nt in notes:
+        if nt.tech(T_BEND).value > 0:
+            cand_results.append([nt.onset * rate, nt.offset * rate, T_BEND])
+        if nt.tech(T_RELEASE).value > 0:
+            cand_results.append([nt.onset * rate, nt.offset * rate, -T_RELEASE])
+        if nt.tech(T_SLIDE_IN).value > 0:
+            cand_results.append([nt.onset * rate, nt.offset * rate, T_SLIDE_IN])
+        if nt.tech(T_SLIDE_OUT).value > 0:
+            cand_results.append([nt.onset * rate, nt.offset * rate, T_SLIDE_OUT])
+        if nt.tech(T_VIBRATO).value > 0:
+            cand_results.append([nt.onset * rate, nt.offset * rate, T_VIBRATO])
+        for seg in nt.segs:
+            mid_frame = nt.onset + seg.mid
+            mid_bin = int(float(mid_frame) / rate)
+            start_i, end_i = mid_frame - N_FRAME/2, mid_frame + N_FRAME - N_FRAME/2
+            start_bin = start_i * pm.HOP_LENGTH
+            sub_audio = audio[start_bin: start_bin + N_BIN]
+            sub_mc = melody[start_i: end_i]
+            assert(len(sub_audio) == N_BIN)
+            assert(len(sub_mc) == N_FRAME)
+            sub_fn = audio_fn + '_' + str(mid_frame)
+            direction = pm.D_ASCENDING if seg.val >= 0 else pm.D_DESCENDING
+            cand_dict[direction].append((sub_audio, sub_mc, sub_fn, nt, seg, start_i, end_i))
+            # rosa.output.write_wav('trans/audio/clip_'+sub_fn+'.wav', sub_audio, sr=pm.SAMPLING_RATE, norm=False)
     no_next = []
     for direction in cand_dict:
+        print 'Processing direction', direction
         cand_list = cand_dict[direction]
         model_fp = asc_model_fp if direction == pm.D_ASCENDING else desc_model_fp
         if len(cand_list) > 0:
@@ -49,7 +59,8 @@ def transcribe(audio, melody, asc_model_fp, desc_model_fp, save_dir, audio_fn):
                 sub_audio, sub_mc, sub_fn, nt, seg, start_i, end_i = cand
                 t_name = pm.inv_tech_dict[direction][np.argmax(pred)]
                 t_type = get_tech(t_name, direction)
-                t_val = int(round(seg.diff())) if t_type in (T_BEND, T_RELEASE) else 1
+                origin_t_val = nt.tech(t_type).value
+                t_val = int(round(seg.diff())) if t_type in (T_BEND, T_RELEASE) else origin_t_val + 1
                 if t_type < T_NORMAL:
                     ### Merge Notes
                     if nt.next_note is None:

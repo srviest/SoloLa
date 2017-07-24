@@ -50,6 +50,7 @@ class MFCCFeature(Feature):
         nmc, dmc = Feature.melody_features(mc)
         if np.any(np.isnan([nmc, dmc])):
             print('nan in {}.'.format(fn))
+            print(mc)
             return None
         n_mfcc = 13
         mfcc = rosa.feature.mfcc(y, sr=SAMPLING_RATE, n_mfcc=n_mfcc, n_fft=512, hop_length=HOP_LENGTH)

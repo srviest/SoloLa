@@ -175,14 +175,17 @@ def calculate_ts_f_measure(annotation_ts, prediction_ts, tech):
 
     return P, R, F, TP, FP, FN
 
-def calculate_esn_f_measure(ans_list, pred_list, tech, onset_tolerance=0.05, offset_ratio=None, correct_pitch=True):
+def calculate_esn_f_measure(ans_list, pred_list, tech, onset_tolerance=0.1, offset_ratio=None, correct_pitch=True):
     def check_condition(a_i, p_i):
         ans, pred = ans_list[a_i], pred_list[p_i]
         # Check onset correctness
         if pred.onset < ans.onset - onset_tolerance: return False, a_i, p_i + 1
         if pred.onset > ans.onset + onset_tolerance: return False, a_i + 1, p_i
         # Check tech correctness
-        tech_cond = ans.equal_tech(pred) if tech is None else (ans.tech(tech).value == pred.tech(tech).value > 0)
+        if tech in [T_PULL, T_HAMMER, T_SLIDE]:
+            tech_cond = ans.tech(tech).value in [1,3] and pred.tech(tech).value in [1,3]
+        else:
+            tech_cond = ans.equal_tech(pred) if tech is None else (ans.tech(tech).value > 0 and pred.tech(tech).value > 0)
         if not tech_cond:
             (a_i, p_i) = (a_i, p_i + 1) if pred.onset < ans.onset else (a_i + 1, p_i)
             return False, a_i, p_i
@@ -199,13 +202,11 @@ def calculate_esn_f_measure(ans_list, pred_list, tech, onset_tolerance=0.05, off
         idx, ct = 0, 0
         while idx < len(esn_list):
             esn = esn_list[idx]
-            if esn.tech(tch).value > 0:
-                if tech in [T_PULL, T_HAMMER, T_SLIDE]:
-                    if idx + 1 < len(esn_list) and esn_list[idx+1].tech(tch).value > 0: 
-                        ct += 1
-                        if esn_list[idx+1].tech(tch).value == 2:
-                            idx += 1
-                else: ct += 1
+            if tch in [T_PULL, T_HAMMER, T_SLIDE]:
+                if esn.tech(tch).value in [1, 3]:
+                    ct += 1
+            elif esn.tech(tch).value > 0:
+                ct += 1
             idx += 1
         return ct
 
@@ -213,9 +214,9 @@ def calculate_esn_f_measure(ans_list, pred_list, tech, onset_tolerance=0.05, off
     a_i, p_i = 0, 0
     while a_i < len(ans_list) and p_i < len(pred_list):
         correct, a_i, p_i = check_condition(a_i, p_i)
-        if correct and tech in [T_PULL, T_HAMMER, T_SLIDE] and \
-           a_i + 1 < len(ans_list) and p_i + 1 < len(pred_list):
-            correct, a_i, p_i = check_condition(a_i + 1, p_i + 1)
+        # if correct and tech in [T_PULL, T_HAMMER, T_SLIDE] and \
+        #    a_i + 1 < len(ans_list) and p_i + 1 < len(pred_list):
+        #     correct, a_i, p_i = check_condition(a_i + 1, p_i + 1)
         if correct: 
             TP += 1
     tch_list = range(T_PREBEND, T_NORMAL) if tech is None else [tech]
@@ -225,7 +226,6 @@ def calculate_esn_f_measure(ans_list, pred_list, tech, onset_tolerance=0.05, off
         n_ans_techs += count_tech_in_list(ans_list, tch)
     FP = n_pred_techs - TP
     FN = n_ans_techs - TP
-    print tech, TP, n_pred_techs, n_ans_techs
 
     # calculate precision, recall, f-measure
     P = TP/float(TP+FP) if (TP !=0 or FP!=0) else 0
