@@ -18,7 +18,7 @@ max_cand_diff=3.5
 max_cs_amp=3.0
 max_cs_length=33
 
-nf_weights = np.array([norm.pdf(i, scale=2) for i in range(-9, 10)])
+nf_weights = np.array([norm.pdf(i, scale=2) for i in range(-5, 6)])
 nf_weights /= nf_weights.sum()
 
 def conditioned_norm_filter(data):
