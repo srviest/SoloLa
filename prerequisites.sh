@@ -13,13 +13,13 @@
 
 path=$(pwd)
 cd ${path}
-pip install cython
-pip install nose
-pip install mir_eval
-pip install -U scikit-learn
-pip install networkx
-pip install librosa
-pip install theano
-pip install lasagne
+pipenv install cython
+pipenv install nose
+pipenv install mir_eval
+pipenv install -U scikit-learn
+pipenv install networkx
+pipenv install librosa
+pipenv install theano
+pipenv install lasagne
 brew tap MTG/essentia
 brew install essentia --HEAD
