@@ -20,8 +20,6 @@ Returns:
     Accompaniments
 
 """
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import scipy.fftpack as fft
 import numpy as np
@@ -339,8 +337,8 @@ def parse_input_files(input_files, ext='.wav'):
         # file was given, append to list
         if basename(input_files).find(ext)!=-1:
             files.append(input_files)
-    print('  Input files: ')
-    for f in files: print('    ', f)
+    print '  Input files: '
+    for f in files: print '    ', f
     return files
 
 def parser():
@@ -422,15 +420,15 @@ def main(args):
     :param args: parsed arguments
 
     """
-    print('=====================================')
-    print('Running monaural source separation...')
-    print('=====================================')
+    print '====================================='
+    print 'Running monaural source separation...'
+    print '====================================='
     # parse and list files to be processed
     files = parse_input_files(args.input_files)
     
     # create result directory
     if not os.path.exists(args.output_dir): os.makedirs(args.output_dir)
-    print('  Output directory: ', '\n', '    ', args.output_dir)
+    print '  Output directory: ', '\n', '    ', args.output_dir
 
     # processing
     for f in files:

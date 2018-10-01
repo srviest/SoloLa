@@ -1,6 +1,3 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import unicode_literals
 import os, sys, time, random
 import numpy as np
 import librosa as rosa
@@ -10,7 +7,7 @@ import lasagne
 import pprint
 from lasagne import layers
 from sklearn.metrics import confusion_matrix
-from .parameters import MC_LENGTH, SAMPLING_RATE, HOP_LENGTH
+from parameters import MC_LENGTH, SAMPLING_RATE, HOP_LENGTH
 
 #===== FUNCTIONS =====#
 
@@ -209,7 +206,7 @@ class Model(object):
     @staticmethod
     def init_from_file(model_fp):
         npzfile = np.load(model_fp)
-        print(npzfile['class_name'])
+        print npzfile['class_name']
         model_class = globals()[npzfile['class_name'].item()]
         model = model_class(npzfile['net_opts'].item(), model_fp)
         model.set_param_values(npzfile['params'])
