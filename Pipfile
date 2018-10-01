@@ -11,8 +11,10 @@ networkx = "*"
 librosa = "*"
 theano = "*"
 lasagne = "*"
+future = "*"
 
 [dev-packages]
+pylint = "*"
 
 [requires]
 python_version = "3.7"
