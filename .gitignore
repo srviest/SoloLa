@@ -5,3 +5,6 @@
 *models/cnn/
 *model/
 *outputs/
+
+# vscode config.
+.vscode/
