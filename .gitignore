@@ -8,3 +8,9 @@
 
 # vscode config.
 .vscode/
+
+# essentia source code for compiling
+essentia/
+
+# test input
+test_input
