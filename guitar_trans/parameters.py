@@ -12,8 +12,8 @@ SLIDE = 'slide'
 tech_dict = { D_ASCENDING:{BEND:0, HAMM:1, NORMAL:2, SLIDE:3}, 
               D_DESCENDING:{BEND:0, NORMAL:1, PULL:2, SLIDE:3}
             }
-inv_tech_dict = { D_ASCENDING: {v: k for k, v in tech_dict[D_ASCENDING].iteritems()},
-                  D_DESCENDING: {v: k for k, v in tech_dict[D_DESCENDING].iteritems()}
+inv_tech_dict = { D_ASCENDING: {v: k for k, v in iter(tech_dict[D_ASCENDING].items())},
+                  D_DESCENDING: {v: k for k, v in iter(tech_dict[D_DESCENDING].items())}
                 }
 
 old_raw_net_opts = {

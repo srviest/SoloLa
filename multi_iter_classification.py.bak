@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import unicode_literals
 from guitar_trans import models
 from guitar_trans import parameters as pm
 import classification as clf

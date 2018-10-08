@@ -1,5 +1,9 @@
 from __future__ import print_function
 from __future__ import unicode_literals
+from __future__ import division
+from builtins import zip
+from builtins import str
+from past.utils import old_div
 import librosa as rosa
 import numpy as np
 import guitar_trans.te_note_tracking as note_tracking
@@ -24,7 +28,7 @@ def transcribe(audio, melody, asc_model_fp, desc_model_fp, save_dir, audio_fn):
     np.savetxt(save_dir+sep+'TentNotes.txt', [n.discrete_to_cont(pm.HOP_LENGTH, pm.SAMPLING_RATE).array_repr() for n in notes], fmt='%.8f')
     cand_dict = {pm.D_ASCENDING: [], pm.D_DESCENDING: []}
     cand_ranges = []
-    rate = float(pm.HOP_LENGTH) / float(pm.SAMPLING_RATE)
+    rate = old_div(float(pm.HOP_LENGTH), float(pm.SAMPLING_RATE))
     cand_results = []
     for nt in notes:
         if nt.tech(T_BEND).value > 0:
@@ -39,8 +43,8 @@ def transcribe(audio, melody, asc_model_fp, desc_model_fp, save_dir, audio_fn):
             cand_results.append([nt.onset * rate, nt.offset * rate, T_VIBRATO])
         for seg in nt.segs:
             mid_frame = nt.onset + seg.mid
-            mid_bin = int(float(mid_frame) / rate)
-            start_i, end_i = mid_frame - N_FRAME/2, mid_frame + N_FRAME - N_FRAME/2
+            mid_bin = int(old_div(float(mid_frame), rate))
+            start_i, end_i = mid_frame - old_div(N_FRAME,2), mid_frame + N_FRAME - old_div(N_FRAME,2)
             start_bin = start_i * pm.HOP_LENGTH
             sub_audio = audio[start_bin: start_bin + N_BIN]
             sub_mc = melody[start_i: end_i]

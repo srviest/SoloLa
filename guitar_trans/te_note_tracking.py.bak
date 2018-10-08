@@ -1,9 +1,12 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import unicode_literals
 import numpy as np
 import operator
-import parameters as pm
-from contour import *
-from technique import *
-from note import *
+from . import parameters as pm
+from .contour import *
+from .technique import *
+from .note import *
 from scipy.stats import norm
 from os import sep
 
@@ -54,7 +57,7 @@ def conditioned_mean_filter(data, filter_size=5):
 ### Technique Embedded Note Tracking
 def tent(melody, debug=None):
     if melody.length == 0:
-        print 'Nothing in melody. (Length of melody is 0.)'
+        print('Nothing in melody. (Length of melody is 0.)')
         return
     melody = Contour(melody.start_idx, 
                      conditioned_norm_filter(melody.seq)
@@ -473,7 +476,7 @@ def _generate_extrema(y, y_cond, etype):
 
 def get_extrema(x):
     if len(x) == 0: 
-        print 'Error in get_extrema: Length of x should not be zero.'
+        print('Error in get_extrema: Length of x should not be zero.')
         return np.array([])
     x = np.array(x)
     ### Shrink the part of continuous same values

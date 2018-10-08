@@ -26,6 +26,8 @@ Returns:
 """
 from __future__ import print_function
 from __future__ import unicode_literals
+from __future__ import division
+from past.utils import old_div
 import glob, os, sys
 import numpy as np
 from essentia.standard import *
@@ -41,7 +43,7 @@ def hertz2midi(melody_contour):
     """ 
     from numpy import inf
     melody_contour_MIDI = melody_contour.copy()
-    melody_contour_MIDI = np.log(melody_contour_MIDI/float(440))
+    melody_contour_MIDI = np.log(old_div(melody_contour_MIDI,float(440)))
     melody_contour_MIDI =12*melody_contour_MIDI/np.log(2)+69
     melody_contour_MIDI[melody_contour_MIDI==-inf]=0
 

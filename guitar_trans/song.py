@@ -1,12 +1,13 @@
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import unicode_literals
+from builtins import object
 import numpy as np
 from .note import Note
 from .technique import *
 from os import path
 
-class Song:
+class Song(object):
 	def __init__(self, sr=44100, hop=256, raw_audio=None, 
 				 es_note_list=None, melody=None, 
 				 smooth_melody=None, name=None):

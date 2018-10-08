@@ -1,6 +1,11 @@
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import unicode_literals
+from __future__ import division
+from builtins import zip
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import os, sys, time, random
 import numpy as np
 import librosa as rosa
@@ -31,7 +36,7 @@ class Feature(object):
 
     @staticmethod
     def melody_features(mc, norm=True):
-        nmc = (mc - np.mean(mc)) / np.std(mc) if norm else mc # normalize melody contour
+        nmc = old_div((mc - np.mean(mc)), np.std(mc)) if norm else mc # normalize melody contour
         dmc = np.gradient(nmc) # calculate the gradient (first derivative) of melody contour
         return nmc, dmc
 
@@ -139,7 +144,7 @@ class Model(object):
         print('Start training...')
         sys.stdout.flush()
         np.random.shuffle(feature_list)
-        ch = len(feature_list) / 5
+        ch = old_div(len(feature_list), 5)
         val_list, train_list = feature_list[:ch], feature_list[ch:]
         lowest_loss = 100.0
         temp_model_file = '.temp_{}'.format(os.path.basename(self.fp))
@@ -152,8 +157,8 @@ class Model(object):
             # Print the results for this epoch:
             print("Epoch {} of {} took {:.3f}s".format(
                 epoch + 1, num_epochs, time.time() - start_time))
-            print("  training loss:\t\t{:.6f}".format(train_err / train_batches))
-            val_loss = val_err / val_batches
+            print("  training loss:\t\t{:.6f}".format(old_div(train_err, train_batches)))
+            val_loss = old_div(val_err, val_batches)
             print("  validation loss:\t\t{:.6f}".format(val_loss))
             print("  validation accuracy:\t\t{:.2f} %".format(
                 val_acc / val_batches * 100))
@@ -173,7 +178,7 @@ class Model(object):
     def run(self, feature_list):
         pred_list = []
         for bt in self.iterate_minibatches(feature_list, 10):
-            feat, fn = zip(*bt)
+            feat, fn = list(zip(*bt))
             pred = self.run_fn(list(feat))
             pred_list += pred[0].tolist()
         pred_list = np.array(pred_list)
@@ -255,7 +260,7 @@ class DNNModel(Model):
         test_batches = 0
         ans_list, pred_list = [], []
         for bt in self.iterate_minibatches(feature_list, 10):
-            feat, ans, fn = zip(*bt)
+            feat, ans, fn = list(zip(*bt))
             err, acc, pred = self.val_fn(list(feat), list(ans))
             test_err += err
             test_acc += acc
@@ -264,7 +269,7 @@ class DNNModel(Model):
                 ans_list.append(np.argmax(a))
                 pred_list.append(np.argmax(p))
         confusion_mat = confusion_matrix(ans_list, pred_list)
-        print("  test loss:\t\t{:.6f}".format(test_err / test_batches))
+        print("  test loss:\t\t{:.6f}".format(old_div(test_err, test_batches)))
         print("  test accuracy:\t\t{:.2f} %".format(test_acc / test_batches * 100))
         print('confusion matrix:')
         print(confusion_mat)
@@ -274,7 +279,7 @@ class DNNModel(Model):
         train_err = 0
         train_batches = 0
         for bt in self.iterate_minibatches(train_list, 10):
-            feat, ans, fn = zip(*bt)
+            feat, ans, fn = list(zip(*bt))
             err, pred = self.train_fn(list(feat), list(ans))
             # if random.randint(0, 19) == 0:
             #   print 'err', err
@@ -288,7 +293,7 @@ class DNNModel(Model):
         val_acc = 0
         val_batches = 0
         for bt in self.iterate_minibatches(val_list, 10):
-            feat, ans, fn = zip(*bt)
+            feat, ans, fn = list(zip(*bt))
             err, acc, pred = self.val_fn(list(feat), list(ans))
             val_err += err
             val_acc += acc
@@ -489,7 +494,7 @@ class RawDNNModel(Model, RawFeature):
         test_batches = 0
         ans_list, pred_list = [], []
         for bt in self.iterate_minibatches(feature_list, 10):
-            raw, mc, ans, fn = zip(*bt)
+            raw, mc, ans, fn = list(zip(*bt))
             err, acc, pred = self.val_fn(list(raw), list(mc), list(ans))
             test_err += err
             test_acc += acc
@@ -498,7 +503,7 @@ class RawDNNModel(Model, RawFeature):
                 ans_list.append(np.argmax(a))
                 pred_list.append(np.argmax(p))
         confusion_mat = confusion_matrix(ans_list, pred_list)
-        print("  test loss:\t\t{:.6f}".format(test_err / test_batches))
+        print("  test loss:\t\t{:.6f}".format(old_div(test_err, test_batches)))
         print("  test accuracy:\t\t{:.2f} %".format(test_acc / test_batches * 100))
         print('confusion matrix:')
         print(confusion_mat)
@@ -508,7 +513,7 @@ class RawDNNModel(Model, RawFeature):
         train_err = 0
         train_batches = 0
         for bt in self.iterate_minibatches(train_list, 10):
-            raw, mc, ans, fn = zip(*bt)
+            raw, mc, ans, fn = list(zip(*bt))
             err, pred = self.train_fn(list(raw), list(mc), list(ans))
             # if random.randint(0, 19) == 0:
             #   print 'pred', pred
@@ -522,7 +527,7 @@ class RawDNNModel(Model, RawFeature):
         val_acc = 0
         val_batches = 0
         for bt in self.iterate_minibatches(val_list, 10):
-            raw, mc, ans, fn = zip(*bt)
+            raw, mc, ans, fn = list(zip(*bt))
             err, acc, pred = self.val_fn(list(raw), list(mc), list(ans))
             val_err += err
             val_acc += acc
@@ -618,7 +623,7 @@ class RawNetModel(Model, RawFeature):
                 ans_list.append(np.argmax(a))
                 pred_list.append(np.argmax(p))
         confusion_mat = confusion_matrix(ans_list, pred_list)
-        print("  test loss:\t\t{:.6f}".format(test_err / test_batches))
+        print("  test loss:\t\t{:.6f}".format(old_div(test_err, test_batches)))
         print("  test accuracy:\t\t{:.2f} %".format(test_acc / test_batches * 100))
         print('confusion matrix:')
         print(confusion_mat)

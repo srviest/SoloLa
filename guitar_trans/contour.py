@@ -1,4 +1,8 @@
 from __future__ import unicode_literals
+from __future__ import division
+from builtins import str
+from past.utils import old_div
+from builtins import object
 import numpy as np
 from itertools import groupby
 
@@ -68,7 +72,7 @@ class Segment(object):
         return self.pos + self.length
     @property
     def mid(self):
-        return self.pos + int((self.length + 1) / 2)
+        return self.pos + int(old_div((self.length + 1), 2))
 
     def diff(self):
         ct = Contour(self.ref_con.start_idx+self.pos, 
@@ -96,12 +100,12 @@ class SegmentedContour(Contour):
 
     def all_segs(self, sort=False):
         if sort:
-            return sorted(self.__seg_dict.values(), key=lambda x: x.pos)
+            return sorted(list(self.__seg_dict.values()), key=lambda x: x.pos)
         else:
-            return self.__seg_dict.values()
+            return list(self.__seg_dict.values())
     
     def seg_keys(self):
-        return self.__seg_dict.keys()
+        return list(self.__seg_dict.keys())
 
     @property
     def n_segs(self):

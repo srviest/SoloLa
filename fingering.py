@@ -1,5 +1,9 @@
 from __future__ import print_function
 from __future__ import unicode_literals
+from __future__ import division
+from builtins import str
+from builtins import range
+from past.utils import old_div
 import numpy as np
 from operator import itemgetter, attrgetter
 import os
@@ -7,7 +11,7 @@ import os
 T_dict={0:'-',2:'&',3:'^',4:'b',5:'r',6:'p',7:'h',8:'s',9:'/',10:'\ ',11:'~'}
 
 def find_start_pos(note):
-	avg_pitch=int(sum(note[:,0])/len(note))
+	avg_pitch=int(old_div(sum(note[:,0]),len(note)))
 	print('avg_pitch:'+str(avg_pitch))
 	if avg_pitch>62:
 		start_pos=avg_pitch-59
@@ -101,7 +105,7 @@ def note_pos(FinalNotes,CandidateResults):
 		string_num,pos_num=find_pos(e[0],pattern=pattern)
 		note_pos.append((string_num,pos_num,e[3]))
 		_,pre_pos,_=note_pos[i]
-		pattern=(pattern+ pre_pos)/2
+		pattern=old_div((pattern+ pre_pos),2)
 	return(note_pos)
 
 def new_tab():

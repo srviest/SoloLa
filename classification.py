@@ -7,6 +7,9 @@ Script for training guitar playing technique classification models
 """
 from __future__ import print_function
 from __future__ import unicode_literals
+from builtins import zip
+from builtins import str
+from builtins import range
 import glob, os, sys, fnmatch, time, random, csv
 import numpy as np
 import librosa as rosa
@@ -211,7 +214,7 @@ def eval_scores(cm, direction_type, print_scores=True, save_fp=None):
         print('Scores:')
         print(row_format_1.format("", *score_list))
     scores = [[""] + score_list]
-    for idx, _p, _r, _f in zip(range(len(each_p)), each_p, each_r, each_f):
+    for idx, _p, _r, _f in zip(list(range(len(each_p))), each_p, each_r, each_f):
         if print_scores: print(row_format_2.format(dt[idx], _p, _r, _f))
         scores.append([dt[idx], "{:.4f}".format(_p), "{:.4f}".format(_r), "{:.4f}".format(_f)])
     if print_scores: print(row_format_2.format("All", all_p, all_r, all_f))

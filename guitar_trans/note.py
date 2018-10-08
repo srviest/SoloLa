@@ -1,6 +1,11 @@
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import unicode_literals
+from __future__ import division
+from builtins import str
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import numpy as np
 from .technique import *
 from .contour import Segment
@@ -157,7 +162,7 @@ class DiscreteNote(Note):
                 raise e
 
     def discrete_to_cont(self, hop_size, sr):
-        ratio = float(hop_size) / float(sr)
+        ratio = old_div(float(hop_size), float(sr))
         return Note(self.pitch, self.onset*ratio, self.duration*ratio, self.all_techs)
 
 class CandidateNote(DiscreteNote):

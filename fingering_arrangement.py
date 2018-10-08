@@ -21,6 +21,11 @@ Returns:
 """
 from __future__ import print_function
 from __future__ import unicode_literals
+from __future__ import division
+from builtins import zip
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import numpy as np
 import os
 import networkx as nx
@@ -65,7 +70,7 @@ class Pluck(GuitarEvent):
             elif self.fret >= max_other_frets:
                 distance = self.fret - max_other_frets
             else:
-                distance = self.fret - (min_other_frets + max_other_frets)/2
+                distance = self.fret - old_div((min_other_frets + max_other_frets),2)
         else:
             raise ValueError('Must compare to a pluck or strum')
 
@@ -152,7 +157,7 @@ class Note(ScoreEvent):
         new_p_ind = (p_ind + step) % num_chroma
 
         note.pname = Note.pitch_classes[new_p_ind]
-        oct_diff = int(step / 12)
+        oct_diff = int(old_div(step, 12))
 
         note.oct = self.oct + oct_diff
 
@@ -230,7 +235,7 @@ class Score(object):
         pitch_names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
         MIDI_num%12
         pname = pitch_names[MIDI_num%12]
-        oct = int(MIDI_num/12-1)
+        oct = int(old_div(MIDI_num,12)-1)
 
         return Note(pname, oct)
 
