@@ -4,17 +4,21 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-cython = "*"
 nose = "*"
-mir-eval = "*"
 networkx = "*"
 librosa = "*"
-theano = "*"
-lasagne = "*"
 future = "*"
+Cython = "*"
+mir_eval = "*"
+Theano = "==0.8.2"
+Lasagne = "*"
+ipython = "*"
+numpy = "*"
+matplotlib = "*"
+pyyaml = "*"
 
 [dev-packages]
 pylint = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.6.5"
