@@ -19,6 +19,7 @@ pyyaml = "*"
 
 [dev-packages]
 pylint = "*"
+"pep8" = "*"
 
 [requires]
 python_version = "3.6.5"

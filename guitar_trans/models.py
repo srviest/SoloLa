@@ -213,11 +213,29 @@ class Model(object):
 
     @staticmethod
     def init_from_file(model_fp):
-        npzfile = np.load(model_fp)
+        npzfile = np.load(model_fp,encoding="latin1")
         print(npzfile['class_name'])
-        model_class = globals()[npzfile['class_name'].item()]
+        
+        # print("======= npzfile.files =======")
+        print(npzfile.files)
+
+        # Handle model string in python3 
+        class_name = npzfile['class_name'].item()
+        class_name = class_name.decode("utf-8")
+        model_class = globals()[class_name]
+
+        # Handle model string in python2
+        # model_class = globals()[npzfile['class_name'].item()]
+
+
+        # print("======= npzfile.net_opts =======")
+        # print(npzfile['net_opts'].item())
         model = model_class(npzfile['net_opts'].item(), model_fp)
+        
+        # print("======= npzfile.params =======")
+        # print(npzfile['params'])
         model.set_param_values(npzfile['params'])
+        
         return model
 
 ##### MLP Network
