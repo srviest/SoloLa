@@ -12,5 +12,5 @@
 # essentia source code for compiling
 essentia/
 
-# test input
-test_input
+# test input folder
+# test_input/
