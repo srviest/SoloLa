@@ -15,6 +15,8 @@ The system comprises of the following processing bloakcs:
 
 .. image:: https://github.com/srviest/SoloLa-/blob/master/solola_workflow.jpg
 
+- Melody contour plot reproduced from J. Salamon, E. Gómez, D. P. W. Ellis and G. Richard, "Melody Extraction from Polyphonic Music Signals: Approaches, Applications and Challenges", IEEE Signal Processing Magazine, 31(2):118-134, Mar. 2014 with permission from the authors.
+
 Requirements
 ------------
 - `numpy <http://www.numpy.org>`_
