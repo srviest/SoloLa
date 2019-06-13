@@ -2,7 +2,7 @@ FROM mtgupf/essentia
 
 # update system package & installation
 RUN apt-get update -y && apt-get install -y python3-pip libav-tools 
-WORKDIR /SoloLa
-RUN git clone https://github.com/SoloLa-Platform/SoloLa
-RUN cd Solola
+WORKDIR /solola
+RUN git clone https://github.com/SoloLa-Platform/solola
+RUN cd solola
 RUN sh prerequisites.sh

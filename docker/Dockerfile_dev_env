@@ -2,9 +2,8 @@ FROM mtgupf/essentia
 
 # update system package
 RUN apt-get update -y
-RUN apt-get -y install python3-pip -y
-RUN apt-get install libav-tools -y
-COPY . /soloLa
-WORKDIR /soloLa
+RUN apt-get -y install python3-pip libav-tools
+COPY . /solola
+WORKDIR /solola
 COPY prerequisites.sh /soloLa/prerequisites.sh
 RUN sh prerequisites.sh
