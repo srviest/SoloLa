@@ -1,12 +1,10 @@
 # SoloLa python 3.5 Docker Image
 
-> <span class="highlight">Caution! This version of soloLa is unstable</span>
+> 
 
 We provide an docker image for SoloLa python3.5 . Check out the image on Docker Hub
 
 > https://hub.docker.com/r/ykhorizon/solola-py35/
-
-(This dockerfile and image are prepared for soloLa-core and solaLa platfrom development)
 
 
 ## Dependency
@@ -19,12 +17,8 @@ Other dependency check out [SoloLa Requirements](https://github.com/SoloLa-Platf
 
 
 ## Usage 
-
+You have to place target_audio under [host_dir] (take [host_dir] as root)
 <pre> 
-docker run -ti --rm -v `pwd`:/soloLa ykhorizon/solola-py35 bash 
-git clone https://github.com/SoloLa-Platform/SoloLa.git
-cd SoloLa
-git checkout dev_version
-python3 main.py [absolute/path/to/audio.mp3]
+docker run -ti --rm -v [host_dir]:/solola ykhorizon/solola-py35:prod python3 main.py [path_target_audio_with_mp3_format]
 </pre>
 
