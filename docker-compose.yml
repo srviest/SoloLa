@@ -1,0 +1,14 @@
+version: '3.7'
+
+services:
+  api:
+    build: 
+      context: .
+      dockerfile: docker/dev.Dockerfile
+    command: python services/manage.py run -h 0.0.0.0
+    volumes:
+      - ./services/API/:/usr/src/services
+    ports:
+      - 5000:5000
+    env_file:
+      - ./docker/.DEV_ENV

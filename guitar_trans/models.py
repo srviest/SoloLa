@@ -213,7 +213,7 @@ class Model(object):
 
     @staticmethod
     def init_from_file(model_fp):
-        npzfile = np.load(model_fp,encoding="latin1")
+        npzfile = np.load(model_fp,encoding="latin1", allow_pickle=True)
         print(npzfile['class_name'])
         
         # print("======= npzfile.files =======")
