@@ -164,7 +164,7 @@ def classify(feature_bank, model_name, model_class, param_set, sep_direction=Tru
             model.train(train_list, 100)
 
             ### test and evaluate
-            npzfile = np.load(model_fp)
+            npzfile = np.load(model_fp, allow_pickle=True)
             model.set_param_values(npzfile['params'])
             if test_aug:
                 cm = model.test(test_list)
@@ -244,7 +244,7 @@ def main(model_name, model_type, model_opts, data_dir, sep_direction=True, test_
     ### load and pre-process input features
     # feature_bank = load_n_preprocess_input_feature(audio_dir, mc_dir, model_class, sep_direction)
     # np.save('feature_bank_mfcc.npy', feature_bank)
-    feature_bank = np.load('feature_bank_mfcc.npy').item()
+    feature_bank = np.load('feature_bank_mfcc.npy', allow_pickle=True).item()
     all_results = classify(feature_bank, model_name, model_class, param_set, sep_direction=True, test_aug=False)
     return all_results
 

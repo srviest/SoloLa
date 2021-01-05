@@ -5,7 +5,7 @@
 *models/cnn/
 *model/
 *outputs/
-
+services/output
 # vscode config.
 .vscode/
 
@@ -14,3 +14,10 @@ essentia/
 
 # test input folder
 # test_input/
+
+venv
+.venv
+
+env/
+.env/
+.ENV/
