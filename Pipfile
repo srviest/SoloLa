@@ -9,22 +9,33 @@ networkx = "*"
 future = "*"
 Cython = "*"
 mir_eval = "*"
-Theano = {file = "https://github.com/Theano/Theano/archive/master.zip"}
-Lasagne = {file = "https://github.com/Lasagne/Lasagne/archive/master.zip"}
 ipython = "==7.15.0"
 numpy = "*"
 matplotlib = "*"
 pyyaml = "*"
 librosa = "*"
 flask = "*"
-flask-socketio = "*"
 pytube3 = "*"
-gunicorn = "==20.0.4"
+gunicorn = "~=20.0.4"
 flask-restful = "*"
+scipy = ">=0.16"
+mido = ">=1.2.8"
+pyfftw = "*"
+musicxml-synthesizer = "==0.9.11"
+madmom = "*"
 
 [dev-packages]
 pylint = "*"
-"pep8" = "*"
-"autopep8" = "*"
+pep8 = "*"
+autopep8 = "*"
 
 [requires]
+
+[scripts]
+cli = "python3 solola/transcribe/fully_transcribe.py"
+
+[packages.Theano]
+file = "https://github.com/Theano/Theano/archive/master.zip"
+
+[packages.Lasagne]
+file = "https://github.com/Lasagne/Lasagne/archive/master.zip"
