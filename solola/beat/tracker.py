@@ -16,26 +16,12 @@ def downbeat_tracking(audioPath):
     return downbeats
 
 
-def write_downbeats(beats, OUTPUT_PATH="downbeats.txt"):
-    with open(OUTPUT_PATH, 'w') as f:
-        for i, v in enumerate(beats):
-            f.write("{},{}\n".format(v[0], v[1]))
-
-
 def beat_tracking(fp):
     proc = madmom.features.beats.DBNBeatTrackingProcessor(fps=100)
     act = madmom.features.beats.RNNBeatProcessor()(fp)
     # print(proc(act))
     beats = proc(act)
     return beats
-
-
-def write_beats(beats, OUTPUT_PATH="beats.txt"):
-
-    with open(OUTPUT_PATH, 'w') as f:
-        for i, v in enumerate(beats):
-            f.write("{},{}\n".format(i, v))
-
 
 def create_folder(directory):
     try:
@@ -87,7 +73,7 @@ def track(args):
     downbeats = downbeat_tracking(audio_path)
     downbeats_string = ''
     for i, v in enumerate(downbeats):
-        downbeats_string += "{},{}\n".format(i, v)
+        downbeats_string += "{},{}\n".format(v[0], v[1])
     write_file("{}/downbeats.txt".format(args.output_dir_path),
                downbeats_string)
     print("[Info] Finish downbeat_tracking")
