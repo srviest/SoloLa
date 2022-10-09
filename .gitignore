@@ -22,5 +22,5 @@ env/
 .env/
 .ENV/
 
-inputs/
+inputs/*
 !inputs/.gitkeep
