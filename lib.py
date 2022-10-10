@@ -71,6 +71,7 @@ def transcribe(audio, melody, asc_model_fp, desc_model_fp, save_dir, audio_fn):
                 t_type = get_tech(t_name, direction)
                 origin_t_val = nt.tech(t_type).value
                 t_val = int(round(seg.diff())) if t_type in (T_BEND, T_RELEASE) else origin_t_val + 1
+                sign = 1 if direction == pm.D_ASCENDING else -1 
                 if t_type < T_NORMAL:
                     ### Merge Notes
                     if nt.next_note is None:
@@ -91,7 +92,6 @@ def transcribe(audio, melody, asc_model_fp, desc_model_fp, save_dir, audio_fn):
                         tv = nt.next_note.tech(t_type).value
                         nt.next_note.add_tech(Tech(t_type, tv+2))
                     nt.add_tech(Tech(t_type, t_val))
-                sign = 1 if direction == pm.D_ASCENDING else -1 
                 cand_results.append([start_i * rate, end_i * rate, t_type * sign])
     np.savetxt(save_dir+sep+'NoNextNote.txt', no_next, fmt='%.8f')
     np.savetxt(save_dir+sep+'CandidateResults.txt', cand_results, fmt='%.8f')
