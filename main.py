@@ -37,7 +37,7 @@ def main(audio_fp, asc_model_fp, desc_model_fp, output_dir, mc_fp=None, eval_not
         ans_list = np.loadtxt(eval_ts)
         # TODO
 
-def parser():
+def create_parser():
     import argparse
     p = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter, 
@@ -59,9 +59,10 @@ Script for transcribing a song.
                     help='The filepath of melody contour.')
     p.add_argument('-e', '--evaluate', type=str, default=None, 
                     help='The filepath of answer file.')
-    return p.parse_args()
+    return p 
 
 if __name__ == '__main__':
-    args = parser()
+    parser = create_parser() 
+    args = parser.parse_args()
     main(args.audio_fp, args.asc_model_fp, args.desc_model_fp, 
          args.output_dir, args.melody_contour, args.evaluate)
