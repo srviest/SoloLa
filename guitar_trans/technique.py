@@ -1,3 +1,7 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from builtins import str
+from builtins import object
 T_NORMAL = 12
 T_PREBEND = 3
 T_BEND = 4

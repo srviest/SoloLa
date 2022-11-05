@@ -5,6 +5,11 @@ Date: 2016/04/24
 Script for training guitar playing technique classification models
 --------------------------------------------------------------------------------
 """
+from __future__ import print_function
+from __future__ import unicode_literals
+from builtins import zip
+from builtins import str
+from builtins import range
 import glob, os, sys, fnmatch, time, random, csv
 import numpy as np
 import librosa as rosa
@@ -159,7 +164,7 @@ def classify(feature_bank, model_name, model_class, param_set, sep_direction=Tru
             model.train(train_list, 100)
 
             ### test and evaluate
-            npzfile = np.load(model_fp)
+            npzfile = np.load(model_fp, allow_pickle=True)
             model.set_param_values(npzfile['params'])
             if test_aug:
                 cm = model.test(test_list)
@@ -209,10 +214,10 @@ def eval_scores(cm, direction_type, print_scores=True, save_fp=None):
         print('Scores:')
         print(row_format_1.format("", *score_list))
     scores = [[""] + score_list]
-    for idx, _p, _r, _f in zip(range(len(each_p)), each_p, each_r, each_f):
-        if print_scores: print row_format_2.format(dt[idx], _p, _r, _f)
+    for idx, _p, _r, _f in zip(list(range(len(each_p))), each_p, each_r, each_f):
+        if print_scores: print(row_format_2.format(dt[idx], _p, _r, _f))
         scores.append([dt[idx], "{:.4f}".format(_p), "{:.4f}".format(_r), "{:.4f}".format(_f)])
-    if print_scores: print row_format_2.format("All", all_p, all_r, all_f)
+    if print_scores: print(row_format_2.format("All", all_p, all_r, all_f))
     scores.append(["All", "{:.4f}".format(all_p), "{:.4f}".format(all_r), "{:.4f}".format(all_f)])
     if save_fp is not None:
         ### Save as a csv file
@@ -239,7 +244,7 @@ def main(model_name, model_type, model_opts, data_dir, sep_direction=True, test_
     ### load and pre-process input features
     # feature_bank = load_n_preprocess_input_feature(audio_dir, mc_dir, model_class, sep_direction)
     # np.save('feature_bank_mfcc.npy', feature_bank)
-    feature_bank = np.load('feature_bank_mfcc.npy').item()
+    feature_bank = np.load('feature_bank_mfcc.npy', allow_pickle=True).item()
     all_results = classify(feature_bank, model_name, model_class, param_set, sep_direction=True, test_aug=False)
     return all_results
 

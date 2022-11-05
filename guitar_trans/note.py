@@ -1,6 +1,14 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import unicode_literals
+from __future__ import division
+from builtins import str
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import numpy as np
-from technique import *
-from contour import Segment
+from .technique import *
+from .contour import Segment
 
 class Note(object):
     def __init__(self, pitch=0, onset=0.0, duration=0.0, 
@@ -149,12 +157,12 @@ class DiscreteNote(Note):
             try:
                 for t in techs:
                     self.arr[t.t_type] = t.value
-            except Exception, e:
-                print 't:', t.value, t.t_type
+            except Exception as e:
+                print('t:', t.value, t.t_type)
                 raise e
 
     def discrete_to_cont(self, hop_size, sr):
-        ratio = float(hop_size) / float(sr)
+        ratio = old_div(float(hop_size), float(sr))
         return Note(self.pitch, self.onset*ratio, self.duration*ratio, self.all_techs)
 
 class CandidateNote(DiscreteNote):

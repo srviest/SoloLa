@@ -20,7 +20,12 @@ Returns:
     Accompaniments
 
 """
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
 
+from builtins import range
+from past.utils import old_div
 import scipy.fftpack as fft
 import numpy as np
 from scipy.io import wavfile
@@ -31,7 +36,7 @@ def repet_ada(x,fs):
     # Default adaptive parameters
     par = [24,12,7]
     # Default repeating period range
-    per = [0.8,min(8,par[0]/3.)]
+    per = [0.8,min(8,old_div(par[0],3.))]
     # Analysis window length in seconds (audio stationary around 40 milliseconds)
     alen = 0.040
     # Analysis window length in samples (power of 2 for faster FFT)
@@ -40,7 +45,7 @@ def repet_ada(x,fs):
     win = np.hamming(N)
     #win = np.reshape(win,(win.shape[0],1)) 
     # Analysis step length (N/2 for constant overlap-add)
-    stp = N/2.
+    stp = old_div(N,2.)
     # Cutoff frequency in Hz for the dual high-pass filtering (e.g., singing voice rarely below 100 Hz)
     cof = 100.
     # Cutoff frequency in frequency bins for the dual high-pass filtering (DC component = bin 0)
@@ -54,7 +59,7 @@ def repet_ada(x,fs):
     except IndexError:
         # catch mono files
         k = 1
-    X = np.empty( (win.shape[0], int(np.ceil((N-stp+x.shape[0])/stp)), k), 'complex128')
+    X = np.empty( (win.shape[0], int(np.ceil(old_div((N-stp+x.shape[0]),stp))), k), 'complex128')
     if k>1:
         # Loop over the channels
         for i in range(k):
@@ -65,11 +70,11 @@ def repet_ada(x,fs):
         X[:,:,i] = stft(x,win,stp)
 
     # Magnitude spectrogram (with DC component and without mirrored frequencies)
-    V = abs(X[0:int(N/2+1),:,:])
+    V = abs(X[0:int(old_div(N,2)+1),:,:])
     
     # Repeating period in time frames (compensate for STFT zero-padding at the beginning)
-    per = map(lambda g: g*fs, per)
-    per = np.ceil((per+N/stp-1)/stp)
+    per = [g*fs for g in per]
+    per = np.ceil(old_div((per+old_div(N,stp)-1),stp))
     # per = np.ceil((per*fs+N/stp-1)/stp)
     # Adaptive window length and step length in time frames
     par[0] = round(par[0]*fs/stp)
@@ -131,7 +136,7 @@ def stft(x,win,stp):
     # Analysis window length                                                              
     N = win.shape[0]
     # Number of frames with zero-padding
-    m = np.ceil((N-stp+t)/stp)
+    m = np.ceil(old_div((N-stp+t),stp))
     # Zero-padding for constant overlap-add
     x = np.r_[np.zeros(int(N-stp)), x, np.zeros(int(m*stp-t))]
     
@@ -175,7 +180,7 @@ def istft(X,win,stp):
     # Remove zero-padding at the end
     x = x[int(N-stp)::]
     # Normalize constant overlap-add using win
-    x = x/np.sum(win[0:N:int(stp)])
+    x = old_div(x,np.sum(win[0:N:int(stp)]))
     return x	
 
 
@@ -203,7 +208,7 @@ def acorr(X):
     # Unbiased autocorrelation (lags 0 to n-1)
     T = np.arange(n,0,-1)
     T = T.reshape(T.shape[0],1)
-    C = C/np.tile(T, [1,m])
+    C = old_div(C,np.tile(T, [1,m]))
     return C
 
 
@@ -243,11 +248,11 @@ def beat_spectrogram(X,w,h):
     # Number of frequency bins and time frames
     n,m = X.shape
     # Zero-padding to center windows
-    X = np.concatenate((np.zeros((n, int(np.ceil((w-1.)/2)) )), X, np.zeros((n, int(np.floor((w-1.)/2)) ))), 1)
+    X = np.concatenate((np.zeros((n, int(np.ceil(old_div((w-1.),2))) )), X, np.zeros((n, int(np.floor(old_div((w-1.),2))) ))), 1)
     B = np.zeros((int(w),m))
     
     # Loop over the time frames (including the last one)
-    for j in range(0,m,int(h))+[m-1]:
+    for j in list(range(0,m,int(h)))+[m-1]:
         # Beat spectrum of the windowed spectrogram centered on frame j
         s = 0+j
         e = w+j
@@ -297,7 +302,7 @@ def repeating_mask(V,p,k):
     # Number of frequency bins and time frames
     n,m = V.shape
     # Order vector centered in 0
-    k = np.arange(1,k+1)-int(np.ceil(k/2.))
+    k = np.arange(1,k+1)-int(np.ceil(old_div(k,2.)))
     W = np.zeros((n,m))
     # Loop over the frames
     for j in range(int(m)):
@@ -312,7 +317,7 @@ def repeating_mask(V,p,k):
     W = np.minimum(V,W)
     # Normalize W by V
     eps = float_info.epsilon
-    M = (W+eps)/(V+eps)
+    M = old_div((W+eps),(V+eps))
     return M
 
 def parse_input_files(input_files, ext='.wav'):
@@ -337,8 +342,8 @@ def parse_input_files(input_files, ext='.wav'):
         # file was given, append to list
         if basename(input_files).find(ext)!=-1:
             files.append(input_files)
-    print '  Input files: '
-    for f in files: print '    ', f
+    print('  Input files: ')
+    for f in files: print('    ', f)
     return files
 
 def parser():
@@ -420,15 +425,15 @@ def main(args):
     :param args: parsed arguments
 
     """
-    print '====================================='
-    print 'Running monaural source separation...'
-    print '====================================='
+    print('=====================================')
+    print('Running monaural source separation...')
+    print('=====================================')
     # parse and list files to be processed
     files = parse_input_files(args.input_files)
     
     # create result directory
     if not os.path.exists(args.output_dir): os.makedirs(args.output_dir)
-    print '  Output directory: ', '\n', '    ', args.output_dir
+    print('  Output directory: ', '\n', '    ', args.output_dir)
 
     # processing
     for f in files:
@@ -439,11 +444,11 @@ def main(args):
         # do the processing stuff 
         fs, x = wavfile.read(f)
         # change data type int to float and normalization
-        x = x.astype(np.float)/np.max(x)
+        x = old_div(x.astype(np.float),np.max(x))
         # execute main adaptive REPET function
         y = repet_ada(x,fs)
         z = x-y
-        z = z/(np.max(z)/2**15)
+        z = old_div(z,(old_div(np.max(z),2**15)))
         z = z.astype(np.int16)
         wavfile.write(args.output_dir+os.sep+name+'_sep.wav',fs,z)
 

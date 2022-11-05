@@ -10,19 +10,17 @@ Args:
     input_files:    Audio files to be processed. 
                     Only the wav files would be considered.
     output_dir:     Directory for storing the results.
-
 Optional args:
     Please refer to --help.
 ----------------------------------------------------------------------
 Returns:
     Raw melody contour:         Text file of estimated melody contour 
-                                in Hz with extenion of .raw.melody.
+                                in Hz with extension of .raw.melody.
     MIDI-scale melody contour:  Text file of estimated melody contour 
-                                in MIDI with extenion of .MIDI.melody.
+                                in MIDI with extension of .MIDI.melody.
     Smoothed melody contour:    Text file of moving-averged estimated 
                                 melody contour in MIDI scale with extenion 
                                 of .smooth.MIDI.melody.
-
 """
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -36,10 +34,8 @@ from guitar_trans.parameters import *
 def hertz2midi(melody_contour):
     """
     Convert pitch sequence from hertz to MIDI scale.
-
     :param melody_contour: array of pitch sequence.
     :returns             : melody contour in MIDI scale.
-
     """ 
     from numpy import inf
     melody_contour_MIDI = melody_contour.copy()
@@ -52,11 +48,9 @@ def hertz2midi(melody_contour):
 def parse_input_files(input_files, ext='.wav'):
     """
     Collect all files by given extension and keywords.
-
     :param agrs:  class 'argparse.Namespace'.
     :param ext:   the string of file extension.
     :returns:     a list of stings of file name.
-
     """
     from os.path import basename, isdir
     import fnmatch
@@ -116,10 +110,8 @@ def main(audio_files, output_dir):
 def parser():
     """
     Parses the command line arguments.
-
     :param lgd:       use local group delay weighting by default
     :param threshold: default value for threshold
-
     """
     import argparse
     ### define parser

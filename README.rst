@@ -13,7 +13,7 @@ The system comprises of the following processing bloakcs:
 	4. Expression Style Recognition - the detection of applied lead guitar playing techniques such as string bend, slide and vibrato
 	5. Fingering Arrangement - maps the sequence of notes to a set of guitar fretboard positions
 
-.. image:: https://github.com/srviest/SoloLa-/blob/master/solola_workflow.jpg
+.. image:: https://raw.githubusercontent.com/SoloLa-Platform/SoloLa/master/solola_workflow.jpg
 
 - Melody contour plot reproduced from J. Salamon, E. Gómez, D. P. W. Ellis and G. Richard, "Melody Extraction from Polyphonic Music Signals: Approaches, Applications and Challenges", IEEE Signal Processing Magazine, 31(2):118-134, Mar. 2014 with permission from the authors.
 

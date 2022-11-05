@@ -45,11 +45,18 @@ expression_style_note:  Text file of array, storing the onset, offset
                      1 for vibrato: vivrato with entext smaller or equal to 1 semitone,
                      2 for wild vibrato: vibrato with entext larger than 1 semitone)
 """
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import unicode_literals
+from __future__ import division
 
+from builtins import str
+from builtins import range
+from past.utils import old_div
 from mir_eval.transcription import precision_recall_f1_overlap
 from mir_eval.onset import f_measure
-from technique import *
-from note import Note
+from .technique import *
+from .note import Note
 import numpy as np
 import os, sys, csv
 
@@ -89,7 +96,7 @@ def calculate_candidate_cls_accuracy_f_measure(annotation_ts_pseudo, candidate_r
     y_pred = candidate_result[:,2].copy()
     answer_tech_dic = {'bend':[4,5], 'pull':[6], 'hamm':[7], 'slide':[8,9,10], 'vibrato':[11]}
     # make target tech list, e.g., ['bend', 'pull', 'vibrato']
-    target_tech_list = [t for t in tech_index_dic if t in answer_tech_dic.keys()]
+    target_tech_list = [t for t in tech_index_dic if t in list(answer_tech_dic.keys())]
     # make target tech index list, e.g., [3,4,5,6,11]
     target_tech_index_list = []
     for t in target_tech_list:
@@ -126,7 +133,7 @@ def calculate_candidate_cls_accuracy_f_measure(annotation_ts_pseudo, candidate_r
     # make target names list in index order
     target_names = []
     for index in range(len(tech_index_dic)):
-        target_names.append([k for k, v in tech_index_dic.iteritems() if v == index][0])
+        target_names.append([k for k, v in tech_index_dic.items() if v == index][0])
     # make classification report
     cls_report = classification_report(y_true, y_pred, target_names=target_names)
     # make confusion matrix
@@ -135,9 +142,9 @@ def calculate_candidate_cls_accuracy_f_measure(annotation_ts_pseudo, candidate_r
     # calculate non tech candidate which are predicted as normal
     # non_tech_candi_predicted_as_normal = np.where(candidate_result[np.where(candidate_result[:,2]!=-1)[0], 2]==tech_index_dic['normal'])[0].size
     # the ratio of (# of answers covered by candidate / # of all answers)
-    candidate_answer_ratio = tech_candidate/float(annotation_ts.shape[0])
+    candidate_answer_ratio = old_div(tech_candidate,float(annotation_ts.shape[0]))
     # the ratio of (# of expression style candidates / # of all candidates)
-    tech_candidte_ratio = tech_candidate/float(candidate_result.shape[0])
+    tech_candidte_ratio = old_div(tech_candidate,float(candidate_result.shape[0]))
 
     return cls_accuracy, cls_report, confusion_table, candidate_answer_ratio, tech_candidte_ratio, target_names
 
@@ -169,8 +176,8 @@ def calculate_ts_f_measure(annotation_ts, prediction_ts, tech):
     FN = len(ans_ts_list) - TP
 
     # calculate precision, recall, f-measure
-    P = TP/float(TP+FP) if (TP !=0 or FP!=0) else 0 
-    R = TP/float(TP+FN) if (TP !=0 or FN!=0) else 0
+    P = old_div(TP,float(TP+FP)) if (TP !=0 or FP!=0) else 0 
+    R = old_div(TP,float(TP+FN)) if (TP !=0 or FN!=0) else 0
     F = 2*P*R/float(P+R) if (P !=0 or R!=0) else 0
 
     return P, R, F, TP, FP, FN
@@ -219,7 +226,7 @@ def calculate_esn_f_measure(ans_list, pred_list, tech, onset_tolerance=0.1, offs
         #     correct, a_i, p_i = check_condition(a_i + 1, p_i + 1)
         if correct: 
             TP += 1
-    tch_list = range(T_PREBEND, T_NORMAL) if tech is None else [tech]
+    tch_list = list(range(T_PREBEND, T_NORMAL)) if tech is None else [tech]
     n_pred_techs, n_ans_techs = 0, 0
     for tch in tch_list:
         n_pred_techs += count_tech_in_list(pred_list, tch)
@@ -228,8 +235,8 @@ def calculate_esn_f_measure(ans_list, pred_list, tech, onset_tolerance=0.1, offs
     FN = n_ans_techs - TP
 
     # calculate precision, recall, f-measure
-    P = TP/float(TP+FP) if (TP !=0 or FP!=0) else 0
-    R = TP/float(TP+FN) if (TP !=0 or FN!=0) else 0
+    P = old_div(TP,float(TP+FP)) if (TP !=0 or FP!=0) else 0
+    R = old_div(TP,float(TP+FN)) if (TP !=0 or FN!=0) else 0
     F = 2*P*R/float(P+R) if (P !=0 or R!=0) else 0
 
     return P, R, F, TP, FP, FN
@@ -268,7 +275,7 @@ def evaluation_candidate_cls(annotation_ts_orig, candidate_result_orig, output_d
             plt.savefig(output_path)
         # Compute confusion matrix
         plot_confusion_matrix(confusion_table, title='Confusion matrix', output_path=output_dir+os.sep+filename+'.cm.png')
-        confusion_table_normalized = confusion_table.astype('float') / confusion_table.sum(axis=1)[:, np.newaxis]        
+        confusion_table_normalized = old_div(confusion_table.astype('float'), confusion_table.sum(axis=1)[:, np.newaxis])        
         plot_confusion_matrix(confusion_table_normalized, title='Normalized confusion matrix', output_path=output_dir+os.sep+filename+'.norm.cm.png')
 
 
@@ -277,43 +284,43 @@ def evaluation_candidate_cls(annotation_ts_orig, candidate_result_orig, output_d
     fh = open(output_dir+os.sep+filename+'.cls.eval',mode)
     sys.stdout = fh
     if string:
-        print string
+        print(string)
 
-    print '============================================================================'
-    print 'Evaluation on song '+filename
-    print '============================================================================'
+    print('============================================================================')
+    print('Evaluation on song '+filename)
+    print('============================================================================')
 
-    print '                      Candidate classification report                       '
-    print '----------------------------------------------------------------------------'
-    print 'Accuracy'
-    print '--------'
-    print '%8.4f'%cls_accuracy
-    print ' '
-    print 'The ratio of (# of answers covered by candidate / # of all answers)'
-    print '-------------------------------------------------------------------'
-    print '%8.4f'%candidate_answer_ratio
-    print ' '
-    print 'The ratio of (# of expression style candidates / # of all candidates)'
-    print '---------------------------------------------------------------------'
-    print '%8.4f'%tech_candidte_ratio
-    print ' '
-    print 'Classification report'
-    print '---------------------'
-    print cls_report
-    print ' '
-    print 'Confusion matrix'
-    print '----------------'
-    print '%8s'%' ',
+    print('                      Candidate classification report                       ')
+    print('----------------------------------------------------------------------------')
+    print('Accuracy')
+    print('--------')
+    print('%8.4f'%cls_accuracy)
+    print(' ')
+    print('The ratio of (# of answers covered by candidate / # of all answers)')
+    print('-------------------------------------------------------------------')
+    print('%8.4f'%candidate_answer_ratio)
+    print(' ')
+    print('The ratio of (# of expression style candidates / # of all candidates)')
+    print('---------------------------------------------------------------------')
+    print('%8.4f'%tech_candidte_ratio)
+    print(' ')
+    print('Classification report')
+    print('---------------------')
+    print(cls_report)
+    print(' ')
+    print('Confusion matrix')
+    print('----------------')
+    print('%8s'%' ', end=' ')
     for t in target_names:
         if t!=target_names[-1]:
-            print '%8s'%t,
+            print('%8s'%t, end=' ')
         else:
-            print '%8s'%t
+            print('%8s'%t)
     for index, row in enumerate(confusion_table):
-        print '%8s'%target_names[index],
+        print('%8s'%target_names[index], end=' ')
         for e in row:
-            print '%8s'%e,
-        print '\n'
+            print('%8s'%e, end=' ')
+        print('\n')
     # return to normal:
     sys.stdout = save_stdout
     fh.close()
@@ -382,7 +389,7 @@ def evaluation_note(ans_list, pred_list, output_dir, filename,
         w.writerow(['C_On_P_Off','','','','C_On_P','','','','C_On','','','','Stage'])
     w.writerow(result)
     fh.close()
-    print result
+    print(result)
 
 def remove_poly_esn(esn_list, poly_mask):
     esn_poly_removed = esn_list.copy()
@@ -424,8 +431,8 @@ def evaluation_esn( ans_list, pred_list, output_dir, filename,
         TP = sum([res[3] for res in result_lists])
         FP = sum([res[4] for res in result_lists])
         FN = sum([res[5] for res in result_lists])
-        P = TP/float(TP+FP) if (TP != 0 or FP != 0) else 0
-        R = TP/float(TP+FN) if (TP != 0 or FN != 0) else 0
+        P = old_div(TP,float(TP+FP)) if (TP != 0 or FP != 0) else 0
+        R = old_div(TP,float(TP+FN)) if (TP != 0 or FN != 0) else 0
         F = 2*P*R/float(P+R) if (P != 0 or R != 0) else 0
         return P, R, F, TP, FP, FN
 
@@ -471,7 +478,7 @@ def evaluation_esn( ans_list, pred_list, output_dir, filename,
     if mode=='w': w.writerow(['', 'Precision', '', 'Recall', '',  'F-measure'])
     for r in data: 
         w.writerow(r)
-        print r
+        print(r)
     fh.close()
 
 def remove_poly_ts(ts, poly_mask):
@@ -520,8 +527,8 @@ def evaluation_ts(ans_ts_list, pred_ts_list, output_dir,
         TP = sum([res[3] for res in result_lists])
         FP = sum([res[4] for res in result_lists])
         FN = sum([res[5] for res in result_lists])
-        P = TP/float(TP+FP) if (TP !=0 or FP!=0) else 0
-        R = TP/float(TP+FN) if (TP !=0 or FN!=0) else 0
+        P = old_div(TP,float(TP+FP)) if (TP !=0 or FP!=0) else 0
+        R = old_div(TP,float(TP+FN)) if (TP !=0 or FN!=0) else 0
         F = 2*P*R/float(P+R) if (P !=0 or R!=0) else 0
 
     if poly_mask:

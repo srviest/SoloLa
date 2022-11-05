@@ -1,9 +1,15 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import unicode_literals
+from __future__ import division
+from builtins import range
+from past.utils import old_div
 import numpy as np
 import operator
-import parameters as pm
-from contour import *
-from technique import *
-from note import *
+from . import parameters as pm
+from .contour import *
+from .technique import *
+from .note import *
 from scipy.stats import norm
 from os import sep
 
@@ -23,7 +29,7 @@ nf_weights /= nf_weights.sum()
 
 def conditioned_norm_filter(data):
     new_data = np.zeros(data.shape)
-    h_fil = len(nf_weights) / 2
+    h_fil = old_div(len(nf_weights), 2)
     for i in range(len(data)):
         if data[i] < min_pitch: continue
         v = np.array([ data[i-j] if ( 0 <= i-j < len(data) and \
@@ -32,7 +38,7 @@ def conditioned_norm_filter(data):
                                     ) else 0
                        for j in range(-h_fil, h_fil + 1)])
         w_sum = np.extract(v != 0, nf_weights).sum()
-        new_data[i] = (v * nf_weights).sum() / w_sum
+        new_data[i] = old_div((v * nf_weights).sum(), w_sum)
     return new_data
 
 def conditioned_mean_filter(data, filter_size=5):
@@ -40,7 +46,7 @@ def conditioned_mean_filter(data, filter_size=5):
         filter_size += 1
         print('Filter size should be odd. Set filer size to {}.'.format(filter_size))
     new_data = np.zeros(data.shape)
-    h_fil = filter_size / 2
+    h_fil = old_div(filter_size, 2)
     for i in range(len(data)):
         if data[i] < min_pitch: continue
         v = np.array([data[i-j] for j in range(-h_fil, h_fil + 1)
@@ -54,7 +60,7 @@ def conditioned_mean_filter(data, filter_size=5):
 ### Technique Embedded Note Tracking
 def tent(melody, debug=None):
     if melody.length == 0:
-        print 'Nothing in melody. (Length of melody is 0.)'
+        print('Nothing in melody. (Length of melody is 0.)')
         return
     melody = Contour(melody.start_idx, 
                      conditioned_norm_filter(melody.seq)
@@ -97,9 +103,9 @@ def tent(melody, debug=None):
         if debug is not None: mid_trend[subm.start_idx:subm.start_idx+len(tr)] = list(tr)
         nt = get_notes(subm, tr)
         ### Add candidate between submelodies
-        if idx in melody_cand_dict.keys():
+        if idx in list(melody_cand_dict.keys()):
             sign, sub_idx = melody_cand_dict[idx]
-            seg_pos = max(0, sub_idx - pm.MC_LENGTH/2 - notes[-1].onset)
+            seg_pos = max(0, sub_idx - old_div(pm.MC_LENGTH,2) - notes[-1].onset)
             seg = Segment(sign, seg_pos, pm.MC_LENGTH, melody)
             notes[-1].segs.append(seg)
             notes[-1].next_note = nt[0]
@@ -149,7 +155,7 @@ def scan_pattern_trend(pattern, next_extreme, alpha=0.5):
         slope = alpha * pattern_diff / pattern.length
         accu_plain = 0
         trend = [0] * pattern.length
-        plain_thres = min(pattern.length/3, 18)
+        plain_thres = min(old_div(pattern.length,3), 18)
         m = end_m = start_m = 0
         while m < pattern.length-1:
             if opt(pattern[m+1] - pattern[m], slope):
@@ -220,7 +226,7 @@ def get_notes(melody, trend):
              np.sign(all_segs[i].val) == np.sign(all_segs[i+1].val) and \
              abs(all_segs[i+1].val) not in (T_SLIDE_IN, T_SLIDE_OUT):
             cands.append(seg_melo.start_idx + all_segs[i].pos)
-            contour = seg_melo.sub_contour(range(start_point, all_segs[i].end))
+            contour = seg_melo.sub_contour(list(range(start_point, all_segs[i].end)))
             notes += estimate_notes(contour, cands, slide_in, slide_out)
             trend[start_point:all_segs[i].end] = contour.get_trend()
             start_point = all_segs[i].end
@@ -228,7 +234,7 @@ def get_notes(melody, trend):
             slide_in = -1
         else:
             cands.append(seg_melo.start_idx + all_segs[i].pos)
-    contour = seg_melo.sub_contour(range(start_point, seg_melo.length))
+    contour = seg_melo.sub_contour(list(range(start_point, seg_melo.length)))
     notes += estimate_notes(contour, cands, slide_in, slide_out)
     ### update the trend
     trend[start_point:seg_melo.length] = contour.get_trend()
@@ -336,7 +342,7 @@ def create_note_0(melo, slide_in, slide_out):
     if in_tech is not None: techs.append(in_tech)
     out_tech, ed = has_slide_out(melo, slide_out)
     if out_tech is not None: techs.append(out_tech)
-    pitch = melo.estimated_pitch(range(st, ed))
+    pitch = melo.estimated_pitch(list(range(st, ed)))
     return [CandidateNote(pitch, melo.start_idx, melo.length, techs=techs)]
 
 def create_note_1(melo, seg, slide_in, slide_out):
@@ -347,7 +353,7 @@ def create_note_1(melo, seg, slide_in, slide_out):
     out_tech, ed = has_slide_out(melo, slide_out)
 
     ### First Note
-    pitch = melo.estimated_pitch(range(st, seg.pos))
+    pitch = melo.estimated_pitch(list(range(st, seg.pos)))
     note = get_note_with_seg(pitch, melo.start_idx, seg.end, techs, seg)
     notes.append(note)
     ### Second Note
@@ -355,7 +361,7 @@ def create_note_1(melo, seg, slide_in, slide_out):
         techs2 = []
         if out_tech is not None: techs2.append(out_tech)
         # if note.tech(T_SLIDE).value == 1: techs2.append(Tech(T_SLIDE, 2))
-        pitch2 = melo.estimated_pitch(range(seg.end, ed))
+        pitch2 = melo.estimated_pitch(list(range(seg.end, ed)))
         note2 = CandidateNote(pitch2, melo.start_idx + seg.end, melo.length - seg.end, techs=techs2)
         if isinstance(note, CandidateNote):
             ### Adjust onset and offset of two notes to the middle of seg
@@ -395,12 +401,12 @@ def create_note_2(melo, seg1, seg2, slide_in, slide_out):
     if in_tech is not None: techs.append(in_tech)
     out_tech, ed = has_slide_out(melo, slide_out)
     if in_tech is not None: techs3.append(out_tech)
-    pitch1 = melo.estimated_pitch(range(st, seg1.pos))
+    pitch1 = melo.estimated_pitch(list(range(st, seg1.pos)))
     note1 = get_note_with_seg(pitch1, melo.start_idx, seg1.end, techs, seg1)
     notes.append(note1)
     
     ### Second Note
-    pitch2 = melo.estimated_pitch(range(seg1.end, seg2.pos))
+    pitch2 = melo.estimated_pitch(list(range(seg1.end, seg2.pos)))
     new_seg2 = Segment(seg=seg2)
     new_seg2.pos -= seg1.end
     note2 = get_note_with_seg(pitch2, melo.start_idx + seg1.end, seg2.end - seg1.end, techs2, new_seg2)
@@ -420,7 +426,7 @@ def create_note_2(melo, seg1, seg2, slide_in, slide_out):
         techs3 = []
         if out_tech is not None: techs3.append(out_tech)
         # if note2.tech(T_SLIDE).value == 1: techs3.append(Tech(T_SLIDE, 2))
-        pitch3 = melo.estimated_pitch(range(seg2.end, ed))
+        pitch3 = melo.estimated_pitch(list(range(seg2.end, ed)))
         note3 = CandidateNote(pitch3, melo.start_idx + seg2.end, melo.length - seg2.end, techs=techs3)
         if isinstance(note2, CandidateNote):
             note2.duration = new_seg2.mid
@@ -439,7 +445,7 @@ def create_vibrato_note(melo, seg, slide_in, slide_out):
     if out_tech is not None: techs.append(out_tech)
     tval = max(int(round(seg.diff())), 1)
     techs.append(Tech(T_VIBRATO, tval))
-    pitch = melo.estimated_pitch(range(st, seg.pos))
+    pitch = melo.estimated_pitch(list(range(st, seg.pos)))
     return [CandidateNote(pitch, melo.start_idx, melo.length, techs=techs)]
 
 
@@ -465,7 +471,7 @@ def get_note_with_seg(pitch, start_idx, length, techs, seg):
 
 def _generate_extrema(y, y_cond, etype):
     ### Extract extrema from pruned matrix and add the extrema type to the matrix
-    e = y[np.extract(y_cond, range(len(y_cond)))]
+    e = y[np.extract(y_cond, list(range(len(y_cond))))]
     ### np.full is faster than np.vstack
     ext = np.full((e.shape[0], e.shape[-1]+1), float(etype))
     ext[:,:-1] = e
@@ -473,7 +479,7 @@ def _generate_extrema(y, y_cond, etype):
 
 def get_extrema(x):
     if len(x) == 0: 
-        print 'Error in get_extrema: Length of x should not be zero.'
+        print('Error in get_extrema: Length of x should not be zero.')
         return np.array([])
     x = np.array(x)
     ### Shrink the part of continuous same values

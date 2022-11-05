@@ -19,6 +19,13 @@ Returns:
                                 in Hz with extenion of .raw.melody.
 
 """
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from builtins import zip
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import numpy as np
 import os
 import networkx as nx
@@ -63,7 +70,7 @@ class Pluck(GuitarEvent):
             elif self.fret >= max_other_frets:
                 distance = self.fret - max_other_frets
             else:
-                distance = self.fret - (min_other_frets + max_other_frets)/2
+                distance = self.fret - old_div((min_other_frets + max_other_frets),2)
         else:
             raise ValueError('Must compare to a pluck or strum')
 
@@ -150,7 +157,7 @@ class Note(ScoreEvent):
         new_p_ind = (p_ind + step) % num_chroma
 
         note.pname = Note.pitch_classes[new_p_ind]
-        oct_diff = int(step / 12)
+        oct_diff = int(old_div(step, 12))
 
         note.oct = self.oct + oct_diff
 
@@ -216,7 +223,7 @@ class Score(object):
         '''
 
         for e in self.score_events:
-            print e
+            print(e)
 
     @staticmethod
     def handle_note(note):
@@ -228,7 +235,7 @@ class Score(object):
         pitch_names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
         MIDI_num%12
         pname = pitch_names[MIDI_num%12]
-        oct = int(MIDI_num/12-1)
+        oct = int(old_div(MIDI_num,12)-1)
 
         return Note(pname, oct)
 
@@ -427,8 +434,8 @@ def parse_input_files(input_files, ext='.wav'):
         # file was given, append to list
         if basename(input_files).find(ext)!=-1:
             files.append(input_files)
-    print '  Input files: '
-    for f in files: print '    ', f
+    print('  Input files: ')
+    for f in files: print('    ', f)
     return files
 
 
@@ -466,15 +473,15 @@ def parser():
     
 
 def main(args):
-    print '================================'
-    print 'Running fingering arrangement...'
-    print '================================'
+    print('================================')
+    print('Running fingering arrangement...')
+    print('================================')
     # parse and list files to be processed
     files = parse_input_files(args.input_files, ext='.esn')
     
     # create result directory
     if not os.path.exists(args.output_dir): os.makedirs(args.output_dir)
-    print '  Output directory: ', '\n', '    ', args.output_dir
+    print('  Output directory: ', '\n', '    ', args.output_dir)
 
     # processing
     for f in files:
@@ -485,7 +492,7 @@ def main(args):
         try:
             expression_style_note = np.loadtxt(f)
         except IOError:
-            print 'The expression style note of', name, 'doesn\'t exist!'
+            print('The expression style note of', name, 'doesn\'t exist!')
 
         # extract the pitch, onset and duration
         note_nparray = expression_style_note[:,0:3]
